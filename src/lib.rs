@@ -1,7 +1,7 @@
 //! My Language: A programming language with first-class AI integration
 //!
-//! This crate provides a lexer and parser for a language that treats AI operations
-//! as first-class citizens, with syntax-level support for:
+//! This crate provides a lexer, parser, and type checker for a language that treats
+//! AI operations as first-class citizens, with syntax-level support for:
 //!
 //! - AI model declarations and configuration
 //! - Prompt templates
@@ -11,14 +11,20 @@
 //! - AI-based contracts (pre/post conditions with AI verification)
 
 pub mod ast;
+pub mod checker;
 pub mod lexer;
 pub mod parser;
+pub mod scope;
 pub mod token;
+pub mod types;
 
 pub use ast::*;
+pub use checker::{check, CheckError, Checker};
 pub use lexer::Lexer;
 pub use parser::{ParseError, ParseResult, Parser};
+pub use scope::{Symbol, SymbolKind, SymbolTable};
 pub use token::{Span, Token, TokenKind};
+pub use types::Ty;
 
 /// Parse source code into an AST
 pub fn parse(source: &str) -> ParseResult<Program> {
@@ -27,6 +33,37 @@ pub fn parse(source: &str) -> ParseResult<Program> {
     let mut parser = Parser::new(tokens);
     parser.parse_program()
 }
+
+/// Parse and type-check source code
+pub fn compile(source: &str) -> Result<Program, CompileError> {
+    let program = parse(source).map_err(CompileError::Parse)?;
+    check(&program).map_err(CompileError::Check)?;
+    Ok(program)
+}
+
+/// Compilation error (parse or type check)
+#[derive(Debug)]
+pub enum CompileError {
+    Parse(ParseError),
+    Check(Vec<CheckError>),
+}
+
+impl std::fmt::Display for CompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CompileError::Parse(e) => write!(f, "Parse error: {}", e),
+            CompileError::Check(errors) => {
+                writeln!(f, "Type errors:")?;
+                for e in errors {
+                    writeln!(f, "  - {}", e)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl std::error::Error for CompileError {}
 
 #[cfg(test)]
 mod tests {
