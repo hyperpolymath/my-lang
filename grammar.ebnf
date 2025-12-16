@@ -1,0 +1,254 @@
+(* ============================================= *)
+(* My Language: Extended Grammar with AI        *)
+(* First-Class AI Integration                   *)
+(* ============================================= *)
+
+(* --- Top-Level Declarations --- *)
+program          = { top_level };
+top_level        = fn_decl
+                 | struct_decl
+                 | effect_decl
+                 | contract_decl
+                 | import_decl
+                 | comptime_decl
+                 | arena_decl
+                 | ai_model_decl
+                 | prompt_decl;
+
+(* --- AI-First Extensions --- *)
+
+(* AI Model Declaration *)
+ai_model_decl    = "ai_model" , ident , "{" ,
+                   { ai_model_attr } ,
+                   "}";
+ai_model_attr    = "provider:" , string_lit
+                 | "model:" , string_lit
+                 | "temperature:" , float_lit
+                 | "cache:" , bool_lit;
+
+(* Prompt Declaration (Prompt Literals) *)
+prompt_decl      = "prompt" , ident , "{" , string_lit , "}";
+
+(* --- Blocks and Statements --- *)
+block            = "{" , { stmt } , "}";
+stmt             = expr , ";"
+                 | "let" , [ "mut" ] , ident , [ ":" , type ] , "=" , expr , ";"
+                 | "if" , expr , block , [ "else" , block ]
+                 | "go" , block
+                 | [ "return" | "await" ] , expr , ";"
+                 | "try" , expr , [ "?" ]
+                 | "comptime" , block
+                 | ai_stmt;
+
+(* AI Statements *)
+ai_stmt          = "ai" , ai_keyword , block
+                 | "ai" , ai_keyword , expr;
+
+ai_keyword       = "query"
+                 | "verify"
+                 | "generate"
+                 | "embed"
+                 | "classify"
+                 | "optimize"
+                 | "test"
+                 | "infer"
+                 | "constrain"
+                 | "validate";
+
+(* --- Expressions --- *)
+expr             = literal
+                 | ident
+                 | expr , "(" , [ expr_list ] , ")"
+                 | expr , "." , ident
+                 | expr , ( "=" | "+" | "-" | "*" | "/" | "==" | "!=" | "<" | ">" | "&&" | "||" ) , expr
+                 | "try" , expr
+                 | block
+                 | "restrict" , expr
+                 | ai_expr
+                 | lambda_expr
+                 | match_expr;
+
+(* AI Expressions *)
+ai_expr          = "ai" , ai_keyword , "{" , ai_body , "}"
+                 | "ai" , ai_keyword , "(" , expr_list , ")"
+                 | "ai!" , "{" , string_lit , "}"  (* Quick AI query *)
+                 | prompt_invocation;
+
+ai_body          = { ai_body_item };
+ai_body_item     = ident , ":" , expr
+                 | string_lit;
+
+prompt_invocation = ident , "!" , [ "(" , expr_list , ")" ];
+
+(* Lambda Expressions *)
+lambda_expr      = "|" , [ param_list ] , "|" , ( "=>" , expr | block );
+
+(* Match Expressions *)
+match_expr       = "match" , expr , "{" , { match_arm } , "}";
+match_arm        = pattern , "=>" , expr , [ "," ];
+
+pattern          = literal
+                 | ident
+                 | "_"
+                 | ident , "(" , [ pattern_list ] , ")";
+pattern_list     = pattern , { "," , pattern };
+
+expr_list        = expr , { "," , expr };
+
+(* --- Types --- *)
+type             = "Int"
+                 | "String"
+                 | "Bool"
+                 | "Float"
+                 | ident
+                 | type , "->" , type
+                 | "Effect" , "<" , type , ">"
+                 | "AI" , "<" , type , ">"            (* AI Effect Type *)
+                 | [ "&" , [ "mut" ] ] , type
+                 | "[" , type , "]"
+                 | "{" , { ident , ":" , type } , "}"
+                 | "(" , type , { "," , type } , ")"
+                 | type_constraint;
+
+(* AI Type Constraints *)
+type_constraint  = type , "where" , ai_constraint_list;
+ai_constraint_list = ai_constraint , { "," , ai_constraint };
+ai_constraint    = "ai_check:" , string_lit
+                 | "ai_valid:" , string_lit
+                 | "ai_format:" , string_lit
+                 | "ai_infer"
+                 | ident , ":" , expr;
+
+(* --- Function Declarations --- *)
+fn_decl          = [ fn_modifier ] , "fn" , ident , "(" , [ param_list ] , ")"
+                 , [ "->" , type ]
+                 , [ contract ]
+                 , block;
+
+fn_modifier      = "async"
+                 | "#[safe]"
+                 | "#[ai_optimize]"
+                 | "#[ai_test]"
+                 | "#[ai_hint(" , string_lit , ")]"
+                 | "#[ai_cache]"
+                 | "#[comptime]";
+
+param_list       = param , { "," , param };
+param            = ident , ":" , type;
+
+(* --- Structs --- *)
+struct_decl      = [ struct_modifier ] , "struct" , ident ,
+                   [ "<" , type_params , ">" ] ,
+                   "{", { struct_field } , "}";
+
+struct_modifier  = "#[ai_generate]"
+                 | "#[derive(" , derive_list , ")]";
+
+derive_list      = ident , { "," , ident };
+
+struct_field     = [ field_modifier ] , ident , ":" , type , [ "," ];
+
+field_modifier   = "#[ai_validate(" , string_lit , ")]"
+                 | "#[ai_embed]";
+
+type_params      = ident , { "," , ident };
+
+(* --- Effects --- *)
+effect_decl      = "effect" , ident , "{", { effect_op } , "}";
+effect_op        = "op" , ident , ":" , type;
+
+(* --- Contracts --- *)
+contract         = "where" , contract_clause_list;
+contract_clause_list = contract_clause , { "," , contract_clause };
+contract_clause  = "pre:" , expr
+                 | "post:" , expr
+                 | "invariant:" , expr
+                 | "ai_check:" , string_lit
+                 | "ai_ensure:" , string_lit;
+
+(* --- Comptime --- *)
+comptime_decl    = "comptime" , block;
+
+(* --- Arenas --- *)
+arena_decl       = "let" , ident , "=" , "Arena::new()" , ";";
+
+(* --- Imports --- *)
+import_decl      = "use" , module_path , [ "::" , "{" , import_list , "}" ] , ";";
+module_path      = ident , { "::" , ident };
+import_list      = ident , { "," , ident };
+
+(* --- Literals --- *)
+literal          = int_lit
+                 | float_lit
+                 | string_lit
+                 | "true"
+                 | "false"
+                 | array_lit
+                 | record_lit;
+
+int_lit          = digit , { digit };
+float_lit        = digit , { digit } , "." , digit , { digit };
+string_lit       = '"' , { char } , '"';
+char             = ? any Unicode character except '"' ?;
+
+array_lit        = "[" , [ expr_list ] , "]";
+record_lit       = "{" , [ record_fields ] , "}";
+record_fields    = record_field , { "," , record_field };
+record_field     = ident , ":" , expr;
+
+(* --- Identifiers --- *)
+ident            = letter , { letter | digit | "_" };
+letter           = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m"
+                 | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
+                 | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M"
+                 | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z";
+digit            = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+
+(* ============================================= *)
+(* My Language: AI Integration Features         *)
+(* ============================================= *)
+
+(* 1. AI SYNTAX LEVEL *)
+(*    - ai query { }     : General AI queries  *)
+(*    - ai verify { }    : Verification        *)
+(*    - ai generate { }  : Code generation     *)
+(*    - ai embed { }     : Embeddings          *)
+(*    - ai classify { }  : Classification      *)
+(*    - #[ai_hint("...")] : Hints to AI        *)
+(*    - #[ai_optimize]   : AI optimization     *)
+(*    - #[ai_test]       : AI test generation  *)
+(*    - prompt name { "..." } : Prompts        *)
+
+(* 2. AI TYPE SYSTEM *)
+(*    - AI<T>           : AI effect type       *)
+(*    - where ai_check: "..." : Constraints    *)
+(*    - type ValidEmail = String where         *)
+(*      ai_valid("email")                      *)
+(*    - let x: ai_infer = ... : AI inference   *)
+
+(* 3. AI EFFECT SYSTEM *)
+(*    - AI as composable effect                *)
+(*    - Effect handlers for AI                 *)
+(*    - fn foo() -> AI<Result<T, E>>           *)
+
+(* 4. AI SEMANTICS *)
+(*    - AI in contracts (pre/post/invariant)   *)
+(*    - AI in comptime blocks                  *)
+(*    - AI in assertions                       *)
+(*    - AI-driven optimizations                *)
+
+(* 5. AI BUILT-INS *)
+(*    - Standard AI operations                 *)
+(*    - Caching layer                          *)
+(*    - Model selection                        *)
+(*    - Embeddings and vector ops              *)
+
+(* ============================================= *)
+(* Keywords: fn, struct, effect, where, pre,    *)
+(* post, invariant, comptime, let, mut, if,     *)
+(* else, go, return, await, try, restrict,     *)
+(* and, or, true, false, ai, query, verify,    *)
+(* generate, embed, classify, optimize, test,   *)
+(* infer, constrain, validate, prompt,          *)
+(* ai_model, match                              *)
+(* ============================================= *)
