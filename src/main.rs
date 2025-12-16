@@ -13,13 +13,16 @@ fn main() {
         eprintln!("Usage: my-lang <command> [file]");
         eprintln!();
         eprintln!("Commands:");
-        eprintln!("  parse <file>    Parse a source file and print the AST");
-        eprintln!("  lex <file>      Tokenize a source file");
-        eprintln!("  check <file>    Parse and validate a source file");
+        eprintln!("  parse <file>      Parse a source file and print the AST");
+        eprintln!("  lex <file>        Tokenize a source file");
+        eprintln!("  check <file>      Parse and validate syntax");
+        eprintln!("  typecheck <file>  Parse and type-check a source file");
+        eprintln!("  compile <file>    Full compilation (parse + typecheck)");
+        eprintln!("  repl              Interactive REPL");
         eprintln!();
         eprintln!("Examples:");
         eprintln!("  my-lang parse example.ml");
-        eprintln!("  my-lang lex example.ml");
+        eprintln!("  my-lang typecheck example.ml");
         process::exit(1);
     }
 
@@ -46,6 +49,20 @@ fn main() {
                 process::exit(1);
             }
             check_file(&args[2]);
+        }
+        "typecheck" => {
+            if args.len() < 3 {
+                eprintln!("Error: typecheck command requires a file argument");
+                process::exit(1);
+            }
+            typecheck_file(&args[2]);
+        }
+        "compile" => {
+            if args.len() < 3 {
+                eprintln!("Error: compile command requires a file argument");
+                process::exit(1);
+            }
+            compile_file(&args[2]);
         }
         "repl" => {
             run_repl();
@@ -117,6 +134,59 @@ fn check_file(path: &str) {
         }
         Err(e) => {
             eprintln!("FAIL: {}", e);
+            process::exit(1);
+        }
+    }
+}
+
+fn typecheck_file(path: &str) {
+    let source = match fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error reading file '{}': {}", path, e);
+            process::exit(1);
+        }
+    };
+
+    let program = match my_lang::parse(&source) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("Parse error: {}", e);
+            process::exit(1);
+        }
+    };
+
+    match my_lang::check(&program) {
+        Ok(()) => {
+            println!("OK: {} type-checked successfully", path);
+            println!("    {} top-level items", program.items.len());
+        }
+        Err(errors) => {
+            eprintln!("Type errors in {}:", path);
+            for error in &errors {
+                eprintln!("  - {}", error);
+            }
+            process::exit(1);
+        }
+    }
+}
+
+fn compile_file(path: &str) {
+    let source = match fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error reading file '{}': {}", path, e);
+            process::exit(1);
+        }
+    };
+
+    match my_lang::compile(&source) {
+        Ok(program) => {
+            println!("OK: {} compiled successfully", path);
+            println!("    {} top-level items", program.items.len());
+        }
+        Err(e) => {
+            eprintln!("Compilation failed: {}", e);
             process::exit(1);
         }
     }

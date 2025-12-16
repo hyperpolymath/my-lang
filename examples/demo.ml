@@ -107,6 +107,15 @@ fn fibonacci(n: Int) -> Int {
 // ============================================
 
 fn demonstrate_ai_expressions() {
+    // Define sample data for demonstration
+    let code_snippet = "fn main() {}";
+    let user_data = "{ \"name\": \"John\" }";
+    let template = "Generate a {type}";
+    let context = "programming";
+    let document = "This is a document.";
+    let text = "I love this product!";
+    let article_text = "Long article content here.";
+
     // Quick AI query
     let answer = ai! { "What is the capital of France?" };
 
@@ -208,7 +217,7 @@ fn main() {
 
     // Match on result
     match analysis {
-        Ok(result) => result,
+        Ok(r) => "Analysis succeeded",
         Err(e) => "Analysis failed",
     };
 }
