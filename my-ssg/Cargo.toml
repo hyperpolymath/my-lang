@@ -1,0 +1,14 @@
+[package]
+name = "my-ssg"
+version = "0.1.0"
+edition = "2021"
+description = "Static Site Generator powered by My Language"
+license = "MIT"
+
+[[bin]]
+name = "my-ssg"
+path = "src/main.rs"
+
+[dependencies]
+my-lang = { path = ".." }
+thiserror = "1.0"
