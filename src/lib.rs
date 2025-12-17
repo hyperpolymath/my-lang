@@ -20,6 +20,10 @@ pub mod stdlib;
 pub mod token;
 pub mod types;
 
+// Library modules (common utilities and language-specific features)
+#[path = "../lib/mod.rs"]
+pub mod library;
+
 pub use ast::*;
 pub use checker::{check, CheckError, Checker};
 pub use interpreter::{Interpreter, RuntimeError, Value};
@@ -28,6 +32,9 @@ pub use parser::{ParseError, ParseResult, Parser};
 pub use scope::{Symbol, SymbolKind, SymbolTable};
 pub use token::{Span, Token, TokenKind};
 pub use types::Ty;
+
+// Library prelude for easy access to common functions and types
+pub use library::prelude;
 
 /// Parse source code into an AST
 pub fn parse(source: &str) -> ParseResult<Program> {
