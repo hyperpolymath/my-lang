@@ -251,12 +251,133 @@ impl Interpreter {
     pub fn new() -> Self {
         let globals = Environment::new();
 
-        // Register standard library functions
+        // Add built-in functions
         {
             let mut env = globals.borrow_mut();
-            crate::stdlib::register_stdlib(&mut |name, value| {
-                env.define(name, value);
-            });
+
+            // print function
+            env.define("print".to_string(), Value::NativeFunction(NativeFunction {
+                name: "print".to_string(),
+                arity: 1, 
+                func: |args| {
+                    println!("{}", args[0]);
+                    Ok(Value::Unit)
+                },
+            }));
+
+            // println function
+            env.define("println".to_string(), Value::NativeFunction(NativeFunction {
+                name: "println".to_string(),
+                arity: 1,
+                func: |args| {
+                    println!("{}", args[0]);
+                    Ok(Value::Unit)
+                },
+            }));
+
+            // len function
+            env.define("len".to_string(), Value::NativeFunction(NativeFunction {
+                name: "len".to_string(),
+                arity: 1,
+                func: |args| {
+                    match &args[0] {
+                        Value::String(s) => Ok(Value::Int(s.len() as i64)),
+                        Value::Array(arr) => Ok(Value::Int(arr.len() as i64)),
+                        _ => Err(RuntimeError::TypeError {
+                            expected: "string or array".to_string(),
+                            got: format!("{:?}", args[0]),
+                        }),
+                    }
+                },
+            }));
+
+            // type_of function
+            env.define("type_of".to_string(), Value::NativeFunction(NativeFunction {
+                name: "type_of".to_string(),
+                arity: 1,
+                func: |args| {
+                    let type_name = match &args[0] {
+                        Value::Int(_) => "Int",
+                        Value::Float(_) => "Float",
+                        Value::String(_) => "String",
+                        Value::Bool(_) => "Bool",
+                        Value::Unit => "Unit",
+                        Value::Array(_) => "Array",
+                        Value::Record(_) => "Record",
+                        Value::Function(_) => "Function",
+                        Value::NativeFunction(_) => "NativeFunction",
+                        Value::AiResult(_) => "AiResult",
+                    };
+                    Ok(Value::String(type_name.to_string()))
+                },
+            }));
+
+            // to_string function
+            env.define("to_string".to_string(), Value::NativeFunction(NativeFunction {
+                name: "to_string".to_string(),
+                arity: 1,
+                func: |args| {
+                    Ok(Value::String(format!("{}", args[0])))
+                },
+            }));
+
+            // to_int function
+            env.define("to_int".to_string(), Value::NativeFunction(NativeFunction {
+                name: "to_int".to_string(),
+                arity: 1,
+                func: |args| {
+                    match &args[0] {
+                        Value::Int(n) => Ok(Value::Int(*n)),
+                        Value::Float(f) => Ok(Value::Int(*f as i64)),
+                        Value::String(s) => s.parse::<i64>()
+                            .map(Value::Int)
+                            .map_err(|_| RuntimeError::TypeError {
+                                expected: "integer string".to_string(),
+                                got: s.clone(),
+                            }),
+                        Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
+                        _ => Err(RuntimeError::TypeError {
+                            expected: "convertible to int".to_string(),
+                            got: format!("{:?}", args[0]),
+                        }),
+                    }
+                },
+            }));
+
+            // assert function
+            env.define("assert".to_string(), Value::NativeFunction(NativeFunction {
+                name: "assert".to_string(),
+                arity: 1,
+                func: |args| {
+                    match &args[0] {
+                        Value::Bool(true) => Ok(Value::Unit),
+                        Value::Bool(false) => Err(RuntimeError::Custom("assertion failed".to_string())),
+                        _ => Err(RuntimeError::TypeError {
+                            expected: "bool".to_string(),
+                            got: format!("{:?}", args[0]),
+                        }),
+                    }
+                },
+            }));
+
+            // push function for arrays
+            env.define("push".to_string(), Value::NativeFunction(NativeFunction {
+                name: "push".to_string(),
+                arity: 2,
+                func: |args| {
+                    match &args[0] {
+                        Value::Array(arr) => {
+                            let mut new_arr = arr.clone();
+                            new_arr.push(args[1].clone());
+                            Ok(Value::Array(new_arr))
+                        }
+                        _ => Err(RuntimeError::TypeError {
+                            expected: "array".to_string(),
+                            got: format!("{:?}", args[0]),
+                        }),
+                    }
+                },
+            }));
         }
 
         let env = globals.clone();
