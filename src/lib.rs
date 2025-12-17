@@ -16,6 +16,7 @@ pub mod interpreter;
 pub mod lexer;
 pub mod parser;
 pub mod scope;
+pub mod stdlib;
 pub mod token;
 pub mod types;
 

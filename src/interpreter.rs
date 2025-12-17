@@ -258,7 +258,7 @@ impl Interpreter {
             // print function
             env.define("print".to_string(), Value::NativeFunction(NativeFunction {
                 name: "print".to_string(),
-                arity: 1,
+                arity: 1, 
                 func: |args| {
                     println!("{}", args[0]);
                     Ok(Value::Unit)
