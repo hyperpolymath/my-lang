@@ -16,12 +16,13 @@ pub mod interpreter;
 pub mod lexer;
 pub mod parser;
 pub mod scope;
+pub mod stdlib;
 pub mod token;
 pub mod types;
 
 pub use ast::*;
 pub use checker::{check, CheckError, Checker};
-pub use interpreter::{Interpreter, RuntimeError, Value};
+pub use interpreter::{Environment, Env, FunctionValue, Interpreter, RuntimeError, Value};
 pub use lexer::Lexer;
 pub use parser::{ParseError, ParseResult, Parser};
 pub use scope::{Symbol, SymbolKind, SymbolTable};
