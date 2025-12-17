@@ -14,6 +14,7 @@ pub mod ast;
 pub mod checker;
 pub mod lexer;
 pub mod parser;
+pub mod proptest;
 pub mod scope;
 pub mod token;
 pub mod types;
