@@ -26,7 +26,7 @@ pub mod library;
 
 pub use ast::*;
 pub use checker::{check, CheckError, Checker};
-pub use interpreter::{Environment, Env, FunctionValue, Interpreter, RuntimeError, Value};
+pub use interpreter::{Interpreter, RuntimeError, Value};
 pub use lexer::Lexer;
 pub use parser::{ParseError, ParseResult, Parser};
 pub use scope::{Symbol, SymbolKind, SymbolTable};
