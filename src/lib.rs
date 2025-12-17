@@ -12,6 +12,7 @@
 
 pub mod ast;
 pub mod checker;
+pub mod interpreter;
 pub mod lexer;
 pub mod parser;
 pub mod scope;
@@ -20,6 +21,7 @@ pub mod types;
 
 pub use ast::*;
 pub use checker::{check, CheckError, Checker};
+pub use interpreter::{Interpreter, RuntimeError, Value};
 pub use lexer::Lexer;
 pub use parser::{ParseError, ParseResult, Parser};
 pub use scope::{Symbol, SymbolKind, SymbolTable};
@@ -40,6 +42,33 @@ pub fn compile(source: &str) -> Result<Program, CompileError> {
     check(&program).map_err(CompileError::Check)?;
     Ok(program)
 }
+
+/// Parse, type-check, and evaluate source code
+pub fn eval(source: &str) -> Result<Value, EvalError> {
+    let program = parse(source).map_err(EvalError::Parse)?;
+    // Type checking is optional for the interpreter
+    let _ = check(&program);
+    let mut interpreter = Interpreter::new();
+    interpreter.run(&program).map_err(EvalError::Runtime)
+}
+
+/// Evaluation error (parse or runtime)
+#[derive(Debug)]
+pub enum EvalError {
+    Parse(ParseError),
+    Runtime(RuntimeError),
+}
+
+impl std::fmt::Display for EvalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EvalError::Parse(e) => write!(f, "Parse error: {}", e),
+            EvalError::Runtime(e) => write!(f, "Runtime error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for EvalError {}
 
 /// Compilation error (parse or type check)
 #[derive(Debug)]
