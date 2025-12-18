@@ -3,7 +3,7 @@
 
 (meta
   (project "my-lang")
-  (version "0.1.0")
+  (version "0.2.0")
   (repository "https://github.com/hyperpolymath/my-lang")
   (description "A programming language with first-class AI integration"))
 
