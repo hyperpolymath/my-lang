@@ -107,7 +107,7 @@ Frameworks, libraries, and community resources.
 
 ## Version
 
-Current version: **0.1.0** (Alpha)
+Current version: **0.2.0** (Interpreter Complete)
 
 ## Contributing
 
