@@ -1,507 +1,186 @@
-My: The Language That Grows With You 🌱
-
-My is a modern, systems-capable programming language designed for progressive complexity.
-Start with the clarity of Python or Go, and grow into the expressive power of Rust or Zig—without the steep learning curve.
-Whether you're building CLI tools, web backends, or embedded systems, My lets you scale your mental model as your project scales.
-
-
-✨ Why My?
-
-
-
-
-Feature
-
-🧠 My
-
-
-🐍 Python
-
-
-🦀 Rust
-
-
-
-
-
-Memory Safety
-
-✅ GC + Affine Types
-
-✅ GC (no compile-time checks)
-
-✅ Ownership (complex)
-
-
-Concurrency
-
-✅ M:N Threads + Async/Await
-
-❌ GIL-limited
-
-✅ Fearless (steep curve)
-
-
-Performance
-
-✅ Native + WASM
-
-❌ Interpreted
-
-✅ Zero-cost abstractions
-
-
-Contracts
-
-✅ First-Class
-
-❌ Runtime Assertions
-
-❌ Debug assertions only
-
-
-Metaprogramming
-
-✅ Comptime
-
-❌ Decorators/Macros
-
-✅ Procedural macros
-
-
-Learning Curve
-
-✅ Progressive
-
-✅ Low (but no safety)
-
-❌ Steep
-
-
-Reversibility
-
-✅ Checkpoint/Rollback
-
-❌ Not supported
-
-❌ Not supported
-
-
-Cut Operator
-
-✅ Prolog-style commitment
-
-❌ Not supported
-
-❌ Not supported
-
-
-
-My is designed to be auditable, composable, and future-proof—ideal for systems programming, tooling, and governance platforms.
-
-
-🧭 Modes of Collaboration
-
-My supports three distinct modes of development, each tailored to your preferred balance of human and AI collaboration:
-
-
-
-Mode
-Description
-Ideal For
-Status
-
-
-
-
-
-🧍 Solo
-
-Human-first: You write, My assists
-Craftsmanship, pedagogy, control
-
-✅ Implemented
-
-
-
-
-🤝 Duo
-
-Balanced: You and My co-create
-Pair programming, prototyping
-
-🚧 In Development
-
-
-
-🧠 Ensemble
-
-AI-first: My leads, you refine
-Exploration, automation, orchestration
-
-📋 Planned
-
-
-
-Each mode is opt-in and narratable—your repo can declare its mode, and My adapts its tooling, suggestions, and audit trails accordingly.
-
-🧍 Solo Mode Features (Implemented)
-
-The Solo dialect is now fully operational with these cutting-edge features:
-
-
-Affine Types - Resources that must be used exactly once (no accidental duplication)
-
-Linear Types - Resources that must be consumed (no resource leaks)
-
-Cut Operator (!) - Prolog-style parsing commitment (no backtracking after cut)
-
-Partial Reversibility - Checkpoint and rollback for computation recovery
-
-Pattern Matching - Algebraic data types with exhaustive matching
-
-Async/Await - First-class asynchronous programming
-
-Contracts - Design-by-contract with requires and ensures
-
-
-Move Semantics - Explicit resource management
-
-
-
-🌈 Newtonian Spectrum of Agents
-
-In Ensemble mode, My orchestrates a team of agentic octopuses—each colored according to Newton's sevenfold rainbow.
-This metaphor reflects decomposed capability, not cultural signaling, and evokes clarity through spectral analysis.
-
-
-
-Color
-Role Symbolism
-Solo Implementation
-
-
-
-
-
-🔴 Red
-
-Performance agent (hot path, core)
-Optimized recursive descent parser
-
-
-
-🟠 Orange
-
-Concurrency agent (thread orchestration)
-Async/await foundations
-
-
-
-🟡 Yellow
-
-Contract agent (validation, safety)
-Affine/linear type tracking
-
-
-
-🟢 Green
-
-Config agent (schema, hygiene)
-Structured AST
-
-
-
-🔵 Blue
-
-Audit agent (trace, log, narrate)
-Checkpoint/rollback system
-
-
-
-🟣 Indigo
-
-Comptime agent (metaprogramming)
-Compile-time evaluation (planned)
-
-
-
-🟤 Violet
-
-Governance agent (policy, mode)
-Mode declaration system
-
-
-
-
-🎻 The conductor octopus orchestrates this ensemble—each agent playing its part in harmony, from ledger scrolls to circuit boards.
-
-
-
-📦 Installation
-
-Prerequisites
-
-
-# Ubuntu/Debian
-sudo apt-get install ocaml
-
-# Fedora/RHEL
-sudo dnf install ocaml
-
-# macOS
-brew install ocaml
-
-# Arch Linux
-sudo pacman -S ocaml
-
-
-Building from Source
-
-
-git clone https://gitlab.com/your-org/my-lang  # Use your GitLab URL
-cd my-lang
-./scripts/build.sh  # Builds all dialects
-
-
-Quick Start (Solo Mode)
-
-
-cd solo-dialect
-./build.sh
-./solo  # Run the compiler
-
-
-
-
-🚀 Language Examples
-
-Hello World (Solo)
-
-
-fn main() {
-    let msg = "Hello, My!";
-    println(msg);
-    return 0;
+= My: Progressive AI-Native Language
+:toc: macro
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+[.lead]
+*Let learning unfold. Let types guard. Let agents compose.*
+
+Progressive-disclosure programming language with first-class AI integration—four dialects scaling from visual blocks to agentic orchestration.
+
+'''
+
+toc::[]
+
+== Who This Is For
+
+[cols="1,3"]
+|===
+|*Me-curious* |Educators seeking visual programming that secretly teaches affine types and reversible computation
+|*Solo practitioners* |Developers wanting Rust-level safety with Python-level approachability—human-first, AI-assisted
+|*Duet partners* |Teams exploring balanced human-AI pair programming with explicit collaboration protocols
+|*Ensemble conductors* |Architects orchestrating multi-agent systems with neurosymbolic grammar extensions
+|===
+
+== The Four Dialects
+
+My is not four languages—it is one language with *progressive reveal*. Concepts introduced as playful metaphors in Me unmask their CS foundations as learners advance.
+
+[cols="1,1,2,2"]
+|===
+|Dialect |Stage |Mode |Core Insight
+
+|*Me*
+|Visual (ages 8-12)
+|Blockly-like drag-and-drop
+|Resources as colored tokens; affine types as "use once" rules
+
+|*Solo*
+|Text (ages 13+)
+|Human-first, AI-assists
+|Explicit affine/linear types, checkpoint/rollback, cut operators
+
+|*Duet*
+|Collaborative
+|Balanced co-creation
+|Two-party protocols, neurosymbolic extensions
+
+|*Ensemble*
+|Orchestration
+|AI-leads, human-refines
+|Full agentic composition, Newtonian spectrum agents
+|===
+
+== Why My?
+
+[source,my]
+----
+// Type-safe AI with effect tracking
+fn summarize(text: String) -> AI<String> {
+    ai query {
+        prompt: "Summarize concisely"
+        context: text
+        model: claude
+    }
 }
 
-
-Affine Types - Resource Management
-
-
+// Affine types prevent resource bugs
 fn transfer(affine token: Token) -> Result {
     checkpoint save_state {
-        let result = process(move token);  // Must move, can't copy
+        let result = process(move token);  // must move, can't copy
         if !result.is_ok() {
-            rollback save_state;  // Partial reversibility
+            rollback save_state;
         }
         return result;
     }
 }
 
-
-Cut Operator - Parser Commitment
-
-
-fn parse_expression(input: String) -> Expr {
+// Cut operator for parser commitment
+fn parse(input: String) -> Expr {
     match input {
-        "(" => {
-            let expr = parse_nested();
-            !  // Cut - no backtracking after this
-            expect(")");
-            return expr;
-        },
+        "(" => { let e = parse_nested(); !; expect(")"); e },
         _ => parse_simple()
     }
 }
+----
 
+=== Technical Differentiators
 
-Linear Types - Guaranteed Consumption
+[cols="2,3"]
+|===
+|*AI as First-Class Citizen* |Native `ai!` expressions, typed `AI<T>` return values, prompt templates with effect tracking
+|*Progressive Safety* |Optional affine/linear types—start simple, add safety constraints as complexity grows
+|*Reversible Computation* |Checkpoint/rollback at language level, not library level
+|*Prolog-Heritage Parsing* |Cut operator (`!`) for committed choice in recursive descent
+|*Neurosymbolic Bridge* |Duet dialect enables explicit symbolic-neural protocol boundaries
+|===
 
+== Quick Start
 
-fn process_data(linear data: SecureData) {
-    let encrypted = encrypt(move data);  // data consumed
-    send_to_server(move encrypted);      // encrypted consumed
-    // Compile error if data not consumed!
-}
+[source,bash]
+----
+# Clone and build
+git clone https://github.com/hyperpolymath/my-lang
+cd my-lang
+cargo build --release
 
+# Run the REPL
+cargo run -- repl
 
-Reversible Computation
+# Run a program
+cargo run -- run examples/hello.my
 
+# Build a static site with My SSG
+cd my-ssg && cargo run -- new my-blog
+----
 
-fn distributed_compute() {
-    reverse {
-        let step1 = expensive_operation();
-        let step2 = transform(step1);
-        if !valid(step2) {
-            // Automatically reverses to start
-        }
-        return step2;
-    }
-}
+== Architecture
 
-
-
-
-🏗️ Architecture
-
-
+----
 my-lang/
-├── README.md                    # This file
-├── LICENSE                      # Your license
-├── scripts/
-│   └── build.sh                # Master build script
-├── solo-dialect/               # Human-first mode ✅
-│   ├── solo_compiler.ml        # Complete OCaml implementation
-│   ├── README.md               # Solo-specific docs
-│   ├── build.sh               # Solo build script
-│   └── examples/
-├── duet-dialect/              # AI-balanced mode 🚧
-│   └── README.md              # Design specification
-└── ensemble-dialect/          # AI-first mode 📋
-    └── README.md              # Vision document
-
-
-
-
-🧪 Testing
-
-
-# Run Solo compiler tests
-cd solo-dialect
-./solo  # Runs built-in test suite
-
-# Test your own My program
-echo 'fn main() { return 42; }' > test.my
-./solo test.my
-
-
-
-
-📚 Documentation
-
-
-
-Solo Dialect Guide - Complete guide to the implemented features
-
-Language Specification - Formal language specification (coming soon)
-
-Affine Types Tutorial - Learn resource management (coming soon)
-
-Reversibility Patterns - Checkpoint/rollback patterns (coming soon)
-
-
-
-🤝 Contributing
-
-We welcome contributions that align with My's philosophy of progressive complexity and human-AI collaboration.
-
-Fork the repository
-Create a feature branch (git checkout -b feature/amazing-feature)
-Commit your changes (git commit -m 'Add amazing feature')
-Push to the branch (git push origin feature/amazing-feature)
-Open a Pull Request
-
-Development Principles
-
-
-
-Simplicity First - Start simple, grow complex only when needed
-
-Safety by Default - Affine/linear types prevent resource bugs
-
-Reversibility - Support undo/redo at the language level
-
-Progressive Disclosure - Advanced features are opt-in
-
-Narratable Code - Code should tell a story
-
-
-
-📈 Roadmap
-
-
-✅ Phase 1: Solo Mode (Complete)
-
-
-
- Lexer and Parser with Cut Operator
-
- Affine and Linear Type System
-
- Checkpoint/Rollback Mechanism
-
- Pattern Matching
-
- Async/Await Foundations
-
-
-🚧 Phase 2: Duo Mode (Q1 2025)
-
-
-
- LSP Server Implementation
-
- AI Pair Programming Interface
-
- Suggestion Engine
-
- Collaborative Debugging
-
-
-📋 Phase 3: Ensemble Mode (Q2 2025)
-
-
-
- Multi-Agent Orchestration
-
- Newtonian Spectrum Implementation
-
- Policy Engine
-
- Distributed Compilation
-
-
-
-🔒 Security
-
-My takes security seriously with:
-
-Memory safety through affine/linear types
-No undefined behavior by design
-Capability-based security model
-Auditable compilation process
-
-Report security vulnerabilities to: security@my-lang.org
-
-
-📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-
-🙏 Acknowledgments
-
-
-The Rust community for proving memory safety matters
-The OCaml community for the implementation language
-Prolog for inspiring the cut operator
-The reversible computing research community
-
-
-
-💬 Community
-
-
-
-Discord: discord.gg/my-lang
-
-
-Forum: forum.my-lang.org
-
-
-Twitter: @MyLangOfficial
-
-
-
-"A language that grows with you, from solo craftsmanship to ensemble orchestration." 🌱🎻
+├── src/                    # Core language (Rust)
+│   ├── lexer.rs
+│   ├── parser.rs
+│   ├── checker.rs         # Type checker with AI<T> support
+│   └── interpreter.rs
+├── my-ssg/                 # Static site generator
+├── docs/wiki/              # Full documentation
+├── solo-dialect/           # OCaml reference (Solo mode)
+└── grammar.ebnf            # Formal specification
+----
+
+== Ecosystem Integration
+
+My participates in the *poly-mcp* constellation:
+
+[cols="1,2"]
+|===
+|https://github.com/hyperpolymath/poly-ssg-mcp[poly-ssg-mcp] |MCP hub for static site generators—My SSG exposes `my_init`, `my_build`, `my_serve`
+|https://github.com/hyperpolymath/poly-container-mcp[poly-container-mcp] |Multi-runtime container management
+|https://github.com/hyperpolymath/poly-iac-mcp[poly-iac-mcp] |Infrastructure-as-code MCP servers
+|===
+
+My SSG is one satellite in the broader poly-ssg ecosystem alongside Eclipse (Pony), Tyrano (TypeScript→ReScript migration), and others.
+
+== Newtonian Spectrum
+
+In Ensemble mode, seven specialized agents—colored by Newton's spectrum—orchestrate compilation and execution:
+
+[cols="1,2,2"]
+|===
+|Color |Role |Solo Foundation
+
+|Red |Performance (hot paths) |Optimized parser
+|Orange |Concurrency (async) |Async/await runtime
+|Yellow |Contracts (safety) |Affine type tracking
+|Green |Config (schema) |Structured AST
+|Blue |Audit (trace) |Checkpoint system
+|Indigo |Comptime (meta) |Compile-time evaluation
+|Violet |Governance (policy) |Mode declarations
+|===
+
+== Status
+
+[cols="2,1"]
+|===
+|Component |Status
+
+|Solo dialect (human-first) |Complete
+|Lexer, Parser, Type Checker |Complete
+|Interpreter & REPL |Complete
+|AI Runtime (mock) |Complete
+|My SSG |Complete
+|Duet dialect |In Development
+|Ensemble dialect |Planned
+|Native compiler |Planned
+|===
+
+== License
+
+MIT License—see link:LICENSE[LICENSE].
+
+'''
+
+[quote]
+A language that grows with you—from visual tokens to agentic ensembles.
