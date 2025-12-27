@@ -118,11 +118,210 @@ impl Default for Checker {
 
 impl Checker {
     pub fn new() -> Self {
-        Self {
+        let mut checker = Self {
             symbols: SymbolTable::new(),
             types: TypeEnv::new(),
             errors: Vec::new(),
             current_return_type: None,
+        };
+        checker.register_stdlib();
+        checker
+    }
+
+    /// Register standard library functions in the symbol table
+    fn register_stdlib(&mut self) {
+        use crate::stdlib::stdlib_functions;
+
+        // Define types for each stdlib function
+        for name in stdlib_functions() {
+            let ty = Self::stdlib_function_type(name);
+            let _ = self.symbols.define(Symbol {
+                name: name.to_string(),
+                kind: SymbolKind::Function,
+                ty,
+                span: Span::default(),
+                mutable: false,
+            });
+        }
+    }
+
+    /// Get the type signature for a stdlib function
+    fn stdlib_function_type(name: &str) -> Ty {
+        match name {
+            // I/O functions
+            "print" | "println" | "debug" => Ty::Function {
+                params: vec![Ty::Unknown], // Accepts any type
+                result: Box::new(Ty::Unit),
+            },
+            "input" => Ty::Function {
+                params: vec![],
+                result: Box::new(Ty::String),
+            },
+            "input_prompt" => Ty::Function {
+                params: vec![Ty::String],
+                result: Box::new(Ty::String),
+            },
+
+            // String functions
+            "len" => Ty::Function {
+                params: vec![Ty::Unknown], // String or Array
+                result: Box::new(Ty::Int),
+            },
+            "str_concat" => Ty::Function {
+                params: vec![Ty::Unknown, Ty::Unknown],
+                result: Box::new(Ty::String),
+            },
+            "str_split" => Ty::Function {
+                params: vec![Ty::String, Ty::String],
+                result: Box::new(Ty::Array(Box::new(Ty::String))),
+            },
+            "str_join" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::String)), Ty::String],
+                result: Box::new(Ty::String),
+            },
+            "str_trim" | "str_upper" | "str_lower" => Ty::Function {
+                params: vec![Ty::String],
+                result: Box::new(Ty::String),
+            },
+            "str_contains" | "str_starts_with" | "str_ends_with" => Ty::Function {
+                params: vec![Ty::String, Ty::String],
+                result: Box::new(Ty::Bool),
+            },
+            "str_replace" | "str_substring" => Ty::Function {
+                params: vec![Ty::String, Ty::Unknown, Ty::Unknown],
+                result: Box::new(Ty::String),
+            },
+            "char_at" => Ty::Function {
+                params: vec![Ty::String, Ty::Int],
+                result: Box::new(Ty::String),
+            },
+
+            // Math functions
+            "abs" | "floor" | "ceil" | "round" => Ty::Function {
+                params: vec![Ty::Unknown], // Numeric
+                result: Box::new(Ty::Unknown),
+            },
+            "min" | "max" | "pow" | "mod" => Ty::Function {
+                params: vec![Ty::Unknown, Ty::Unknown],
+                result: Box::new(Ty::Unknown),
+            },
+            "sqrt" | "sin" | "cos" | "tan" | "log" | "log10" | "exp" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Float),
+            },
+            "PI" | "E" | "TAU" => Ty::Float,
+
+            // Array functions
+            "push" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::Unknown)), Ty::Unknown],
+                result: Box::new(Ty::Array(Box::new(Ty::Unknown))),
+            },
+            "pop" | "reverse" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Unknown),
+            },
+            "first" | "last" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::Unknown))],
+                result: Box::new(Ty::Unknown),
+            },
+            "get" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::Unknown)), Ty::Int],
+                result: Box::new(Ty::Unknown),
+            },
+            "set" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::Unknown)), Ty::Int, Ty::Unknown],
+                result: Box::new(Ty::Array(Box::new(Ty::Unknown))),
+            },
+            "concat" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::Unknown)), Ty::Array(Box::new(Ty::Unknown))],
+                result: Box::new(Ty::Array(Box::new(Ty::Unknown))),
+            },
+            "slice" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::Unknown)), Ty::Int, Ty::Int],
+                result: Box::new(Ty::Array(Box::new(Ty::Unknown))),
+            },
+            "contains" => Ty::Function {
+                params: vec![Ty::Array(Box::new(Ty::Unknown)), Ty::Unknown],
+                result: Box::new(Ty::Bool),
+            },
+            "range" => Ty::Function {
+                params: vec![Ty::Int, Ty::Int],
+                result: Box::new(Ty::Array(Box::new(Ty::Int))),
+            },
+            "is_empty" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Bool),
+            },
+
+            // Type functions
+            "type_of" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::String),
+            },
+            "to_string" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::String),
+            },
+            "to_int" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Int),
+            },
+            "to_float" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Float),
+            },
+            "to_bool" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Bool),
+            },
+            "is_int" | "is_float" | "is_string" | "is_bool" | "is_array" | "is_function" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Bool),
+            },
+
+            // Utility functions
+            "assert" => Ty::Function {
+                params: vec![Ty::Bool],
+                result: Box::new(Ty::Unit),
+            },
+            "assert_eq" => Ty::Function {
+                params: vec![Ty::Unknown, Ty::Unknown],
+                result: Box::new(Ty::Unit),
+            },
+            "panic" => Ty::Function {
+                params: vec![Ty::String],
+                result: Box::new(Ty::Unit),
+            },
+            "identity" | "clone" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Unknown),
+            },
+            "default" => Ty::Function {
+                params: vec![Ty::String],
+                result: Box::new(Ty::Unknown),
+            },
+            "hash" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Int),
+            },
+            "time" | "random" => Ty::Function {
+                params: vec![],
+                result: Box::new(Ty::Float),
+            },
+            "sleep" => Ty::Function {
+                params: vec![Ty::Unknown],
+                result: Box::new(Ty::Unit),
+            },
+            "random_int" => Ty::Function {
+                params: vec![Ty::Int, Ty::Int],
+                result: Box::new(Ty::Int),
+            },
+            "env" => Ty::Function {
+                params: vec![Ty::String],
+                result: Box::new(Ty::String),
+            },
+
+            _ => Ty::Unknown,
         }
     }
 
