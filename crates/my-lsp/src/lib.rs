@@ -12,7 +12,7 @@
 //! - Formatting
 //! - Signature help
 
-use my_lang::{parse, check, Program, CheckError, Span};
+use my_lang::{parse, check, Program, CheckError, Span, TopLevel};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -212,11 +212,105 @@ impl LanguageServer for MyLanguageServer {
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let uri = &params.text_document_position_params.text_document.uri;
-        let _position = params.text_document_position_params.position;
+        let position = params.text_document_position_params.position;
         let docs = self.documents.read().await;
 
-        if let Some(_doc) = docs.get(uri) {
-            // TODO: Implement hover information
+        if let Some(doc) = docs.get(uri) {
+            if let Some(program) = &doc.program {
+                // Find word at position
+                let word = get_word_at_position(&doc.text, position);
+
+                // Look up in definitions
+                for item in &program.items {
+                    match item {
+                        my_lang::TopLevel::Function(f) => {
+                            if f.name.name == word {
+                                let params_str: Vec<String> = f.params.iter()
+                                    .map(|p| format!("{}: {:?}", p.name.name, p.ty))
+                                    .collect();
+                                let ret_str = f.return_type.as_ref()
+                                    .map(|t| format!(" -> {:?}", t))
+                                    .unwrap_or_default();
+
+                                return Ok(Some(Hover {
+                                    contents: HoverContents::Markup(MarkupContent {
+                                        kind: MarkupKind::Markdown,
+                                        value: format!("```my\nfn {}({}){}\n```", f.name.name, params_str.join(", "), ret_str),
+                                    }),
+                                    range: None,
+                                }));
+                            }
+                        }
+                        my_lang::TopLevel::Struct(s) => {
+                            if s.name.name == word {
+                                let fields_str: Vec<String> = s.fields.iter()
+                                    .map(|f| format!("    {}: {:?}", f.name.name, f.ty))
+                                    .collect();
+
+                                return Ok(Some(Hover {
+                                    contents: HoverContents::Markup(MarkupContent {
+                                        kind: MarkupKind::Markdown,
+                                        value: format!("```my\nstruct {} {{\n{}\n}}\n```", s.name.name, fields_str.join(",\n")),
+                                    }),
+                                    range: None,
+                                }));
+                            }
+                        }
+                        my_lang::TopLevel::Effect(e) => {
+                            if e.name.name == word {
+                                return Ok(Some(Hover {
+                                    contents: HoverContents::Markup(MarkupContent {
+                                        kind: MarkupKind::Markdown,
+                                        value: format!("```my\neffect {} {{ ... }}\n```", e.name.name),
+                                    }),
+                                    range: None,
+                                }));
+                            }
+                        }
+                        my_lang::TopLevel::AiModel(m) => {
+                            if m.name.name == word {
+                                return Ok(Some(Hover {
+                                    contents: HoverContents::Markup(MarkupContent {
+                                        kind: MarkupKind::Markdown,
+                                        value: format!("```my\nai_model {} {{ ... }}\n```\nAI model configuration", m.name.name),
+                                    }),
+                                    range: None,
+                                }));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Check for keywords
+                let keyword_docs = match word.as_str() {
+                    "fn" => Some("Function declaration keyword"),
+                    "let" => Some("Variable binding keyword"),
+                    "if" => Some("Conditional expression"),
+                    "else" => Some("Alternative branch for if"),
+                    "match" => Some("Pattern matching expression"),
+                    "struct" => Some("Structure type definition"),
+                    "effect" => Some("Effect type declaration"),
+                    "ai" => Some("AI expression - invoke AI capabilities"),
+                    "ai_model" => Some("AI model configuration block"),
+                    "return" => Some("Return from function"),
+                    "go" => Some("Spawn concurrent task"),
+                    "await" => Some("Wait for async result"),
+                    "try" => Some("Error handling expression"),
+                    "comptime" => Some("Compile-time evaluation block"),
+                    _ => None,
+                };
+
+                if let Some(doc_text) = keyword_docs {
+                    return Ok(Some(Hover {
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: format!("**{}**\n\n{}", word, doc_text),
+                        }),
+                        range: None,
+                    }));
+                }
+            }
         }
 
         Ok(None)
@@ -227,11 +321,35 @@ impl LanguageServer for MyLanguageServer {
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
         let uri = &params.text_document_position_params.text_document.uri;
-        let _position = params.text_document_position_params.position;
+        let position = params.text_document_position_params.position;
         let docs = self.documents.read().await;
 
-        if let Some(_doc) = docs.get(uri) {
-            // TODO: Implement go to definition
+        if let Some(doc) = docs.get(uri) {
+            if let Some(program) = &doc.program {
+                let word = get_word_at_position(&doc.text, position);
+
+                // Find definition in program
+                for item in &program.items {
+                    let (name, span) = match item {
+                        my_lang::TopLevel::Function(f) => (&f.name.name, f.span),
+                        my_lang::TopLevel::Struct(s) => (&s.name.name, s.span),
+                        my_lang::TopLevel::Effect(e) => (&e.name.name, e.span),
+                        my_lang::TopLevel::AiModel(m) => (&m.name.name, m.span),
+                        _ => continue,
+                    };
+
+                    if *name == word {
+                        let (line, col) = offset_to_position(&doc.text, span.start);
+                        return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                            uri: uri.clone(),
+                            range: Range {
+                                start: Position { line, character: col },
+                                end: Position { line, character: col + name.len() as u32 },
+                            },
+                        })));
+                    }
+                }
+            }
         }
 
         Ok(None)
@@ -297,6 +415,64 @@ impl LanguageServer for MyLanguageServer {
 
         Ok(None)
     }
+}
+
+/// Get the word at a given position in the text
+fn get_word_at_position(text: &str, position: Position) -> String {
+    let lines: Vec<&str> = text.lines().collect();
+    if (position.line as usize) >= lines.len() {
+        return String::new();
+    }
+
+    let line = lines[position.line as usize];
+    let col = position.character as usize;
+
+    if col >= line.len() {
+        return String::new();
+    }
+
+    // Find word boundaries
+    let chars: Vec<char> = line.chars().collect();
+    let mut start = col;
+    let mut end = col;
+
+    // Go backwards to find start
+    while start > 0 && is_word_char(chars[start - 1]) {
+        start -= 1;
+    }
+
+    // Go forwards to find end
+    while end < chars.len() && is_word_char(chars[end]) {
+        end += 1;
+    }
+
+    chars[start..end].iter().collect()
+}
+
+fn is_word_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
+/// Convert byte offset to line/column position
+fn offset_to_position(text: &str, offset: usize) -> (u32, u32) {
+    let mut line = 0u32;
+    let mut col = 0u32;
+    let mut current_offset = 0;
+
+    for ch in text.chars() {
+        if current_offset >= offset {
+            break;
+        }
+        if ch == '\n' {
+            line += 1;
+            col = 0;
+        } else {
+            col += 1;
+        }
+        current_offset += ch.len_utf8();
+    }
+
+    (line, col)
 }
 
 #[cfg(test)]

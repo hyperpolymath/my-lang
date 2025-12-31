@@ -42,7 +42,7 @@ pub struct MirProgram {
 }
 
 /// MIR Function - CFG of basic blocks
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MirFunction {
     pub name: String,
     pub params: Vec<MirLocal>,
@@ -673,23 +673,386 @@ pub mod passes {
     use super::*;
 
     /// Dead code elimination
-    pub fn dce(program: &mut MirProgram) {
+    pub fn dce(_program: &mut MirProgram) {
         // TODO: Implement DCE
     }
 
     /// Constant folding
-    pub fn const_fold(program: &mut MirProgram) {
+    pub fn const_fold(_program: &mut MirProgram) {
         // TODO: Implement constant folding
     }
 
     /// Inline small functions
-    pub fn inline(program: &mut MirProgram, threshold: usize) {
+    pub fn inline(_program: &mut MirProgram, _threshold: usize) {
         // TODO: Implement inlining
     }
 
     /// Remove redundant phi nodes
-    pub fn simplify_phi(program: &mut MirProgram) {
+    pub fn simplify_phi(_program: &mut MirProgram) {
         // TODO: Implement phi simplification
+    }
+}
+
+/// MIR Interpreter - executes MIR programs directly
+pub mod interpreter {
+    use super::*;
+    use std::collections::HashMap;
+
+    /// Runtime value
+    #[derive(Debug, Clone)]
+    pub enum Value {
+        I32(i32),
+        I64(i64),
+        F32(f32),
+        F64(f64),
+        Bool(bool),
+        String(String),
+        Array(Vec<Value>),
+        Struct(HashMap<String, Value>),
+        Ptr(usize),
+        Unit,
+    }
+
+    /// Interpreter error
+    #[derive(Debug, thiserror::Error)]
+    pub enum InterpreterError {
+        #[error("undefined function: {0}")]
+        UndefinedFunction(String),
+
+        #[error("undefined local: {0}")]
+        UndefinedLocal(usize),
+
+        #[error("type error: {0}")]
+        TypeError(String),
+
+        #[error("stack overflow")]
+        StackOverflow,
+
+        #[error("division by zero")]
+        DivisionByZero,
+
+        #[error("AI operations require runtime")]
+        AINotSupported,
+    }
+
+    /// Call frame
+    struct Frame {
+        function: String,
+        locals: HashMap<usize, Value>,
+        block_idx: NodeIndex,
+        ip: usize, // instruction pointer within block
+    }
+
+    /// MIR interpreter
+    pub struct Interpreter {
+        program: MirProgram,
+        stack: Vec<Frame>,
+        heap: Vec<Value>,
+        max_stack: usize,
+    }
+
+    impl Interpreter {
+        pub fn new(program: MirProgram) -> Self {
+            Interpreter {
+                program,
+                stack: Vec::new(),
+                heap: Vec::new(),
+                max_stack: 1000,
+            }
+        }
+
+        /// Run the program starting from main
+        pub fn run(&mut self) -> Result<Value, InterpreterError> {
+            let entry = self.program.entry.clone()
+                .ok_or_else(|| InterpreterError::UndefinedFunction("main".to_string()))?;
+
+            self.call(&entry, vec![])
+        }
+
+        /// Call a function with arguments
+        pub fn call(&mut self, name: &str, args: Vec<Value>) -> Result<Value, InterpreterError> {
+            if self.stack.len() >= self.max_stack {
+                return Err(InterpreterError::StackOverflow);
+            }
+
+            let func = self.program.functions.get(name).cloned()
+                .ok_or_else(|| InterpreterError::UndefinedFunction(name.to_string()))?;
+
+            // Create new frame
+            let mut locals = HashMap::new();
+
+            // Bind parameters
+            for (i, param) in func.params.iter().enumerate() {
+                if let Some(arg) = args.get(i) {
+                    locals.insert(param.id.0, arg.clone());
+                }
+            }
+
+            let frame = Frame {
+                function: name.to_string(),
+                locals,
+                block_idx: func.entry_block,
+                ip: 0,
+            };
+
+            self.stack.push(frame);
+
+            // Execute blocks
+            let result = self.execute_function(&func)?;
+
+            self.stack.pop();
+
+            Ok(result)
+        }
+
+        fn execute_function(&mut self, func: &MirFunction) -> Result<Value, InterpreterError> {
+            loop {
+                // Get current block info without holding borrow
+                let (block_idx, ip) = {
+                    let frame = self.stack.last().unwrap();
+                    (frame.block_idx, frame.ip)
+                };
+
+                let block = func.blocks.node_weight(block_idx)
+                    .ok_or_else(|| InterpreterError::TypeError("invalid block".to_string()))?
+                    .clone();
+
+                // Execute instructions
+                let mut current_ip = ip;
+                while current_ip < block.instructions.len() {
+                    let instr = block.instructions[current_ip].clone();
+                    let value = self.execute_instruction(&instr)?;
+
+                    let frame = self.stack.last_mut().unwrap();
+                    frame.locals.insert(instr.dest.0, value);
+                    frame.ip = current_ip + 1;
+                    current_ip += 1;
+                }
+
+                // Execute terminator - extract values first to avoid borrow issues
+                let terminator = block.terminator.clone();
+                match terminator {
+                    Terminator::Return(local) => {
+                        let value = if let Some(id) = local {
+                            self.get_local(id.0)?
+                        } else {
+                            Value::Unit
+                        };
+                        return Ok(value);
+                    }
+                    Terminator::Goto(target) => {
+                        let next_block = Self::find_block_node_static(func, target)?;
+                        let frame = self.stack.last_mut().unwrap();
+                        frame.block_idx = next_block;
+                        frame.ip = 0;
+                    }
+                    Terminator::If(cond, then_block, else_block) => {
+                        let cond_val = self.get_local(cond.0)?;
+                        let target = match cond_val {
+                            Value::Bool(true) => then_block,
+                            Value::Bool(false) => else_block,
+                            _ => return Err(InterpreterError::TypeError("expected bool".to_string())),
+                        };
+                        let next_block = Self::find_block_node_static(func, target)?;
+                        let frame = self.stack.last_mut().unwrap();
+                        frame.block_idx = next_block;
+                        frame.ip = 0;
+                    }
+                    Terminator::Switch(_, _, default) => {
+                        let next_block = Self::find_block_node_static(func, default)?;
+                        let frame = self.stack.last_mut().unwrap();
+                        frame.block_idx = next_block;
+                        frame.ip = 0;
+                    }
+                    Terminator::Unreachable => {
+                        return Err(InterpreterError::TypeError("unreachable code".to_string()));
+                    }
+                    Terminator::Invoke { func: fn_name, args, dest, normal, .. } => {
+                        let arg_values: Result<Vec<_>, _> = args.iter()
+                            .map(|a| self.get_local(a.0))
+                            .collect();
+                        let result = self.call(&fn_name, arg_values?)?;
+                        let next_block = Self::find_block_node_static(func, normal)?;
+                        let frame = self.stack.last_mut().unwrap();
+                        frame.locals.insert(dest.0, result);
+                        frame.block_idx = next_block;
+                        frame.ip = 0;
+                    }
+                }
+            }
+        }
+
+        fn find_block_node_static(func: &MirFunction, id: BlockId) -> Result<NodeIndex, InterpreterError> {
+            for node in func.blocks.node_indices() {
+                if let Some(block) = func.blocks.node_weight(node) {
+                    if block.id == id {
+                        return Ok(node);
+                    }
+                }
+            }
+            Err(InterpreterError::TypeError(format!("block {:?} not found", id)))
+        }
+
+        fn execute_instruction(&mut self, instr: &Instruction) -> Result<Value, InterpreterError> {
+            match &instr.kind {
+                InstructionKind::Const(c) => Ok(self.const_to_value(c)),
+
+                InstructionKind::BinOp(op, left, right) => {
+                    let l = self.get_local(left.0)?;
+                    let r = self.get_local(right.0)?;
+                    self.eval_binop(*op, l, r)
+                }
+
+                InstructionKind::UnOp(op, operand) => {
+                    let v = self.get_local(operand.0)?;
+                    self.eval_unop(*op, v)
+                }
+
+                InstructionKind::Call(name, args) => {
+                    let arg_values: Result<Vec<_>, _> = args.iter()
+                        .map(|a| self.get_local(a.0))
+                        .collect();
+
+                    // Check for builtins
+                    match name.as_str() {
+                        "print" => {
+                            for arg in arg_values? {
+                                println!("{:?}", arg);
+                            }
+                            Ok(Value::Unit)
+                        }
+                        _ => self.call(name, arg_values?)
+                    }
+                }
+
+                InstructionKind::CallIndirect(_, _) => {
+                    Ok(Value::Unit) // TODO: Function pointers
+                }
+
+                InstructionKind::Load(ptr) => {
+                    let addr = self.get_local(ptr.0)?;
+                    if let Value::Ptr(idx) = addr {
+                        self.heap.get(idx).cloned()
+                            .ok_or_else(|| InterpreterError::TypeError("invalid pointer".to_string()))
+                    } else {
+                        Err(InterpreterError::TypeError("expected pointer".to_string()))
+                    }
+                }
+
+                InstructionKind::Store(ptr, val) => {
+                    let addr = self.get_local(ptr.0)?;
+                    let value = self.get_local(val.0)?;
+                    if let Value::Ptr(idx) = addr {
+                        if idx < self.heap.len() {
+                            self.heap[idx] = value;
+                        }
+                    }
+                    Ok(Value::Unit)
+                }
+
+                InstructionKind::Alloca(_) => {
+                    let idx = self.heap.len();
+                    self.heap.push(Value::Unit);
+                    Ok(Value::Ptr(idx))
+                }
+
+                InstructionKind::GetElementPtr(_, _) => {
+                    Ok(Value::Ptr(0)) // TODO: Proper GEP
+                }
+
+                InstructionKind::Cast(val, _) => {
+                    self.get_local(val.0)
+                }
+
+                InstructionKind::Phi(branches) => {
+                    // In interpreter, just take first available value
+                    for (_, local) in branches {
+                        if let Ok(v) = self.get_local(local.0) {
+                            return Ok(v);
+                        }
+                    }
+                    Ok(Value::Unit)
+                }
+
+                InstructionKind::AIStub(_, _) => {
+                    Err(InterpreterError::AINotSupported)
+                }
+
+                InstructionKind::Drop(_) => Ok(Value::Unit),
+                InstructionKind::Copy(src) => self.get_local(src.0),
+                InstructionKind::Move(src) => self.get_local(src.0),
+            }
+        }
+
+        fn const_to_value(&self, c: &MirConstant) -> Value {
+            match c {
+                MirConstant::I32(v) => Value::I32(*v),
+                MirConstant::I64(v) => Value::I64(*v),
+                MirConstant::F32(v) => Value::F32(*v),
+                MirConstant::F64(v) => Value::F64(*v),
+                MirConstant::Bool(v) => Value::Bool(*v),
+                MirConstant::String(v) => Value::String(v.clone()),
+                MirConstant::Unit => Value::Unit,
+            }
+        }
+
+        fn get_local(&self, id: usize) -> Result<Value, InterpreterError> {
+            self.stack.last()
+                .and_then(|f| f.locals.get(&id).cloned())
+                .ok_or(InterpreterError::UndefinedLocal(id))
+        }
+
+        fn eval_binop(&self, op: BinOp, left: Value, right: Value) -> Result<Value, InterpreterError> {
+            match (left, right) {
+                (Value::I64(l), Value::I64(r)) => match op {
+                    BinOp::Add => Ok(Value::I64(l + r)),
+                    BinOp::Sub => Ok(Value::I64(l - r)),
+                    BinOp::Mul => Ok(Value::I64(l * r)),
+                    BinOp::Div => {
+                        if r == 0 { return Err(InterpreterError::DivisionByZero); }
+                        Ok(Value::I64(l / r))
+                    }
+                    BinOp::Rem => Ok(Value::I64(l % r)),
+                    BinOp::Eq => Ok(Value::Bool(l == r)),
+                    BinOp::Ne => Ok(Value::Bool(l != r)),
+                    BinOp::Lt => Ok(Value::Bool(l < r)),
+                    BinOp::Le => Ok(Value::Bool(l <= r)),
+                    BinOp::Gt => Ok(Value::Bool(l > r)),
+                    BinOp::Ge => Ok(Value::Bool(l >= r)),
+                    _ => Err(InterpreterError::TypeError("invalid op for i64".to_string())),
+                },
+                (Value::F64(l), Value::F64(r)) => match op {
+                    BinOp::Add => Ok(Value::F64(l + r)),
+                    BinOp::Sub => Ok(Value::F64(l - r)),
+                    BinOp::Mul => Ok(Value::F64(l * r)),
+                    BinOp::Div => Ok(Value::F64(l / r)),
+                    BinOp::Eq => Ok(Value::Bool(l == r)),
+                    BinOp::Ne => Ok(Value::Bool(l != r)),
+                    BinOp::Lt => Ok(Value::Bool(l < r)),
+                    BinOp::Le => Ok(Value::Bool(l <= r)),
+                    BinOp::Gt => Ok(Value::Bool(l > r)),
+                    BinOp::Ge => Ok(Value::Bool(l >= r)),
+                    _ => Err(InterpreterError::TypeError("invalid op for f64".to_string())),
+                },
+                (Value::Bool(l), Value::Bool(r)) => match op {
+                    BinOp::And => Ok(Value::Bool(l && r)),
+                    BinOp::Or => Ok(Value::Bool(l || r)),
+                    BinOp::Eq => Ok(Value::Bool(l == r)),
+                    BinOp::Ne => Ok(Value::Bool(l != r)),
+                    _ => Err(InterpreterError::TypeError("invalid op for bool".to_string())),
+                },
+                _ => Err(InterpreterError::TypeError("type mismatch in binop".to_string())),
+            }
+        }
+
+        fn eval_unop(&self, op: UnOp, val: Value) -> Result<Value, InterpreterError> {
+            match (op, val) {
+                (UnOp::Neg, Value::I64(v)) => Ok(Value::I64(-v)),
+                (UnOp::Neg, Value::F64(v)) => Ok(Value::F64(-v)),
+                (UnOp::Not, Value::Bool(v)) => Ok(Value::Bool(!v)),
+                _ => Err(InterpreterError::TypeError("invalid unary op".to_string())),
+            }
+        }
     }
 }
 
