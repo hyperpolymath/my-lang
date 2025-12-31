@@ -311,13 +311,17 @@ impl MirBuilder {
 
     fn finish_block(&mut self, terminator: Terminator) -> NodeIndex {
         if let Some(node) = self.current_block {
-            let block = self.blocks.node_weight_mut(node).unwrap();
+            // SAFETY: node was added by new_block() and never removed
+            let block = self.blocks.node_weight_mut(node)
+                .expect("internal error: current_block points to invalid node");
             block.instructions = std::mem::take(&mut self.current_instructions);
             block.terminator = terminator;
             node
         } else {
             let (_, node) = self.new_block();
-            let block = self.blocks.node_weight_mut(node).unwrap();
+            // SAFETY: node was just created by new_block()
+            let block = self.blocks.node_weight_mut(node)
+                .expect("internal error: newly created block not found");
             block.instructions = std::mem::take(&mut self.current_instructions);
             block.terminator = terminator;
             node
@@ -809,12 +813,12 @@ pub mod interpreter {
             loop {
                 // Get current block info without holding borrow
                 let (block_idx, ip) = {
-                    let frame = self.stack.last().unwrap();
+                    let frame = self.current_frame()?;
                     (frame.block_idx, frame.ip)
                 };
 
                 let block = func.blocks.node_weight(block_idx)
-                    .ok_or_else(|| InterpreterError::TypeError("invalid block".to_string()))?
+                    .ok_or_else(|| InterpreterError::TypeError(format!("invalid block index {:?}", block_idx)))?
                     .clone();
 
                 // Execute instructions
@@ -823,7 +827,7 @@ pub mod interpreter {
                     let instr = block.instructions[current_ip].clone();
                     let value = self.execute_instruction(&instr)?;
 
-                    let frame = self.stack.last_mut().unwrap();
+                    let frame = self.current_frame_mut()?;
                     frame.locals.insert(instr.dest.0, value);
                     frame.ip = current_ip + 1;
                     current_ip += 1;
@@ -842,7 +846,7 @@ pub mod interpreter {
                     }
                     Terminator::Goto(target) => {
                         let next_block = Self::find_block_node_static(func, target)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
@@ -851,21 +855,23 @@ pub mod interpreter {
                         let target = match cond_val {
                             Value::Bool(true) => then_block,
                             Value::Bool(false) => else_block,
-                            _ => return Err(InterpreterError::TypeError("expected bool".to_string())),
+                            _ => return Err(InterpreterError::TypeError(
+                                format!("expected bool in condition, got {:?}", cond_val)
+                            )),
                         };
                         let next_block = Self::find_block_node_static(func, target)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
                     Terminator::Switch(_, _, default) => {
                         let next_block = Self::find_block_node_static(func, default)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
                     Terminator::Unreachable => {
-                        return Err(InterpreterError::TypeError("unreachable code".to_string()));
+                        return Err(InterpreterError::TypeError("executed unreachable code".to_string()));
                     }
                     Terminator::Invoke { func: fn_name, args, dest, normal, .. } => {
                         let arg_values: Result<Vec<_>, _> = args.iter()
@@ -873,13 +879,25 @@ pub mod interpreter {
                             .collect();
                         let result = self.call(&fn_name, arg_values?)?;
                         let next_block = Self::find_block_node_static(func, normal)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.locals.insert(dest.0, result);
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
                 }
             }
+        }
+
+        /// Get the current call frame (immutable)
+        fn current_frame(&self) -> Result<&Frame, InterpreterError> {
+            self.stack.last()
+                .ok_or_else(|| InterpreterError::TypeError("empty call stack".to_string()))
+        }
+
+        /// Get the current call frame (mutable)
+        fn current_frame_mut(&mut self) -> Result<&mut Frame, InterpreterError> {
+            self.stack.last_mut()
+                .ok_or_else(|| InterpreterError::TypeError("empty call stack".to_string()))
         }
 
         fn find_block_node_static(func: &MirFunction, id: BlockId) -> Result<NodeIndex, InterpreterError> {

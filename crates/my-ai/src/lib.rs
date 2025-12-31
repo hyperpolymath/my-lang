@@ -6,6 +6,13 @@
 //! - Response caching with rocketcache
 //! - Newtonian agent orchestration
 //! - Streaming support
+//!
+//! # Security
+//!
+//! API keys are stored using secure memory practices:
+//! - Keys are zeroized when dropped
+//! - Debug output never shows actual key values
+//! - Keys are cloned minimally to reduce exposure
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -13,6 +20,44 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
+/// Secure API key wrapper that zeroizes memory on drop
+///
+/// This wrapper ensures that API keys are securely handled:
+/// - Memory is zeroed when the key is dropped
+/// - Debug output shows "[REDACTED]" instead of the actual key
+/// - Clone is implemented but should be used sparingly
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+pub struct SecureApiKey(String);
+
+impl SecureApiKey {
+    /// Create a new secure API key
+    pub fn new(key: String) -> Self {
+        SecureApiKey(key)
+    }
+
+    /// Get a reference to the key for use in API calls
+    ///
+    /// # Security
+    /// This should only be used when making actual API requests.
+    /// Never log or serialize the returned value.
+    pub fn expose(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Debug for SecureApiKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SecureApiKey([REDACTED])")
+    }
+}
+
+impl From<String> for SecureApiKey {
+    fn from(s: String) -> Self {
+        SecureApiKey::new(s)
+    }
+}
 
 /// AI runtime errors
 #[derive(Debug, Error)]
@@ -102,14 +147,14 @@ pub trait AIProvider: Send + Sync {
 
 /// Anthropic provider
 pub struct AnthropicProvider {
-    api_key: String,
+    api_key: SecureApiKey,
     client: reqwest::Client,
 }
 
 impl AnthropicProvider {
     pub fn new(api_key: String) -> Self {
         AnthropicProvider {
-            api_key,
+            api_key: SecureApiKey::new(api_key),
             client: reqwest::Client::new(),
         }
     }
@@ -121,7 +166,7 @@ impl AIProvider for AnthropicProvider {
         let response = self
             .client
             .post("https://api.anthropic.com/v1/messages")
-            .header("x-api-key", &self.api_key)
+            .header("x-api-key", self.api_key.expose())
             .header("anthropic-version", "2023-06-01")
             .json(&serde_json::json!({
                 "model": request.model,
@@ -169,14 +214,14 @@ impl AIProvider for AnthropicProvider {
 
 /// OpenAI provider
 pub struct OpenAIProvider {
-    api_key: String,
+    api_key: SecureApiKey,
     client: reqwest::Client,
 }
 
 impl OpenAIProvider {
     pub fn new(api_key: String) -> Self {
         OpenAIProvider {
-            api_key,
+            api_key: SecureApiKey::new(api_key),
             client: reqwest::Client::new(),
         }
     }
@@ -188,7 +233,7 @@ impl AIProvider for OpenAIProvider {
         let response = self
             .client
             .post("https://api.openai.com/v1/chat/completions")
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", format!("Bearer {}", self.api_key.expose()))
             .json(&serde_json::json!({
                 "model": request.model,
                 "messages": request.messages,
@@ -224,7 +269,7 @@ impl AIProvider for OpenAIProvider {
         let response = self
             .client
             .post("https://api.openai.com/v1/embeddings")
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", format!("Bearer {}", self.api_key.expose()))
             .json(&serde_json::json!({
                 "model": "text-embedding-3-small",
                 "input": text,
