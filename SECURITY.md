@@ -22,4 +22,23 @@ We respond within 48 hours.
 - Dependabot for dependency updates
 - CodeQL for code scanning
 - Secret scanning and push protection
+- Secure API key handling with memory zeroization
+- HTTPS-only network requests
+- Input validation at system boundaries
+
+## API Key Security
+
+API keys are handled securely:
+
+- Stored using `SecureApiKey` wrapper with `zeroize` crate
+- Memory is cleared on drop
+- Never shown in debug output (`[REDACTED]`)
+- Environment variable auto-detection
+
+## Security Best Practices
+
+1. Store API keys in environment variables, not in code
+2. Regularly update dependencies
+3. Do not run untrusted `.my` files
+4. Use HTTPS for all external connections
 

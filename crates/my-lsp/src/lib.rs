@@ -12,7 +12,7 @@
 //! - Formatting
 //! - Signature help
 
-use my_lang::{parse, check, Program, CheckError, Span, TopLevel};
+use my_lang::{parse, check, Program, CheckError};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -83,17 +83,40 @@ impl Document {
     }
 }
 
+/// Extract location from CheckError and convert to LSP Diagnostic
 fn check_error_to_diagnostic(error: &CheckError) -> Diagnostic {
-    // TODO: Extract span from error
+    let (line, column) = extract_error_location(error);
+    // LSP uses 0-based line numbers
+    let lsp_line = if line > 0 { line as u32 - 1 } else { 0 };
+    let lsp_col = if column > 0 { column as u32 - 1 } else { 0 };
+
     Diagnostic {
         range: Range {
-            start: Position { line: 0, character: 0 },
-            end: Position { line: 0, character: 0 },
+            start: Position { line: lsp_line, character: lsp_col },
+            end: Position { line: lsp_line, character: lsp_col + 1 },
         },
         severity: Some(DiagnosticSeverity::ERROR),
         source: Some("my-lang".to_string()),
         message: format!("{}", error),
         ..Default::default()
+    }
+}
+
+/// Extract line and column from a CheckError
+fn extract_error_location(error: &CheckError) -> (usize, usize) {
+    match error {
+        CheckError::UndefinedVariable { line, column, .. } => (*line, *column),
+        CheckError::UndefinedType { line, column, .. } => (*line, *column),
+        CheckError::UndefinedFunction { line, column, .. } => (*line, *column),
+        CheckError::UndefinedAiModel { line, column, .. } => (*line, *column),
+        CheckError::UndefinedPrompt { line, column, .. } => (*line, *column),
+        CheckError::TypeMismatch { line, column, .. } => (*line, *column),
+        CheckError::DuplicateDefinition { line, column, .. } => (*line, *column),
+        CheckError::ImmutableAssignment { line, column, .. } => (*line, *column),
+        CheckError::WrongArgCount { line, column, .. } => (*line, *column),
+        CheckError::InvalidBinaryOp { line, column, .. } => (*line, *column),
+        CheckError::NonBoolCondition { line, column, .. } => (*line, *column),
+        CheckError::Other { line, column, .. } => (*line, *column),
     }
 }
 

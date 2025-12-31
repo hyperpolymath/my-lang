@@ -311,13 +311,17 @@ impl MirBuilder {
 
     fn finish_block(&mut self, terminator: Terminator) -> NodeIndex {
         if let Some(node) = self.current_block {
-            let block = self.blocks.node_weight_mut(node).unwrap();
+            // SAFETY: node was added by new_block() and never removed
+            let block = self.blocks.node_weight_mut(node)
+                .expect("internal error: current_block points to invalid node");
             block.instructions = std::mem::take(&mut self.current_instructions);
             block.terminator = terminator;
             node
         } else {
             let (_, node) = self.new_block();
-            let block = self.blocks.node_weight_mut(node).unwrap();
+            // SAFETY: node was just created by new_block()
+            let block = self.blocks.node_weight_mut(node)
+                .expect("internal error: newly created block not found");
             block.instructions = std::mem::take(&mut self.current_instructions);
             block.terminator = terminator;
             node
@@ -731,8 +735,11 @@ pub mod interpreter {
         #[error("division by zero")]
         DivisionByZero,
 
-        #[error("AI operations require runtime")]
+        #[error("AI operations require runtime (set ANTHROPIC_API_KEY or OPENAI_API_KEY)")]
         AINotSupported,
+
+        #[error("AI error: {0}")]
+        AIError(String),
     }
 
     /// Call frame
@@ -743,21 +750,59 @@ pub mod interpreter {
         ip: usize, // instruction pointer within block
     }
 
-    /// MIR interpreter
+    /// MIR interpreter with optional AI runtime support
     pub struct Interpreter {
         program: MirProgram,
         stack: Vec<Frame>,
         heap: Vec<Value>,
         max_stack: usize,
+        ai_runtime: Option<my_ai::AIRuntime>,
+        tokio_runtime: Option<tokio::runtime::Runtime>,
     }
 
     impl Interpreter {
+        /// Create interpreter without AI support
         pub fn new(program: MirProgram) -> Self {
             Interpreter {
                 program,
                 stack: Vec::new(),
                 heap: Vec::new(),
                 max_stack: 1000,
+                ai_runtime: None,
+                tokio_runtime: None,
+            }
+        }
+
+        /// Create interpreter with AI support from environment variables
+        pub fn with_ai(program: MirProgram) -> Self {
+            let ai_runtime = my_ai::runtime_from_env();
+            let has_providers = !ai_runtime.providers.is_empty();
+            let tokio_rt = if has_providers {
+                tokio::runtime::Runtime::new().ok()
+            } else {
+                None
+            };
+
+            Interpreter {
+                program,
+                stack: Vec::new(),
+                heap: Vec::new(),
+                max_stack: 1000,
+                ai_runtime: if has_providers { Some(ai_runtime) } else { None },
+                tokio_runtime: tokio_rt,
+            }
+        }
+
+        /// Create interpreter with explicit AI runtime
+        pub fn with_runtime(program: MirProgram, runtime: my_ai::AIRuntime) -> Self {
+            let tokio_rt = tokio::runtime::Runtime::new().ok();
+            Interpreter {
+                program,
+                stack: Vec::new(),
+                heap: Vec::new(),
+                max_stack: 1000,
+                ai_runtime: Some(runtime),
+                tokio_runtime: tokio_rt,
             }
         }
 
@@ -809,12 +854,12 @@ pub mod interpreter {
             loop {
                 // Get current block info without holding borrow
                 let (block_idx, ip) = {
-                    let frame = self.stack.last().unwrap();
+                    let frame = self.current_frame()?;
                     (frame.block_idx, frame.ip)
                 };
 
                 let block = func.blocks.node_weight(block_idx)
-                    .ok_or_else(|| InterpreterError::TypeError("invalid block".to_string()))?
+                    .ok_or_else(|| InterpreterError::TypeError(format!("invalid block index {:?}", block_idx)))?
                     .clone();
 
                 // Execute instructions
@@ -823,7 +868,7 @@ pub mod interpreter {
                     let instr = block.instructions[current_ip].clone();
                     let value = self.execute_instruction(&instr)?;
 
-                    let frame = self.stack.last_mut().unwrap();
+                    let frame = self.current_frame_mut()?;
                     frame.locals.insert(instr.dest.0, value);
                     frame.ip = current_ip + 1;
                     current_ip += 1;
@@ -842,7 +887,7 @@ pub mod interpreter {
                     }
                     Terminator::Goto(target) => {
                         let next_block = Self::find_block_node_static(func, target)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
@@ -851,21 +896,23 @@ pub mod interpreter {
                         let target = match cond_val {
                             Value::Bool(true) => then_block,
                             Value::Bool(false) => else_block,
-                            _ => return Err(InterpreterError::TypeError("expected bool".to_string())),
+                            _ => return Err(InterpreterError::TypeError(
+                                format!("expected bool in condition, got {:?}", cond_val)
+                            )),
                         };
                         let next_block = Self::find_block_node_static(func, target)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
                     Terminator::Switch(_, _, default) => {
                         let next_block = Self::find_block_node_static(func, default)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
                     Terminator::Unreachable => {
-                        return Err(InterpreterError::TypeError("unreachable code".to_string()));
+                        return Err(InterpreterError::TypeError("executed unreachable code".to_string()));
                     }
                     Terminator::Invoke { func: fn_name, args, dest, normal, .. } => {
                         let arg_values: Result<Vec<_>, _> = args.iter()
@@ -873,13 +920,25 @@ pub mod interpreter {
                             .collect();
                         let result = self.call(&fn_name, arg_values?)?;
                         let next_block = Self::find_block_node_static(func, normal)?;
-                        let frame = self.stack.last_mut().unwrap();
+                        let frame = self.current_frame_mut()?;
                         frame.locals.insert(dest.0, result);
                         frame.block_idx = next_block;
                         frame.ip = 0;
                     }
                 }
             }
+        }
+
+        /// Get the current call frame (immutable)
+        fn current_frame(&self) -> Result<&Frame, InterpreterError> {
+            self.stack.last()
+                .ok_or_else(|| InterpreterError::TypeError("empty call stack".to_string()))
+        }
+
+        /// Get the current call frame (mutable)
+        fn current_frame_mut(&mut self) -> Result<&mut Frame, InterpreterError> {
+            self.stack.last_mut()
+                .ok_or_else(|| InterpreterError::TypeError("empty call stack".to_string()))
         }
 
         fn find_block_node_static(func: &MirFunction, id: BlockId) -> Result<NodeIndex, InterpreterError> {
@@ -974,8 +1033,8 @@ pub mod interpreter {
                     Ok(Value::Unit)
                 }
 
-                InstructionKind::AIStub(_, _) => {
-                    Err(InterpreterError::AINotSupported)
+                InstructionKind::AIStub(op, args) => {
+                    self.execute_ai_operation(op, args)
                 }
 
                 InstructionKind::Drop(_) => Ok(Value::Unit),
@@ -1051,6 +1110,142 @@ pub mod interpreter {
                 (UnOp::Neg, Value::F64(v)) => Ok(Value::F64(-v)),
                 (UnOp::Not, Value::Bool(v)) => Ok(Value::Bool(!v)),
                 _ => Err(InterpreterError::TypeError("invalid unary op".to_string())),
+            }
+        }
+
+        /// Execute an AI operation using the configured runtime
+        fn execute_ai_operation(&self, op: &AIOperation, args: &[LocalId]) -> Result<Value, InterpreterError> {
+            // Check if AI runtime is available
+            let runtime = self.ai_runtime.as_ref()
+                .ok_or(InterpreterError::AINotSupported)?;
+            let tokio_rt = self.tokio_runtime.as_ref()
+                .ok_or(InterpreterError::AINotSupported)?;
+
+            match op {
+                AIOperation::Query { model } => {
+                    // Get the prompt from arguments
+                    let prompt = if !args.is_empty() {
+                        match self.get_local(args[0].0)? {
+                            Value::String(s) => s,
+                            v => format!("{:?}", v),
+                        }
+                    } else {
+                        String::new()
+                    };
+
+                    // Use the model if specified, otherwise use default
+                    let model_ref = model.as_deref();
+
+                    // Execute query using the runtime
+                    let result = tokio_rt.block_on(async {
+                        runtime.query(&prompt, model_ref).await
+                    });
+
+                    match result {
+                        Ok(response) => Ok(Value::String(response)),
+                        Err(e) => Err(InterpreterError::AIError(e.to_string())),
+                    }
+                }
+
+                AIOperation::Verify => {
+                    // Verify uses AI to check a condition
+                    let condition = if !args.is_empty() {
+                        match self.get_local(args[0].0)? {
+                            Value::String(s) => s,
+                            Value::Bool(b) => return Ok(Value::Bool(b)),
+                            v => format!("{:?}", v),
+                        }
+                    } else {
+                        return Ok(Value::Bool(true));
+                    };
+
+                    let result = tokio_rt.block_on(async {
+                        runtime.verify(&condition).await
+                    });
+
+                    match result {
+                        Ok(is_true) => Ok(Value::Bool(is_true)),
+                        Err(e) => Err(InterpreterError::AIError(e.to_string())),
+                    }
+                }
+
+                AIOperation::Embed => {
+                    // Generate embeddings for text
+                    let text = if !args.is_empty() {
+                        match self.get_local(args[0].0)? {
+                            Value::String(s) => s,
+                            v => format!("{:?}", v),
+                        }
+                    } else {
+                        String::new()
+                    };
+
+                    let result = tokio_rt.block_on(async {
+                        runtime.embed(&text).await
+                    });
+
+                    match result {
+                        Ok(embedding) => {
+                            // Convert embedding to array of F32 values
+                            let values: Vec<Value> = embedding.into_iter()
+                                .map(Value::F32)
+                                .collect();
+                            Ok(Value::Array(values))
+                        }
+                        Err(e) => Err(InterpreterError::AIError(e.to_string())),
+                    }
+                }
+
+                AIOperation::Generate => {
+                    // Generate text from template and parameters
+                    let params: Vec<String> = args.iter()
+                        .filter_map(|arg| {
+                            self.get_local(arg.0).ok().map(|v| match v {
+                                Value::String(s) => s,
+                                v => format!("{:?}", v),
+                            })
+                        })
+                        .collect();
+
+                    let prompt = if params.is_empty() {
+                        "Generate output".to_string()
+                    } else {
+                        params.join("\n")
+                    };
+
+                    // Use default model for generation
+                    let result = tokio_rt.block_on(async {
+                        runtime.query(&prompt, None).await
+                    });
+
+                    match result {
+                        Ok(response) => Ok(Value::String(response)),
+                        Err(e) => Err(InterpreterError::AIError(e.to_string())),
+                    }
+                }
+
+                AIOperation::Classify => {
+                    // Classify input into categories using AI
+                    let text = if !args.is_empty() {
+                        match self.get_local(args[0].0)? {
+                            Value::String(s) => s,
+                            v => format!("{:?}", v),
+                        }
+                    } else {
+                        String::new()
+                    };
+
+                    let prompt = format!("Classify the following text into a single category. Respond with only the category name: {}", text);
+
+                    let result = tokio_rt.block_on(async {
+                        runtime.query(&prompt, None).await
+                    });
+
+                    match result {
+                        Ok(response) => Ok(Value::String(response.trim().to_string())),
+                        Err(e) => Err(InterpreterError::AIError(e.to_string())),
+                    }
+                }
             }
         }
     }

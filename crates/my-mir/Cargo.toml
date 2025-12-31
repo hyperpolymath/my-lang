@@ -14,7 +14,9 @@ path = "src/lib.rs"
 [dependencies]
 my-lang.workspace = true
 my-hir.workspace = true
+my-ai = { path = "../my-ai" }
 thiserror.workspace = true
 anyhow.workspace = true
 serde = { workspace = true }
 petgraph.workspace = true
+tokio.workspace = true
