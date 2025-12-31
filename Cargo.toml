@@ -1,12 +1,49 @@
-[package]
-name = "my-lang"
+[workspace]
+resolver = "2"
+members = [
+    "crates/my-lang",
+    "crates/my-hir",
+    "crates/my-mir",
+    # "crates/my-llvm",  # Requires LLVM development headers
+    "crates/my-lsp",
+    "crates/my-pkg",
+    "crates/my-ai",
+    "crates/my-fmt",
+    "crates/my-lint",
+    "crates/my-test",
+]
+
+[workspace.package]
 version = "0.2.0"
 edition = "2021"
-description = "A programming language with first-class AI integration"
 license = "MIT"
+repository = "https://github.com/hyperpolymath/my-lang"
 
-[dependencies]
+[workspace.dependencies]
+# Internal crates
+my-lang = { path = "crates/my-lang" }
+my-hir = { path = "crates/my-hir" }
+my-mir = { path = "crates/my-mir" }
+my-llvm = { path = "crates/my-llvm" }
+my-ai = { path = "crates/my-ai" }
+
+# External dependencies
 thiserror = "1.0"
+anyhow = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+async-trait = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+semver = "1.0"
+petgraph = "0.6"
+reqwest = { version = "0.12", features = ["json"] }
+tower-lsp = "0.20"
+lsp-types = "0.95"
+inkwell = { version = "0.4", features = ["llvm17-0"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+clap = { version = "4.0", features = ["derive"] }
 
-[dev-dependencies]
-pretty_assertions = "1.4"
+[workspace.dependencies.pretty_assertions]
+version = "1.4"

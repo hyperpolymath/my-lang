@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "my-mir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Mid-level Intermediate Representation (SSA form) for My Language"
+
+[lib]
+name = "my_mir"
+path = "src/lib.rs"
+
+[dependencies]
+my-lang.workspace = true
+my-hir.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+serde = { workspace = true }
+petgraph.workspace = true

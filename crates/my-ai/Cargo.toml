@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "my-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "AI runtime and provider abstraction for My Language"
+
+[lib]
+name = "my_ai"
+path = "src/lib.rs"
+
+[dependencies]
+my-lang.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+serde = { workspace = true }
+serde_json.workspace = true
+reqwest.workspace = true
+tracing.workspace = true

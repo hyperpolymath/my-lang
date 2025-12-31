@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "my-hir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "High-level Intermediate Representation for My Language"
+
+[lib]
+name = "my_hir"
+path = "src/lib.rs"
+
+[dependencies]
+my-lang.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+serde = { workspace = true }

@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "my-lang"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "My Language: A programming language with first-class AI integration"
+
+[lib]
+name = "my_lang"
+path = "src/lib.rs"
+
+[[bin]]
+name = "my"
+path = "src/main.rs"
+
+[dependencies]
+thiserror.workspace = true
+anyhow.workspace = true
+serde = { workspace = true }
+serde_json.workspace = true
+tracing.workspace = true
+clap.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+proptest = "1.4"

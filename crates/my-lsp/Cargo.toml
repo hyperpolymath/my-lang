@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "my-lsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Language Server Protocol implementation for My Language"
+
+[lib]
+name = "my_lsp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "my-lsp"
+path = "src/main.rs"
+
+[dependencies]
+my-lang.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+tower-lsp.workspace = true
+lsp-types.workspace = true
+serde = { workspace = true }
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

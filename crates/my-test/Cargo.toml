@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "my-test"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Test runner for My Language"
+
+[lib]
+name = "my_test"
+path = "src/lib.rs"
+
+[[bin]]
+name = "my-test"
+path = "src/main.rs"
+
+[dependencies]
+my-lang.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+serde = { workspace = true }
+serde_json.workspace = true
+clap.workspace = true
+tracing.workspace = true
