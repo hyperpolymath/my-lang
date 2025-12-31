@@ -13,7 +13,11 @@
 //! AST → HIR → MIR → LLVM IR
 //! ```
 
-use my_lang::{Program, TopLevel, FnDecl, StructDecl, EffectDecl, AiModelDecl, Type, PrimitiveType, AiModelAttr};
+use my_lang::{
+    Program, TopLevel, FnDecl, StructDecl, EffectDecl, AiModelDecl,
+    Type, PrimitiveType, AiModelAttr, Block, Stmt, Expr, Literal,
+    BinaryOp, UnaryOp, Pattern, MatchArm, LambdaBody, AiExpr, AiKeyword,
+};
 use thiserror::Error;
 
 /// HIR lowering errors
@@ -272,10 +276,7 @@ fn lower_function(f: &FnDecl) -> Result<HirFunction, HirError> {
             .as_ref()
             .map(|t| lower_type(t))
             .unwrap_or(HirType::Unit),
-        body: HirBlock {
-            stmts: vec![],
-            expr: None,
-        },
+        body: lower_block(&f.body)?,
         effects: vec![], // TODO: Extract from contract or modifiers
     })
 }
@@ -346,6 +347,300 @@ fn lower_type(ty: &Type) -> HirType {
         Type::Named(name) => HirType::Named(name.name.clone()),
         Type::Effect { inner, .. } => HirType::Effect(Box::new(lower_type(inner)), vec![]),
         _ => HirType::Unit,
+    }
+}
+
+fn lower_block(block: &Block) -> Result<HirBlock, HirError> {
+    let mut stmts = Vec::new();
+    let mut final_expr = None;
+
+    for (i, stmt) in block.stmts.iter().enumerate() {
+        let is_last = i == block.stmts.len() - 1;
+
+        match stmt {
+            // If last statement is expression without semicolon, it's the block's value
+            Stmt::Expr(expr) if is_last => {
+                final_expr = Some(Box::new(lower_expr(expr)?));
+            }
+            _ => {
+                stmts.push(lower_stmt(stmt)?);
+            }
+        }
+    }
+
+    Ok(HirBlock {
+        stmts,
+        expr: final_expr,
+    })
+}
+
+fn lower_stmt(stmt: &Stmt) -> Result<HirStmt, HirError> {
+    match stmt {
+        Stmt::Let { name, ty, value, .. } => Ok(HirStmt::Let {
+            name: name.name.clone(),
+            ty: ty.as_ref().map(lower_type),
+            value: lower_expr(value)?,
+        }),
+        Stmt::Expr(expr) => Ok(HirStmt::Expr(lower_expr(expr)?)),
+        Stmt::Return { value, .. } => Ok(HirStmt::Return(
+            value.as_ref().map(lower_expr).transpose()?,
+        )),
+        Stmt::If { condition, then_block, else_block, .. } => {
+            // Desugar if statement to expression statement
+            let hir_if = HirExpr::If(
+                Box::new(lower_expr(condition)?),
+                lower_block(then_block)?,
+                else_block.as_ref().map(lower_block).transpose()?,
+            );
+            Ok(HirStmt::Expr(hir_if))
+        }
+        Stmt::Go { block, .. } => {
+            // Lower go blocks as async expressions (placeholder)
+            Ok(HirStmt::Expr(HirExpr::Block(lower_block(block)?)))
+        }
+        Stmt::Await { value, .. } => {
+            // Await is lowered as a regular expression for now
+            Ok(HirStmt::Expr(lower_expr(value)?))
+        }
+        Stmt::Try { value, .. } => {
+            Ok(HirStmt::Expr(lower_expr(value)?))
+        }
+        Stmt::Comptime { block, .. } => {
+            // Comptime blocks are evaluated at compile time (placeholder)
+            Ok(HirStmt::Expr(HirExpr::Block(lower_block(block)?)))
+        }
+        Stmt::Ai(ai_stmt) => {
+            // Lower AI statement to AI expression
+            let hir_ai = lower_ai_keyword_expr(ai_stmt.keyword, &ai_stmt.body)?;
+            Ok(HirStmt::Expr(hir_ai))
+        }
+    }
+}
+
+fn lower_expr(expr: &Expr) -> Result<HirExpr, HirError> {
+    match expr {
+        Expr::Literal(lit) => Ok(HirExpr::Literal(lower_literal(lit))),
+        Expr::Ident(ident) => Ok(HirExpr::Var(ident.name.clone())),
+        Expr::Call { callee, args, .. } => Ok(HirExpr::Call(
+            Box::new(lower_expr(callee)?),
+            args.iter().map(lower_expr).collect::<Result<Vec<_>, _>>()?,
+        )),
+        Expr::Field { object, field, .. } => Ok(HirExpr::Field(
+            Box::new(lower_expr(object)?),
+            field.name.clone(),
+        )),
+        Expr::Binary { left, op, right, .. } => Ok(HirExpr::BinOp(
+            Box::new(lower_expr(left)?),
+            lower_binop(*op),
+            Box::new(lower_expr(right)?),
+        )),
+        Expr::Unary { op, operand, .. } => Ok(HirExpr::UnOp(
+            lower_unop(*op),
+            Box::new(lower_expr(operand)?),
+        )),
+        Expr::Try { operand, .. } => {
+            // Try expressions are lowered as the operand (error handling in MIR)
+            lower_expr(operand)
+        }
+        Expr::Block(block) => Ok(HirExpr::Block(lower_block(block)?)),
+        Expr::Restrict { operand, .. } => {
+            // Restrict expressions pass through (checked separately)
+            lower_expr(operand)
+        }
+        Expr::Ai(ai_expr) => lower_ai_expr(ai_expr),
+        Expr::Lambda { params, body, .. } => {
+            let hir_params: Vec<HirParam> = params
+                .iter()
+                .map(|p| HirParam {
+                    name: p.name.name.clone(),
+                    ty: lower_type(&p.ty),
+                })
+                .collect();
+
+            let hir_body = match body {
+                LambdaBody::Expr(e) => lower_expr(e)?,
+                LambdaBody::Block(b) => HirExpr::Block(lower_block(b)?),
+            };
+
+            Ok(HirExpr::Lambda(hir_params, Box::new(hir_body)))
+        }
+        Expr::Match { scrutinee, arms, .. } => Ok(HirExpr::Match(
+            Box::new(lower_expr(scrutinee)?),
+            arms.iter().map(lower_match_arm).collect::<Result<Vec<_>, _>>()?,
+        )),
+        Expr::Array { elements, .. } => Ok(HirExpr::Array(
+            elements.iter().map(lower_expr).collect::<Result<Vec<_>, _>>()?,
+        )),
+        Expr::Record { fields, .. } => Ok(HirExpr::Record(
+            fields
+                .iter()
+                .map(|f| Ok((f.name.name.clone(), lower_expr(&f.value)?)))
+                .collect::<Result<Vec<_>, HirError>>()?,
+        )),
+    }
+}
+
+fn lower_literal(lit: &Literal) -> HirLiteral {
+    match lit {
+        Literal::Int(v, _) => HirLiteral::Int(*v),
+        Literal::Float(v, _) => HirLiteral::Float(*v),
+        Literal::String(v, _) => HirLiteral::String(v.clone()),
+        Literal::Bool(v, _) => HirLiteral::Bool(*v),
+    }
+}
+
+fn lower_binop(op: BinaryOp) -> HirBinOp {
+    match op {
+        BinaryOp::Add => HirBinOp::Add,
+        BinaryOp::Sub => HirBinOp::Sub,
+        BinaryOp::Mul => HirBinOp::Mul,
+        BinaryOp::Div => HirBinOp::Div,
+        BinaryOp::Eq => HirBinOp::Eq,
+        BinaryOp::Ne => HirBinOp::Ne,
+        BinaryOp::Lt => HirBinOp::Lt,
+        BinaryOp::Gt => HirBinOp::Gt,
+        BinaryOp::Le => HirBinOp::Le,
+        BinaryOp::Ge => HirBinOp::Ge,
+        BinaryOp::And => HirBinOp::And,
+        BinaryOp::Or => HirBinOp::Or,
+        BinaryOp::Assign => HirBinOp::Add, // Assignments handled separately
+    }
+}
+
+fn lower_unop(op: UnaryOp) -> HirUnOp {
+    match op {
+        UnaryOp::Neg => HirUnOp::Neg,
+        UnaryOp::Not => HirUnOp::Not,
+        UnaryOp::Ref => HirUnOp::Ref,
+        UnaryOp::RefMut => HirUnOp::RefMut,
+    }
+}
+
+fn lower_match_arm(arm: &MatchArm) -> Result<HirArm, HirError> {
+    Ok(HirArm {
+        pattern: lower_pattern(&arm.pattern)?,
+        guard: None, // TODO: Add guard support if needed
+        body: lower_expr(&arm.body)?,
+    })
+}
+
+fn lower_pattern(pattern: &Pattern) -> Result<HirPattern, HirError> {
+    match pattern {
+        Pattern::Literal(lit) => Ok(HirPattern::Literal(lower_literal(lit))),
+        Pattern::Ident(ident) => Ok(HirPattern::Var(ident.name.clone())),
+        Pattern::Wildcard(_) => Ok(HirPattern::Wildcard),
+        Pattern::Constructor { name, args, .. } => Ok(HirPattern::Constructor(
+            name.name.clone(),
+            args.iter().map(lower_pattern).collect::<Result<Vec<_>, _>>()?,
+        )),
+    }
+}
+
+fn lower_ai_expr(ai_expr: &AiExpr) -> Result<HirExpr, HirError> {
+    match ai_expr {
+        AiExpr::Block { keyword, body, .. } => {
+            // Extract prompt from body items
+            let prompt = body
+                .iter()
+                .filter_map(|item| match item {
+                    my_lang::AiBodyItem::Literal(s) => Some(s.clone()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join(" ");
+
+            Ok(HirExpr::AI(match keyword {
+                AiKeyword::Query => HirAIExpr::Query {
+                    model: None,
+                    prompt: Box::new(HirExpr::Literal(HirLiteral::String(prompt))),
+                },
+                AiKeyword::Verify => HirAIExpr::Verify {
+                    condition: Box::new(HirExpr::Literal(HirLiteral::String(prompt))),
+                },
+                AiKeyword::Embed => HirAIExpr::Embed {
+                    input: Box::new(HirExpr::Literal(HirLiteral::String(prompt))),
+                },
+                AiKeyword::Generate => HirAIExpr::Generate {
+                    template: prompt,
+                    params: vec![],
+                },
+                _ => HirAIExpr::Query {
+                    model: None,
+                    prompt: Box::new(HirExpr::Literal(HirLiteral::String(prompt))),
+                },
+            }))
+        }
+        AiExpr::Call { keyword, args, .. } => {
+            let hir_args: Vec<HirExpr> = args
+                .iter()
+                .map(lower_expr)
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let prompt = if hir_args.is_empty() {
+                Box::new(HirExpr::Literal(HirLiteral::String(String::new())))
+            } else {
+                Box::new(hir_args.into_iter().next().unwrap())
+            };
+
+            Ok(HirExpr::AI(match keyword {
+                AiKeyword::Query => HirAIExpr::Query { model: None, prompt },
+                AiKeyword::Verify => HirAIExpr::Verify { condition: prompt },
+                AiKeyword::Embed => HirAIExpr::Embed { input: prompt },
+                _ => HirAIExpr::Query { model: None, prompt },
+            }))
+        }
+        AiExpr::Quick { query, .. } => Ok(HirExpr::AI(HirAIExpr::Query {
+            model: None,
+            prompt: Box::new(HirExpr::Literal(HirLiteral::String(query.clone()))),
+        })),
+        AiExpr::PromptInvocation { name, args, .. } => {
+            let hir_args: Vec<HirExpr> = args
+                .iter()
+                .map(lower_expr)
+                .collect::<Result<Vec<_>, _>>()?;
+
+            Ok(HirExpr::AI(HirAIExpr::Generate {
+                template: name.name.clone(),
+                params: hir_args,
+            }))
+        }
+    }
+}
+
+fn lower_ai_keyword_expr(keyword: AiKeyword, body: &my_lang::AiStmtBody) -> Result<HirExpr, HirError> {
+    match body {
+        my_lang::AiStmtBody::Block(block) => {
+            let hir_block = lower_block(block)?;
+            Ok(HirExpr::AI(match keyword {
+                AiKeyword::Query => HirAIExpr::Query {
+                    model: None,
+                    prompt: Box::new(HirExpr::Block(hir_block)),
+                },
+                AiKeyword::Verify => HirAIExpr::Verify {
+                    condition: Box::new(HirExpr::Block(hir_block)),
+                },
+                _ => HirAIExpr::Query {
+                    model: None,
+                    prompt: Box::new(HirExpr::Block(hir_block)),
+                },
+            }))
+        }
+        my_lang::AiStmtBody::Expr(expr) => {
+            let hir_expr = lower_expr(expr)?;
+            Ok(HirExpr::AI(match keyword {
+                AiKeyword::Query => HirAIExpr::Query {
+                    model: None,
+                    prompt: Box::new(hir_expr),
+                },
+                AiKeyword::Verify => HirAIExpr::Verify {
+                    condition: Box::new(hir_expr),
+                },
+                _ => HirAIExpr::Query {
+                    model: None,
+                    prompt: Box::new(hir_expr),
+                },
+            }))
+        }
     }
 }
 
