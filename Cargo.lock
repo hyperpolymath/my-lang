@@ -901,11 +901,13 @@ name = "my-mir"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "my-ai",
  "my-hir",
  "my-lang",
  "petgraph",
  "serde",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
