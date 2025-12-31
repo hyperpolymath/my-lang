@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "my-llvm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "LLVM code generation backend for My Language"
+
+[lib]
+name = "my_llvm"
+path = "src/lib.rs"
+
+[dependencies]
+my-lang.workspace = true
+my-hir.workspace = true
+my-mir.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+inkwell.workspace = true
+tracing.workspace = true
