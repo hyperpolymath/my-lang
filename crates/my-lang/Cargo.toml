@@ -26,3 +26,12 @@ clap.workspace = true
 [dev-dependencies]
 pretty_assertions.workspace = true
 proptest = "1.4"
+my-hir = { path = "../my-hir" }
+my-mir = { path = "../my-mir" }
+my-ai = { path = "../my-ai" }
+my-pkg = { path = "../my-pkg" }
+toml = "0.8"
+
+[[test]]
+name = "integration_test"
+path = "../../tests/integration_test.rs"

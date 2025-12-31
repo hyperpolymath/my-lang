@@ -853,11 +853,16 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
+ "my-ai",
+ "my-hir",
+ "my-mir",
+ "my-pkg",
  "pretty_assertions",
  "proptest",
  "serde",
  "serde_json",
  "thiserror",
+ "toml",
  "tracing",
 ]
 

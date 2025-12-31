@@ -396,9 +396,9 @@ impl Default for AICache {
 
 /// AI Runtime - main entry point
 pub struct AIRuntime {
-    providers: Vec<Box<dyn AIProvider>>,
+    pub providers: Vec<Box<dyn AIProvider>>,
     cache: AICache,
-    default_model: String,
+    pub default_model: String,
 }
 
 impl AIRuntime {
@@ -492,6 +492,31 @@ impl Default for AIRuntime {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Create runtime from environment variables
+/// Checks ANTHROPIC_API_KEY, OPENAI_API_KEY, OLLAMA_HOST
+pub fn runtime_from_env() -> AIRuntime {
+    let mut runtime = AIRuntime::new();
+
+    if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+        runtime = runtime.with_anthropic(key);
+        runtime = runtime.with_default_model("claude-sonnet-4-20250514".to_string());
+    }
+
+    if let Ok(key) = std::env::var("OPENAI_API_KEY") {
+        runtime = runtime.with_openai(key);
+        if runtime.providers.len() == 1 {
+            runtime = runtime.with_default_model("gpt-4o".to_string());
+        }
+    }
+
+    if std::env::var("OLLAMA_HOST").is_ok() || std::env::var("OLLAMA_ENABLED").is_ok() {
+        let host = std::env::var("OLLAMA_HOST").ok();
+        runtime = runtime.with_ollama(host);
+    }
+
+    runtime
 }
 
 /// Newtonian agents module
