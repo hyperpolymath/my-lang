@@ -1,0 +1,67 @@
+{
+  "scopeName": "source.my",
+  "name": "My Language",
+  "fileTypes": ["my"],
+  "patterns": [
+    {"include": "#keywords"},
+    {"include": "#strings"},
+    {"include": "#numbers"},
+    {"include": "#comments"},
+    {"include": "#functions"},
+    {"include": "#types"}
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [{
+        "name": "keyword.control.my",
+        "match": "\\b(fn|let|mut|if|else|return|while|for|match|break|continue|type|struct|enum|impl|trait|use|pub|mod|async|await)\\b"
+      }]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.my",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.my",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [{
+        "name": "constant.numeric.my",
+        "match": "\\b\\d+\\.?\\d*\\b"
+      }]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.my",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.my",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [{
+        "name": "entity.name.function.my",
+        "match": "\\b([a-z_][a-z0-9_]*)\\s*\\("
+      }]
+    },
+    "types": {
+      "patterns": [{
+        "name": "entity.name.type.my",
+        "match": "\\b([A-Z][A-Za-z0-9_]*)\\b"
+      }]
+    }
+  }
+}

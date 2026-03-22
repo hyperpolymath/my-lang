@@ -1,0 +1,109 @@
+// Duet Language - Main Entry Point
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Duet is the AI-assisted pair programming language of the My-Lang family.
+// It combines neural and symbolic reasoning for human-AI collaboration.
+
+module Main
+
+import std::io
+import std::duet::{synth, verify, intent, ai_assist}
+
+/// Application entry point for Duet programs.
+/// Duet enables human-AI collaboration with formal verification.
+fn main() -> i32 {
+    io::println("Duet - AI-Assisted Neuro-Symbolic Language")
+    io::println("===========================================")
+    io::println("")
+    io::println("Features:")
+    io::println("  - @synth: AI-powered code synthesis")
+    io::println("  - @verify: Formal verification integration")
+    io::println("  - intent(): Describe what you want")
+    io::println("  - Neural-symbolic hybrid types")
+    io::println("  - Explainable AI reasoning")
+    io::println("")
+    io::println("Part of My-Lang: Me -> Solo -> Duet -> Ensemble")
+
+    0  // Exit code
+}
+
+/// Demonstrate AI synthesis from specification.
+@synth(spec: |x| x * 2)
+fn double(x: i32) -> i32;
+
+/// Demonstrate AI synthesis from examples.
+@synth(examples: [
+    (1, 1),
+    (2, 4),
+    (3, 9),
+    (4, 16),
+])
+fn square(x: i32) -> i32;
+
+/// Demonstrate intent-driven programming.
+fn sort_example() {
+    let data = [5, 2, 8, 1, 9]
+
+    intent "sort this array in ascending order" {
+        given: data
+        ensure: is_sorted(result) && is_permutation(data, result)
+        @ai_implement
+    }
+}
+
+/// Demonstrate verification of AI-generated code.
+@synth(spec: |arr| arr.iter().all(|x| *x >= 0))
+@verify(
+    property: "all_non_negative",
+    proof_strategy: "induction"
+)
+fn make_positive(arr: [i32]) -> [i32];
+
+/// Demonstrate neural-symbolic hybrid type.
+struct ImageClassifier {
+    model: neural CNN,
+    rules: [SymbolicRule],
+}
+
+impl ImageClassifier {
+    /// Classify with neural inference and symbolic validation.
+    fn classify(&self, image: Image) -> ClassificationResult {
+        // Neural inference
+        let neural_prediction = self.model.infer(image)
+
+        // Symbolic constraint checking
+        let validated = self.rules.iter()
+            .fold(neural_prediction, |pred, rule| rule.apply(pred))
+
+        ClassificationResult {
+            label: validated.label,
+            confidence: validated.confidence,
+            explanation: generate_explanation(neural_prediction, self.rules),
+        }
+    }
+}
+
+/// AI-assisted code review.
+@ai_assist(mode: "review")
+fn complex_algorithm(data: &[f64]) -> f64 {
+    // AI provides suggestions and explanations inline
+    let sum = data.iter().sum()
+    let mean = sum / data.len() as f64
+
+    // @ai_explain: "Computing standard deviation using the formula..."
+    let variance = data.iter()
+        .map(|x| (x - mean).powi(2))
+        .sum::<f64>() / data.len() as f64
+
+    variance.sqrt()
+}
+
+/// Demonstrate human-in-the-loop AI assistance.
+fn human_ai_collaboration() {
+    // AI suggests, human approves
+    @ai_suggest(confidence_threshold: 0.9)
+    fn optimize_query(query: SQL) -> SQL {
+        // AI analyzes and suggests optimizations
+        // Human reviews and approves each suggestion
+    }
+}

@@ -1,0 +1,4 @@
+# Duet hive demo placeholder
+
+demo:
+	@echo "Duet hive demo not yet implemented"

@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Mustfile - hyperpolymath mandatory checks
+# See: https://github.com/hyperpolymath/mustfile
+
+version: 1
+
+checks:
+  - name: build
+    run: just build
+  - name: lint
+    run: just lint
+  - name: format
+    run: just fmt
+  - name: test
+    run: just test

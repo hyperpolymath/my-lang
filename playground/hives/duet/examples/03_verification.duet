@@ -1,0 +1,167 @@
+// Formal Verification of AI-Generated Code
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates how Duet verifies that AI-generated code
+// satisfies formal specifications.
+
+module Main
+
+import std::io
+import std::duet::{synth, verify, proof}
+
+/// Synthesize with automatic verification.
+@synth(spec: |arr| is_sorted(&arr))
+@verify(
+    property: "output_is_sorted",
+    strategy: "induction",
+    timeout: 5000
+)
+fn sort_verified(arr: &[i32]) -> Vec<i32>;
+
+/// Verify specific properties of synthesized code.
+@synth(examples: [(1, 1), (2, 1), (3, 2), (4, 3), (5, 5), (6, 8)])
+@verify(properties: [
+    ("non_negative", |n, result| result >= 0),
+    ("monotonic", |n, result| n <= 1 || fibonacci(n) >= fibonacci(n-1)),
+    ("recurrence", |n, result| n <= 1 || result == fibonacci(n-1) + fibonacci(n-2)),
+])
+fn fibonacci(n: u32) -> u64;
+
+/// Verified binary search implementation.
+@synth(
+    spec: |arr, target, result| {
+        match result {
+            Some(i) => arr[i] == target,
+            None => !arr.contains(&target),
+        }
+    }
+)
+@verify(
+    preconditions: ["is_sorted(arr)"],
+    postconditions: [
+        "result.is_some() implies arr[result.unwrap()] == target",
+        "result.is_none() implies forall i. arr[i] != target"
+    ],
+    proof_strategy: "loop_invariant"
+)
+fn binary_search(arr: &[i32], target: i32) -> Option<usize>;
+
+/// Verify numerical stability.
+@synth(spec: |a, b| a + b)
+@verify(
+    properties: [
+        ("commutativity", |a, b| add(a, b) == add(b, a)),
+        ("associativity", |a, b, c| add(add(a, b), c) == add(a, add(b, c))),
+        ("identity", |a| add(a, 0.0) == a),
+    ],
+    numerical_tolerance: 1e-10
+)
+fn add(a: f64, b: f64) -> f64;
+
+fn main() {
+    io::println("Formal Verification Demo")
+    io::println("========================")
+    io::println("")
+
+    // Use verified sort
+    let data = [5, 2, 8, 1, 9]
+    let sorted = sort_verified(&data)
+    io::println("Sorted (verified): ", sorted)
+
+    // Verification status is available at compile time
+    #[compile_time]
+    {
+        let status = verify_status!(sort_verified)
+        static_assert!(status.is_proven(), "sort must be verified")
+    }
+
+    // Fibonacci with verified properties
+    io::println("fib(10) = ", fibonacci(10))  // 55
+
+    // Binary search with precondition checking
+    let sorted_arr = [1, 3, 5, 7, 9, 11]
+    match binary_search(&sorted_arr, 7) {
+        Some(i) => io::println("Found 7 at index ", i),
+        None => io::println("7 not found"),
+    }
+}
+
+/// Demonstrate proof inspection.
+fn inspect_proofs() {
+    // Get verification proof for analysis
+    let sort_proof = proof_of!(sort_verified)
+
+    io::println("Sort verification proof:")
+    io::println("  Strategy: ", sort_proof.strategy)
+    io::println("  Steps: ", sort_proof.steps.len())
+    io::println("  Confidence: ", sort_proof.confidence)
+
+    for step in sort_proof.steps {
+        io::println("    - ", step.description)
+    }
+}
+
+/// Demonstrate counterexample handling.
+@synth(spec: |x| x * x)  // Intentionally wrong for negative numbers
+@verify(
+    property: "always_positive",
+    on_failure: "report_counterexample"
+)
+fn maybe_buggy(x: i32) -> i32;
+
+fn handle_verification_failure() {
+    let result = verify_result!(maybe_buggy)
+
+    match result {
+        VerificationResult::Proven(proof) => {
+            io::println("Function verified!")
+        }
+        VerificationResult::Disproven(counterexample) => {
+            io::println("Verification failed!")
+            io::println("Counterexample: ", counterexample)
+            // AI suggests fix
+            let suggested_fix = ai::suggest_fix(maybe_buggy, counterexample)
+            io::println("Suggested fix: ", suggested_fix)
+        }
+        VerificationResult::Unknown(reason) => {
+            io::println("Could not verify: ", reason)
+        }
+    }
+}
+
+/// Verified data structure invariants.
+@verify(invariants: [
+    "self.len <= self.capacity",
+    "self.data.len() == self.capacity",
+])
+struct VerifiedVec<T> {
+    data: Box<[T]>,
+    len: usize,
+    capacity: usize,
+}
+
+impl<T> VerifiedVec<T> {
+    @verify(maintains_invariants: true)
+    fn push(&mut self, item: T) {
+        if self.len == self.capacity {
+            self.grow()
+        }
+        self.data[self.len] = item
+        self.len += 1
+    }
+
+    @verify(maintains_invariants: true)
+    fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            None
+        } else {
+            self.len -= 1
+            Some(self.data[self.len])
+        }
+    }
+}
+
+// Helper function
+fn is_sorted(arr: &[i32]) -> bool {
+    arr.windows(2).all(|w| w[0] <= w[1])
+}

@@ -1,0 +1,130 @@
+// Collections: Arrays, Vectors, Maps, Sets
+
+import std::collections::{Vec, HashMap, HashSet};
+
+fn main() {
+    // Arrays (fixed size)
+    let arr: [i32; 5] = [1, 2, 3, 4, 5];
+    let first = arr[0];
+    let length = arr.len();
+
+    // Array iteration
+    for element in arr {
+        println(element);
+    }
+
+    // Vectors (dynamic size)
+    let mut vec = Vec::new();
+    vec.push(1);
+    vec.push(2);
+    vec.push(3);
+
+    let last = vec.pop();  // Option::Some(3)
+    let len = vec.len();   // 2
+
+    // Vector from array
+    let vec2 = Vec::from([1, 2, 3, 4, 5]);
+
+    // Vector operations
+    vec2.iter().for_each(|x| println(x));
+    let doubled = vec2.iter().map(|x| x * 2).collect();
+    let evens = vec2.iter().filter(|x| x % 2 == 0).collect();
+    let sum: i32 = vec2.iter().sum();
+
+    // HashMap (key-value pairs)
+    let mut scores = HashMap::new();
+    scores.insert("Alice", 95);
+    scores.insert("Bob", 87);
+    scores.insert("Charlie", 92);
+
+    // Get value
+    let alice_score = scores.get("Alice");  // Option::Some(95)
+    let dave_score = scores.get("Dave");    // Option::None
+
+    // Iterate over HashMap
+    for (name, score) in scores.iter() {
+        println(name + ": " + score);
+    }
+
+    // Update value
+    scores.insert("Alice", 98);  // Overwrites old value
+
+    // Remove value
+    let removed = scores.remove("Bob");  // Option::Some(87)
+
+    // Contains key
+    let has_alice = scores.contains_key("Alice");  // true
+
+    // HashSet (unique values)
+    let mut set = HashSet::new();
+    set.insert(1);
+    set.insert(2);
+    set.insert(3);
+    set.insert(2);  // Duplicate, ignored
+
+    let size = set.len();  // 3
+    let has_two = set.contains(&2);  // true
+
+    // Set operations
+    let set1 = HashSet::from([1, 2, 3, 4]);
+    let set2 = HashSet::from([3, 4, 5, 6]);
+
+    let union = set1.union(&set2);           // [1, 2, 3, 4, 5, 6]
+    let intersection = set1.intersection(&set2);  // [3, 4]
+    let difference = set1.difference(&set2);      // [1, 2]
+
+    // Slices (views into arrays/vectors)
+    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let slice = &numbers[2..5];  // [3, 4, 5]
+    let first_half = &numbers[..5];  // [1, 2, 3, 4, 5]
+    let second_half = &numbers[5..];  // [6, 7, 8, 9, 10]
+
+    // String collections
+    let mut words = Vec::new();
+    words.push("hello");
+    words.push("world");
+
+    let joined = words.join(" ");  // "hello world"
+    let split = "one,two,three".split(",");  // Vec<str>
+
+    // Deque (double-ended queue)
+    let mut deque = Deque::new();
+    deque.push_back(1);
+    deque.push_front(0);
+    deque.push_back(2);
+    // deque: [0, 1, 2]
+
+    let front = deque.pop_front();  // Option::Some(0)
+    let back = deque.pop_back();    // Option::Some(2)
+
+    // BinaryHeap (priority queue)
+    let mut heap = BinaryHeap::new();
+    heap.push(3);
+    heap.push(1);
+    heap.push(4);
+    heap.push(2);
+
+    let max = heap.pop();  // Option::Some(4) - max element
+
+    // LinkedList
+    let mut list = LinkedList::new();
+    list.push_back(1);
+    list.push_back(2);
+    list.push_front(0);
+    // list: [0, 1, 2]
+
+    // BTreeMap (sorted map)
+    let mut btree = BTreeMap::new();
+    btree.insert(3, "three");
+    btree.insert(1, "one");
+    btree.insert(2, "two");
+    // Iterates in sorted order: 1, 2, 3
+
+    // BTreeSet (sorted set)
+    let mut sorted_set = BTreeSet::new();
+    sorted_set.insert(5);
+    sorted_set.insert(2);
+    sorted_set.insert(8);
+    sorted_set.insert(1);
+    // Iterates in sorted order: 1, 2, 5, 8
+}

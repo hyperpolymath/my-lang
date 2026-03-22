@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: MIT OR Palimpsest-0.8
+// SPDX-FileCopyrightText: 2024 My-newsroom Contributors
+//
+// Verified Quicksort Implementation
+// This example demonstrates AI-assisted synthesis with formal proofs.
+
+/// Specification: Array is sorted in ascending order
+@spec fn sorted<T: Ord>(arr: &[T]) -> bool {
+    arr.windows(2).all(|w| w[0] <= w[1])
+}
+
+/// Specification: Two slices are permutations of each other
+@spec fn permutation<T: Eq>(a: &[T], b: &[T]) -> bool {
+    a.len() == b.len() &&
+    // Every element in a appears same number of times in b
+    a.iter().all(|x| a.iter().filter(|y| *y == x).count() ==
+                     b.iter().filter(|y| *y == x).count())
+}
+
+/// Verified quicksort with AI-synthesized implementation
+intent("Sort array in-place using optimized quicksort with median-of-3 pivot")
+fn quicksort<T: Ord>(arr: &mut [T]) where
+    @verify: "postcondition: sorted(arr)",
+    @verify: "postcondition: permutation(old(arr), arr)",
+    @verify: "termination: proven via measure(arr.len())" {
+
+    @synth(strategy = "heuristic", hints = [
+        "use Hoare partition scheme",
+        "select pivot as median of first, middle, last",
+        "recurse on smaller partition first to limit stack depth"
+    ]) {
+        // Base case
+        if arr.len() <= 1 {
+            return;
+        }
+
+        // Insertion sort for small arrays
+        if arr.len() <= 16 {
+            insertion_sort(arr);
+            return;
+        }
+
+        // Median-of-3 pivot selection
+        let mid = arr.len() / 2;
+        let last = arr.len() - 1;
+
+        // Sort first, middle, last elements
+        if arr[0] > arr[mid] { arr.swap(0, mid); }
+        if arr[mid] > arr[last] { arr.swap(mid, last); }
+        if arr[0] > arr[mid] { arr.swap(0, mid); }
+
+        // Use middle as pivot (now it's the median)
+        let pivot_idx = partition(arr);
+
+        // Recurse on smaller partition first (tail call optimization)
+        let (left, right) = arr.split_at_mut(pivot_idx);
+        if left.len() < right.len() {
+            quicksort(left);
+            quicksort(&mut right[1..]);
+        } else {
+            quicksort(&mut right[1..]);
+            quicksort(left);
+        }
+    }
+}
+
+/// Hoare partition scheme
+fn partition<T: Ord>(arr: &mut [T]) -> usize where
+    @verify: "postcondition: result < arr.len()",
+    @verify: "postcondition: forall i < result. arr[i] <= arr[result]",
+    @verify: "postcondition: forall i > result. arr[i] >= arr[result]" {
+
+    let pivot = arr.len() / 2;
+    arr.swap(pivot, arr.len() - 1);
+
+    let mut i = 0;
+    for j in 0..arr.len() - 1 {
+        @invariant: "forall k < i. arr[k] <= arr[arr.len() - 1]";
+        if arr[j] <= arr[arr.len() - 1] {
+            arr.swap(i, j);
+            i += 1;
+        }
+    }
+
+    arr.swap(i, arr.len() - 1);
+    i
+}
+
+/// Simple insertion sort for small arrays
+fn insertion_sort<T: Ord>(arr: &mut [T]) where
+    @verify: "postcondition: sorted(arr)",
+    @verify: "postcondition: permutation(old(arr), arr)" {
+
+    for i in 1..arr.len() {
+        @invariant: "sorted(arr[0..i])";
+        let mut j = i;
+        while j > 0 && arr[j - 1] > arr[j] {
+            arr.swap(j - 1, j);
+            j -= 1;
+        }
+    }
+}
+
+/// Verified binary search on sorted array
+intent("Find element in sorted array using binary search")
+fn binary_search<T: Ord>(arr: &[T], target: &T) -> Option<usize> where
+    @verify: "precondition: sorted(arr)",
+    @verify: "postcondition: result.is_some() => arr[result.unwrap()] == *target",
+    @verify: "postcondition: result.is_none() => !arr.contains(target)",
+    @verify: "time_complexity: O(log n)" {
+
+    @synth {
+        let mut left = 0;
+        let mut right = arr.len();
+
+        while left < right {
+            @invariant: "left <= right && right <= arr.len()";
+            @invariant: "forall i < left. arr[i] < *target";
+            @invariant: "forall i >= right. arr[i] > *target";
+
+            let mid = left + (right - left) / 2;
+
+            match arr[mid].cmp(target) {
+                Ordering::Less => left = mid + 1,
+                Ordering::Greater => right = mid,
+                Ordering::Equal => return Some(mid),
+            }
+        }
+
+        None
+    }
+}
+
+#[ai_test(count = 1000, strategy = "property_based")]
+fn test_quicksort_properties() {
+    // Property: sorted output
+    // Property: permutation of input
+    // Property: idempotent (sorting twice = sorting once)
+}

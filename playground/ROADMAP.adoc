@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+= Roadmap
+
+Roadmap for My-Lang Playground.
+
+== Near Term
+
+- Define immediate milestones.
+
+== Mid Term
+
+- Plan for core feature completion.
+
+== Long Term
+
+- Outline stabilization and community goals.

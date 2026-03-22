@@ -1,0 +1,349 @@
+// Human-in-the-Loop Oversight
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates patterns for human oversight of AI agents,
+// including approval workflows, escalation, and audit trails.
+
+module Main
+
+import std::io
+import std::ensemble::{Agent, oversight}
+import std::ensemble::oversight::{AuditTrail, Escalation}
+
+/// Agent that handles sensitive operations.
+agent SensitiveOperator {
+    capabilities: [modify_data, delete_data, send_external],
+    constraints: [require_approval, audit_all],
+    sensitivity_level: SensitivityLevel::High,
+
+    /// Modify data with human approval.
+    fn modify_data(&self, data: Data, changes: Changes) -> Result<Data, Error> {
+        // Log intent
+        audit::log_intent("modify_data", &data, &changes)
+
+        // Request approval for sensitive modification
+        let approval = await oversight::request_approval(ApprovalRequest {
+            action: "Modify data",
+            details: format!("Changing {} fields in record {}", changes.len(), data.id),
+            impact: Impact::Medium,
+            reversible: true,
+        })
+
+        if approval.granted {
+            let modified = apply_changes(data, changes)
+            audit::log_action("modify_data", &modified, approval.approver)
+            Ok(modified)
+        } else {
+            audit::log_rejection("modify_data", approval.reason)
+            Err(Error::NotApproved(approval.reason))
+        }
+    }
+
+    /// Delete data requires elevated approval.
+    fn delete_data(&self, data: Data) -> Result<(), Error> {
+        audit::log_intent("delete_data", &data, &())
+
+        // Deletion requires manager approval
+        let approval = await oversight::request_elevated_approval(ApprovalRequest {
+            action: "Delete data permanently",
+            details: format!("Permanently deleting record {}", data.id),
+            impact: Impact::High,
+            reversible: false,
+            required_role: Role::Manager,
+        })
+
+        if approval.granted {
+            perform_deletion(data)
+            audit::log_action("delete_data", &data.id, approval.approver)
+            Ok(())
+        } else {
+            audit::log_rejection("delete_data", approval.reason)
+            Err(Error::NotApproved(approval.reason))
+        }
+    }
+
+    /// External communication requires review.
+    fn send_external(&self, message: Message, recipient: String) -> Result<(), Error> {
+        audit::log_intent("send_external", &message, &recipient)
+
+        // Review message content before sending
+        let review = await oversight::request_review(ReviewRequest {
+            content: message.body.clone(),
+            recipient: recipient.clone(),
+            action: "Send external message",
+        })
+
+        match review.decision {
+            ReviewDecision::Approve => {
+                send_message(message, recipient)
+                audit::log_action("send_external", &recipient, review.reviewer)
+                Ok(())
+            }
+            ReviewDecision::Modify(modifications) => {
+                let modified_message = apply_modifications(message, modifications)
+                send_message(modified_message, recipient)
+                audit::log_action("send_external_modified", &recipient, review.reviewer)
+                Ok(())
+            }
+            ReviewDecision::Reject(reason) => {
+                audit::log_rejection("send_external", reason.clone())
+                Err(Error::Rejected(reason))
+            }
+        }
+    }
+}
+
+/// Ensemble with built-in oversight.
+ensemble OversightEnsemble {
+    agents: [SensitiveOperator, Analyst, Reporter],
+    oversight_config: OversightConfig,
+    audit_trail: AuditTrail,
+
+    fn new(config: OversightConfig) -> OversightEnsemble {
+        OversightEnsemble {
+            agents: spawn_agents(),
+            oversight_config: config,
+            audit_trail: AuditTrail::new(),
+        }
+    }
+
+    /// Workflow with checkpoint approvals.
+    workflow process_with_checkpoints(data: InputData) -> ProcessedData {
+        // Checkpoint 1: Approve data ingestion
+        let ingested = {
+            let approval = await oversight::checkpoint(
+                "data_ingestion",
+                "Approve ingesting {} records".format(data.records.len())
+            )
+            if !approval { return Err(Error::CheckpointRejected) }
+
+            Analyst.ingest(data)
+        }
+
+        // Checkpoint 2: Approve analysis
+        let analyzed = {
+            let analysis = Analyst.analyze(ingested)
+
+            let approval = await oversight::checkpoint_with_preview(
+                "analysis_results",
+                "Review analysis results before proceeding",
+                preview: analysis.summary()
+            )
+            if !approval { return Err(Error::CheckpointRejected) }
+
+            analysis
+        }
+
+        // Checkpoint 3: Approve final report
+        let report = {
+            let draft = Reporter.generate(analyzed)
+
+            let approval = await oversight::checkpoint_with_edit(
+                "final_report",
+                "Review and optionally edit the final report",
+                content: draft
+            )
+
+            match approval {
+                CheckpointResult::Approved => draft,
+                CheckpointResult::Edited(edited) => edited,
+                CheckpointResult::Rejected => return Err(Error::CheckpointRejected),
+            }
+        }
+
+        ProcessedData { report, audit: self.audit_trail.export() }
+    }
+
+    /// Escalation workflow.
+    workflow handle_escalation(issue: Issue) -> Resolution {
+        // Try automated resolution first
+        let auto_result = Analyst.attempt_resolution(issue.clone())
+
+        match auto_result {
+            AutoResult::Resolved(solution) => {
+                // Log successful auto-resolution
+                self.audit_trail.log("auto_resolved", &issue, &solution)
+                Resolution::Automatic(solution)
+            }
+            AutoResult::NeedsEscalation(reason) => {
+                // Escalate to human
+                io::println("Escalating issue: ", reason)
+
+                let escalation = Escalation {
+                    issue: issue.clone(),
+                    reason,
+                    attempted_solutions: auto_result.attempts,
+                    urgency: calculate_urgency(&issue),
+                }
+
+                let human_response = await oversight::escalate(escalation)
+
+                self.audit_trail.log("human_escalation", &issue, &human_response)
+
+                match human_response {
+                    HumanResponse::Resolution(solution) => Resolution::Human(solution),
+                    HumanResponse::Delegation(agent) => {
+                        let delegated_result = agent.resolve(issue)
+                        Resolution::Delegated(delegated_result)
+                    }
+                    HumanResponse::Defer(duration) => {
+                        schedule_retry(issue, duration)
+                        Resolution::Deferred(duration)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Configure oversight policies.
+struct OversightConfig {
+    /// Require approval for all sensitive operations.
+    require_approval: bool,
+
+    /// Auto-approve low-impact operations.
+    auto_approve_low_impact: bool,
+
+    /// Timeout for approval requests (None = wait forever).
+    approval_timeout: Option<Duration>,
+
+    /// Default decision on timeout.
+    timeout_default: TimeoutDefault,
+
+    /// Audit retention period.
+    audit_retention: Duration,
+
+    /// Roles that can approve.
+    approver_roles: Vec<Role>,
+}
+
+impl Default for OversightConfig {
+    fn default() -> OversightConfig {
+        OversightConfig {
+            require_approval: true,
+            auto_approve_low_impact: false,
+            approval_timeout: Some(Duration::hours(24)),
+            timeout_default: TimeoutDefault::Reject,
+            audit_retention: Duration::days(365),
+            approver_roles: vec![Role::Manager, Role::Admin],
+        }
+    }
+}
+
+/// Audit trail viewer.
+fn view_audit_trail(ensemble: &OversightEnsemble) {
+    let trail = ensemble.audit_trail.export()
+
+    io::println("Audit Trail")
+    io::println("===========")
+    io::println("")
+
+    for entry in trail.entries.iter().take(10) {
+        io::println("[", entry.timestamp, "] ", entry.action)
+        io::println("  Agent: ", entry.agent_id)
+        io::println("  Details: ", entry.details)
+        if let Some(approver) = &entry.approved_by {
+            io::println("  Approved by: ", approver)
+        }
+        io::println("")
+    }
+
+    io::println("Total entries: ", trail.entries.len())
+}
+
+fn main() {
+    io::println("Human Oversight Demo")
+    io::println("====================")
+    io::println("")
+
+    // Create ensemble with oversight configuration
+    let config = OversightConfig {
+        require_approval: true,
+        auto_approve_low_impact: true,
+        approval_timeout: Some(Duration::minutes(30)),
+        ..Default::default()
+    }
+
+    let ensemble = OversightEnsemble::new(config)
+
+    // Demo: Sensitive operation requiring approval
+    io::println("Demo 1: Sensitive data modification")
+    io::println("-----------------------------------")
+
+    let data = Data { id: "record_001".to_string(), content: "original".to_string() }
+    let changes = Changes { fields: vec![("content", "modified")] }
+
+    let operator = SensitiveOperator::spawn()
+    let result = operator.modify_data(data, changes)
+
+    match result {
+        Ok(modified) => io::println("Data modified successfully: ", modified.content),
+        Err(e) => io::println("Modification failed: ", e),
+    }
+
+    io::println("")
+
+    // Demo: Workflow with checkpoints
+    io::println("Demo 2: Workflow with checkpoints")
+    io::println("---------------------------------")
+
+    let input = InputData { records: vec![Record::new(); 100] }
+    let result = ensemble.process_with_checkpoints(input)
+
+    match result {
+        Ok(processed) => {
+            io::println("Processing complete!")
+            io::println("Report generated with ", processed.audit.entries.len(), " audit entries")
+        }
+        Err(e) => io::println("Processing stopped: ", e),
+    }
+
+    io::println("")
+
+    // View audit trail
+    view_audit_trail(&ensemble)
+
+    ensemble.shutdown()
+}
+
+// Type definitions
+struct Data { id: String, content: String }
+struct Changes { fields: Vec<(&str, &str)> }
+struct Message { body: String }
+struct InputData { records: Vec<Record> }
+struct Record {}
+impl Record { fn new() -> Record { Record {} } }
+struct ProcessedData { report: String, audit: AuditReport }
+struct Issue {}
+enum Resolution { Automatic(Solution), Human(Solution), Delegated(Solution), Deferred(Duration) }
+struct Solution {}
+struct AuditReport { entries: Vec<AuditEntry> }
+struct AuditEntry { timestamp: String, action: String, agent_id: String, details: String, approved_by: Option<String> }
+enum Impact { Low, Medium, High }
+enum Role { User, Manager, Admin }
+enum TimeoutDefault { Approve, Reject }
+enum ReviewDecision { Approve, Modify(Vec<Modification>), Reject(String) }
+enum AutoResult { Resolved(Solution), NeedsEscalation(String) }
+impl AutoResult { fn attempts(&self) -> Vec<String> { vec![] } }
+enum HumanResponse { Resolution(Solution), Delegation(Agent), Defer(Duration) }
+enum CheckpointResult { Approved, Edited(String), Rejected }
+struct Modification {}
+struct ApprovalRequest { action: &str, details: String, impact: Impact, reversible: bool, required_role: Role }
+struct Approval { granted: bool, approver: String, reason: String }
+struct ReviewRequest { content: String, recipient: String, action: &str }
+enum SensitivityLevel { Low, Medium, High }
+
+fn apply_changes(d: Data, c: Changes) -> Data { d }
+fn perform_deletion(d: Data) {}
+fn send_message(m: Message, r: String) {}
+fn apply_modifications(m: Message, mods: Vec<Modification>) -> Message { m }
+fn calculate_urgency(i: &Issue) -> Urgency { Urgency::Medium }
+fn schedule_retry(i: Issue, d: Duration) {}
+fn spawn_agents() -> Vec<Agent> { vec![] }
+enum Urgency { Low, Medium, High, Critical }
+
+mod audit {
+    pub fn log_intent(action: &str, data: &impl std::fmt::Debug, changes: &impl std::fmt::Debug) {}
+    pub fn log_action(action: &str, data: &impl std::fmt::Debug, approver: String) {}
+    pub fn log_rejection(action: &str, reason: String) {}
+}

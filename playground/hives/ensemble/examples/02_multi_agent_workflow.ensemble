@@ -1,0 +1,266 @@
+// Multi-Agent Workflow
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates orchestrating multiple agents in a workflow
+// for complex collaborative tasks.
+
+module Main
+
+import std::io
+import std::ensemble::{Agent, Ensemble, Workflow, WorkflowStep}
+
+/// Research agent for gathering information.
+agent Researcher {
+    capabilities: [search, summarize, cite],
+    constraints: [factual, cite_sources],
+
+    fn search(query: String) -> Vec<SearchResult> {
+        web_search(query, limit: 20)
+            .filter(|r| r.relevance > 0.7)
+            .collect()
+    }
+
+    fn summarize(results: Vec<SearchResult>) -> Summary {
+        let key_points = extract_key_points(results)
+        Summary {
+            points: key_points,
+            sources: results.iter().map(|r| r.source).collect(),
+            confidence: calculate_confidence(results),
+        }
+    }
+}
+
+/// Writer agent for content creation.
+agent Writer {
+    capabilities: [draft, expand, simplify],
+    constraints: [clear, engaging, accurate],
+
+    fn draft(summary: Summary, style: WritingStyle) -> Draft {
+        let content = generate_content(summary, style)
+        Draft {
+            content,
+            word_count: content.split_whitespace().count(),
+            citations: summary.sources,
+        }
+    }
+
+    fn expand(draft: Draft, section: String) -> Draft {
+        let expanded = elaborate_section(draft.content, section)
+        Draft { content: expanded, ..draft }
+    }
+
+    fn simplify(draft: Draft, reading_level: ReadingLevel) -> Draft {
+        let simplified = adjust_complexity(draft.content, reading_level)
+        Draft { content: simplified, ..draft }
+    }
+}
+
+/// Editor agent for review and improvement.
+agent Editor {
+    capabilities: [review, suggest, polish],
+    constraints: [improve_clarity, maintain_voice],
+
+    fn review(draft: Draft) -> Review {
+        let issues = find_issues(draft.content)
+        let suggestions = generate_suggestions(issues)
+
+        Review {
+            original: draft,
+            issues,
+            suggestions,
+            quality_score: calculate_quality(draft),
+        }
+    }
+
+    fn polish(draft: Draft, review: Review) -> FinalDocument {
+        let polished = apply_suggestions(draft.content, review.suggestions)
+        FinalDocument {
+            content: polished,
+            citations: draft.citations,
+            quality_score: review.quality_score + 0.1,
+        }
+    }
+}
+
+/// Fact-checker agent for verification.
+agent FactChecker {
+    capabilities: [verify_claims, cross_reference],
+    constraints: [high_accuracy, evidence_based],
+
+    fn verify(document: FinalDocument) -> VerificationReport {
+        let claims = extract_claims(document.content)
+        let verifications = claims.iter().map(|claim| {
+            let evidence = find_evidence(claim)
+            ClaimVerification {
+                claim: claim.clone(),
+                verified: evidence.is_sufficient(),
+                evidence,
+            }
+        }).collect()
+
+        VerificationReport {
+            verified_count: verifications.iter().filter(|v| v.verified).count(),
+            total_claims: claims.len(),
+            details: verifications,
+        }
+    }
+}
+
+/// Create a document production ensemble.
+ensemble DocumentProduction {
+    agents: [Researcher, Writer, Editor, FactChecker],
+
+    /// Main workflow for document creation.
+    workflow create_document(
+        topic: String,
+        style: WritingStyle,
+        require_verification: bool
+    ) -> VerifiedDocument {
+        // Step 1: Research
+        io::println("[1/5] Researching topic...")
+        let search_results = Researcher.search(topic)
+        let summary = Researcher.summarize(search_results)
+
+        // Step 2: Draft
+        io::println("[2/5] Creating draft...")
+        let draft = Writer.draft(summary, style)
+
+        // Step 3: Review and Edit
+        io::println("[3/5] Reviewing and editing...")
+        let review = Editor.review(draft)
+        let polished = Editor.polish(draft, review)
+
+        // Step 4: Verification (if required)
+        let verification = if require_verification {
+            io::println("[4/5] Verifying facts...")
+            Some(FactChecker.verify(polished))
+        } else {
+            io::println("[4/5] Skipping verification...")
+            None
+        }
+
+        // Step 5: Human approval
+        io::println("[5/5] Requesting human approval...")
+        let approved = await human_approval(
+            polished,
+            verification,
+            "Please review the document before publishing."
+        )
+
+        if approved {
+            VerifiedDocument {
+                document: polished,
+                verification,
+                approved: true,
+                approved_by: current_user(),
+            }
+        } else {
+            // Get feedback and iterate
+            let feedback = await get_human_feedback()
+            iterate_with_feedback(topic, style, feedback)
+        }
+    }
+
+    /// Parallel research workflow.
+    workflow parallel_research(topics: Vec<String>) -> Vec<Summary> {
+        // Research multiple topics in parallel
+        topics.par_map(|topic| {
+            let results = Researcher.search(topic)
+            Researcher.summarize(results)
+        })
+    }
+
+    /// Quality assurance workflow.
+    workflow qa_review(document: FinalDocument) -> QAResult {
+        // Run multiple checks in parallel
+        let (grammar_check, fact_check, style_check) = parallel {
+            Editor.check_grammar(document),
+            FactChecker.verify(document),
+            Editor.check_style(document)
+        }
+
+        QAResult {
+            passed: grammar_check.passed && style_check.passed,
+            grammar: grammar_check,
+            facts: fact_check,
+            style: style_check,
+        }
+    }
+}
+
+fn main() {
+    io::println("Multi-Agent Workflow Demo")
+    io::println("=========================")
+    io::println("")
+
+    // Create the ensemble
+    let production = DocumentProduction::spawn()
+
+    // Execute the workflow
+    let result = production.create_document(
+        topic: "The Future of AI",
+        style: WritingStyle::Professional,
+        require_verification: true
+    )
+
+    match result {
+        VerifiedDocument { document, verification: Some(v), .. } => {
+            io::println("")
+            io::println("Document created successfully!")
+            io::println("Word count: ", document.content.split_whitespace().count())
+            io::println("Quality score: ", document.quality_score)
+            io::println("Verified claims: ", v.verified_count, "/", v.total_claims)
+        }
+        _ => {
+            io::println("Document creation was not completed.")
+        }
+    }
+
+    // Parallel research example
+    io::println("")
+    io::println("Running parallel research...")
+    let topics = vec!["Machine Learning", "Quantum Computing", "Biotechnology"]
+    let summaries = production.parallel_research(topics)
+
+    for (i, summary) in summaries.iter().enumerate() {
+        io::println("Topic ", i + 1, ": ", summary.points.len(), " key points found")
+    }
+
+    production.shutdown()
+}
+
+// Type definitions
+struct SearchResult { source: String, relevance: f64 }
+struct Summary { points: Vec<String>, sources: Vec<String>, confidence: f64 }
+struct Draft { content: String, word_count: usize, citations: Vec<String> }
+struct Review { original: Draft, issues: Vec<Issue>, suggestions: Vec<Suggestion>, quality_score: f64 }
+struct FinalDocument { content: String, citations: Vec<String>, quality_score: f64 }
+struct VerificationReport { verified_count: usize, total_claims: usize, details: Vec<ClaimVerification> }
+struct ClaimVerification { claim: String, verified: bool, evidence: Evidence }
+struct Evidence { is_sufficient: fn() -> bool }
+struct VerifiedDocument { document: FinalDocument, verification: Option<VerificationReport>, approved: bool, approved_by: String }
+struct QAResult { passed: bool, grammar: GrammarCheck, facts: VerificationReport, style: StyleCheck }
+enum WritingStyle { Professional, Casual, Academic }
+enum ReadingLevel { Elementary, HighSchool, College, Expert }
+struct Issue {}
+struct Suggestion {}
+struct GrammarCheck { passed: bool }
+struct StyleCheck { passed: bool }
+
+fn web_search(q: String, limit: u32) -> Vec<SearchResult> { vec![] }
+fn extract_key_points(r: Vec<SearchResult>) -> Vec<String> { vec![] }
+fn calculate_confidence(r: Vec<SearchResult>) -> f64 { 0.9 }
+fn generate_content(s: Summary, style: WritingStyle) -> String { String::new() }
+fn elaborate_section(c: String, s: String) -> String { c }
+fn adjust_complexity(c: String, l: ReadingLevel) -> String { c }
+fn find_issues(c: String) -> Vec<Issue> { vec![] }
+fn generate_suggestions(i: Vec<Issue>) -> Vec<Suggestion> { vec![] }
+fn calculate_quality(d: Draft) -> f64 { 0.8 }
+fn apply_suggestions(c: String, s: Vec<Suggestion>) -> String { c }
+fn extract_claims(c: String) -> Vec<String> { vec![] }
+fn find_evidence(c: &String) -> Evidence { Evidence { is_sufficient: || true } }
+fn human_approval(d: FinalDocument, v: Option<VerificationReport>, msg: &str) -> bool { true }
+fn get_human_feedback() -> Feedback { Feedback {} }
+fn iterate_with_feedback(t: String, s: WritingStyle, f: Feedback) -> VerifiedDocument { VerifiedDocument::default() }
+fn current_user() -> String { "user".to_string() }
+struct Feedback {}

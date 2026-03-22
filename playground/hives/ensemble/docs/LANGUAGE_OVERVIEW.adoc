@@ -1,0 +1,406 @@
+= Ensemble Language Overview
+:toc: macro
+:icons: font
+:source-highlighter: rouge
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+*AI-Native Multi-Agent Application Language*
+
+toc::[]
+
+== Introduction
+
+Ensemble is the culmination of the My-Lang progressive language family. It extends *Duet* (the AI-assisted language) with multi-agent orchestration capabilities, enabling the development of AI-native applications where multiple AI agents collaborate with human oversight.
+
+=== Design Philosophy
+
+Ensemble embraces these principles:
+
+1. **Multi-Agent by Default**: Applications are composed of collaborating agents
+2. **Human-in-the-Loop**: Critical decisions require human approval
+3. **Consensus-Based**: Agents reach agreement through formal protocols
+4. **Auditable**: All agent decisions create audit trails
+5. **Distributed**: Agents can run across multiple nodes
+
+== Core Constructs
+
+=== Agent Definition
+
+Define agents with capabilities and constraints:
+
+[source,ensemble]
+----
+agent Researcher {
+    capabilities: [search, summarize, cite],
+    constraints: [factual, cite_sources],
+    model: "research-agent-v2",
+
+    fn research(topic: String) -> Report {
+        let sources = search(topic)
+        let summary = summarize(sources)
+        Report { summary, citations: cite(sources) }
+    }
+}
+----
+
+=== Ensemble Definition
+
+Create ensembles of collaborating agents:
+
+[source,ensemble]
+----
+ensemble DocumentTeam {
+    agents: [Researcher, Writer, Editor],
+
+    workflow create_document(topic: String) -> Document {
+        let research = Researcher.research(topic)
+        let draft = Writer.draft(research)
+        let final = Editor.polish(draft)
+        final
+    }
+}
+----
+
+=== Consensus Protocols
+
+Multiple agents reach agreement:
+
+[source,ensemble]
+----
+fn collective_decision(agents: [Agent], question: Query) -> Decision {
+    let votes = agents.map(|a| a.vote(question))
+    let consensus = reach_consensus(votes, threshold: 0.7)
+
+    match consensus {
+        Agreed(decision) => decision,
+        Disagreement(positions) => escalate_to_human(positions),
+    }
+}
+----
+
+=== Human Oversight
+
+Built-in patterns for human approval:
+
+[source,ensemble]
+----
+workflow sensitive_operation() {
+    // Step requiring approval
+    let data = collect_data()
+
+    let approved = await human_approval(
+        "Review collected data before processing",
+        preview: data.summary()
+    )
+
+    if approved {
+        process(data)
+    } else {
+        let feedback = await get_human_feedback()
+        iterate(feedback)
+    }
+}
+----
+
+== Agent Types
+
+=== Stateless Agents
+
+Can run on any node, easily replicated:
+
+[source,ensemble]
+----
+agent Worker {
+    stateless: true,
+    replicas: 5,
+
+    fn process(task: Task) -> Result {
+        compute(task.data)
+    }
+}
+----
+
+=== Singleton Agents
+
+Only one instance across the cluster:
+
+[source,ensemble]
+----
+agent Coordinator {
+    singleton: true,
+
+    fn schedule(tasks: Vec<Task>) -> Schedule {
+        distribute_to_workers(tasks)
+    }
+}
+----
+
+=== Stateful Agents
+
+Maintain state, require affinity:
+
+[source,ensemble]
+----
+agent SessionManager {
+    stateful: true,
+    state: HashMap<SessionId, Session>,
+
+    fn get_session(id: SessionId) -> Session {
+        self.state.get(id)
+    }
+}
+----
+
+== Workflow Patterns
+
+=== Sequential Workflow
+
+[source,ensemble]
+----
+workflow sequential(input: Data) -> Output {
+    let step1 = Agent1.process(input)
+    let step2 = Agent2.transform(step1)
+    let step3 = Agent3.finalize(step2)
+    step3
+}
+----
+
+=== Parallel Workflow
+
+[source,ensemble]
+----
+workflow parallel(items: Vec<Item>) -> Vec<Result> {
+    items.par_map(|item| {
+        let agent = next_available_agent()
+        agent.process(item)
+    })
+}
+----
+
+=== Pipeline Workflow
+
+[source,ensemble]
+----
+workflow pipeline(stream: Stream<Data>) -> Stream<Output> {
+    stream
+        |> Agent1.preprocess
+        |> Agent2.transform
+        |> Agent3.postprocess
+}
+----
+
+=== Fan-Out/Fan-In
+
+[source,ensemble]
+----
+workflow fan_out_in(data: Data) -> AggregatedResult {
+    // Fan out to multiple agents
+    let results = parallel {
+        Analyzer1.analyze(data),
+        Analyzer2.analyze(data),
+        Analyzer3.analyze(data),
+    }
+
+    // Fan in to aggregator
+    Aggregator.combine(results)
+}
+----
+
+== Consensus Mechanisms
+
+=== Majority Voting
+
+[source,ensemble]
+----
+let decision = consensus::majority(votes)
+----
+
+=== Weighted Voting
+
+[source,ensemble]
+----
+let decision = consensus::weighted(votes, weights)
+----
+
+=== Ranked Choice
+
+[source,ensemble]
+----
+let decision = consensus::ranked_choice(ballots)
+----
+
+=== Unanimous Consent
+
+[source,ensemble]
+----
+let decision = consensus::unanimous(votes)
+----
+
+== Human-in-the-Loop
+
+=== Approval Requests
+
+[source,ensemble]
+----
+let approved = await oversight::request_approval(
+    action: "Delete user data",
+    impact: Impact::High,
+    reversible: false,
+)
+----
+
+=== Checkpoints
+
+[source,ensemble]
+----
+workflow with_checkpoints() {
+    step1()
+    await checkpoint("Review step 1 output")
+    step2()
+    await checkpoint("Review step 2 output")
+    step3()
+}
+----
+
+=== Escalation
+
+[source,ensemble]
+----
+fn handle_conflict(positions: Vec<Position>) -> Resolution {
+    await oversight::escalate(
+        issue: "Agents disagree",
+        positions,
+        urgency: Urgency::High,
+    )
+}
+----
+
+== Audit Trail
+
+All agent actions are logged:
+
+[source,ensemble]
+----
+// Automatic audit logging
+agent AuditedAgent {
+    audit: true,  // All actions logged
+
+    fn sensitive_action() {
+        // Automatically logged with:
+        // - timestamp
+        // - agent ID
+        // - action details
+        // - inputs/outputs
+    }
+}
+
+// Manual audit entries
+fn explicit_audit(action: &str, details: &str) {
+    audit::log(action, details, current_context())
+}
+
+// Export audit trail
+let trail = audit::export(time_range: last_30_days)
+----
+
+== Distributed Execution
+
+=== Node Configuration
+
+[source,ensemble]
+----
+let nodes = vec![
+    Node::new("node-1", "192.168.1.101"),
+    Node::new("node-2", "192.168.1.102"),
+    Node::new("node-3", "192.168.1.103"),
+]
+
+let cluster = DistributedCluster::new(nodes)
+----
+
+=== Load Balancing
+
+[source,ensemble]
+----
+let balancer = LoadBalancer::least_loaded()
+let worker = balancer.next(workers)
+----
+
+=== Fault Tolerance
+
+[source,ensemble]
+----
+workflow fault_tolerant(tasks: Vec<Task>) -> Vec<Result> {
+    let mut pending = tasks
+    let max_retries = 3
+
+    while !pending.is_empty() && retries < max_retries {
+        let results = distribute(pending)
+        let failed = results.filter(|r| r.is_err())
+
+        if !failed.is_empty() {
+            recover_failed_workers()
+            pending = failed.tasks()
+            retries += 1
+        } else {
+            break
+        }
+    }
+}
+----
+
+== Configuration
+
+=== ensemble.toml
+
+[source,toml]
+----
+[agents]
+default_timeout_ms = 5000
+max_retries = 3
+
+[consensus]
+default_threshold = 0.7
+timeout_ms = 30000
+
+[oversight]
+require_approval = true
+auto_approve_low_impact = false
+approval_timeout_hours = 24
+
+[distributed]
+nodes = ["node-1:5000", "node-2:5000", "node-3:5000"]
+load_balancing = "least_loaded"
+replication_factor = 3
+
+[audit]
+enabled = true
+retention_days = 365
+export_format = "json"
+----
+
+== Relationship to Other Dialects
+
+[cols="1,3"]
+|===
+| Dialect | Relationship
+
+| **Me**
+| Core language foundation
+
+| **Solo**
+| Systems programming base
+
+| **Duet**
+| AI-assisted programming that Ensemble extends
+
+| **Ensemble**
+| Multi-agent orchestration (this language)
+|===
+
+== Further Reading
+
+* `examples/` - Working code examples
+* `test/` - Test suite
+* `../me/docs/specs/ENSEMBLE_GRAMMAR_VARIANT_A.ebnf` - Grammar specification

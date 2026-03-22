@@ -1,0 +1,49 @@
+// Macros and Metaprogramming
+
+// Simple macro
+macro_rules! say_hello {
+    () => {
+        println("Hello!");
+    }
+}
+
+// Macro with arguments
+macro_rules! create_function {
+    ($name:ident) => {
+        fn $name() {
+            println("Function " + stringify!($name) + " called");
+        }
+    }
+}
+
+// Variadic macro
+macro_rules! vec {
+    ($($x:expr),*) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(temp_vec.push($x);)*
+            temp_vec
+        }
+    }
+}
+
+// Macro for DSL
+macro_rules! calculate {
+    (eval $e:expr) => {
+        {
+            let val = $e;
+            println("Result: {}", val);
+        }
+    }
+}
+
+fn main() {
+    say_hello!();
+
+    create_function!(foo);
+    foo();
+
+    let my_vec = vec![1, 2, 3, 4, 5];
+
+    calculate!(eval 1 + 2 + 3);
+}

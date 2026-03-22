@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+[package]
+name = "my-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "My Language command-line interface and compiler"
+
+[[bin]]
+name = "my"
+path = "src/main.rs"
+
+[dependencies]
+my-lang = { path = "../my-lang", features = ["serde"] }
+my-hir = { path = "../my-hir" }
+my-mir = { path = "../my-mir" }
+my-llvm = { path = "../my-llvm", optional = true }
+
+thiserror.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+serde_json.workspace = true
+
+[features]
+default = []
+llvm = ["dep:my-llvm"]

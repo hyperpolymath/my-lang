@@ -1,0 +1,121 @@
+% SPDX-License-Identifier: PMPL-1.0-or-later
+% Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+% References for My-Lang: 4-dialect AI-native language with LLVM codegen
+% and effect system
+
+@book{pierce2002types,
+  author    = {Benjamin C. Pierce},
+  title     = {Types and Programming Languages},
+  publisher = {MIT Press},
+  year      = {2002},
+  note      = {Type theory foundations; reference for My-Lang multi-dialect type system}
+}
+
+@inproceedings{lattner2004llvm,
+  author    = {Chris Lattner and Vikram Adve},
+  title     = {{LLVM}: A Compilation Framework for Lifelong Program Analysis and Transformation},
+  booktitle = {Proceedings of the International Symposium on Code Generation and Optimization},
+  pages     = {75--86},
+  year      = {2004},
+  note      = {LLVM intermediate representation and codegen; My-Lang compilation target}
+}
+
+@inproceedings{plotkin2009handlers,
+  author    = {Gordon Plotkin and Matija Pretnar},
+  title     = {Handlers of Algebraic Effects},
+  booktitle = {European Symposium on Programming (ESOP)},
+  series    = {LNCS},
+  volume    = {5502},
+  pages     = {80--94},
+  year      = {2009},
+  note      = {Algebraic effect handlers; core theoretical basis for My-Lang effect system}
+}
+
+@article{milner1978theory,
+  author    = {Robin Milner},
+  title     = {A Theory of Type Polymorphism in Programming},
+  journal   = {Journal of Computer and System Sciences},
+  volume    = {17},
+  number    = {3},
+  pages     = {348--375},
+  year      = {1978},
+  note      = {Parametric polymorphism; informs type inference across My-Lang dialects}
+}
+
+@inproceedings{wadler1995monads,
+  author    = {Philip Wadler},
+  title     = {Monads for Functional Programming},
+  booktitle = {Advanced Functional Programming, First International Spring School},
+  series    = {LNCS},
+  volume    = {925},
+  pages     = {24--52},
+  year      = {1995},
+  note      = {Monadic effect encoding; predecessor approach to My-Lang algebraic effects}
+}
+
+@article{plotkin2003algebraic,
+  author    = {Gordon Plotkin and John Power},
+  title     = {Algebraic Operations and Generic Effects},
+  journal   = {Applied Categorical Structures},
+  volume    = {11},
+  number    = {1},
+  pages     = {69--94},
+  year      = {2003},
+  note      = {Algebraic theory of computational effects; mathematical foundation for effect system}
+}
+
+@inproceedings{leijen2017type,
+  author    = {Daan Leijen},
+  title     = {Type Directed Compilation of Row-Typed Algebraic Effects},
+  booktitle = {Proceedings of the 44th ACM SIGPLAN Symposium on Principles of Programming Languages},
+  pages     = {486--499},
+  year      = {2017},
+  note      = {Row-typed effects with efficient compilation; practical effect system reference for My-Lang}
+}
+
+@article{lattner2021mlir,
+  author    = {Chris Lattner and Mehdi Amini and Uday Bondhugula and Albert Cohen and Andy Davis and Jacques Pienaar and River Riddle and Tatiana Shpeisman and Nicolas Vasilache and Oleksandr Zinenko},
+  title     = {{MLIR}: Scaling Compiler Infrastructure for Domain Specific Computation},
+  booktitle = {IEEE/ACM International Symposium on Code Generation and Optimization},
+  pages     = {2--14},
+  year      = {2021},
+  note      = {Multi-level IR for domain-specific compilation; relevant to My-Lang AI dialect codegen}
+}
+
+@article{vaswani2017attention,
+  author    = {Ashish Vaswani and Noam Shazeer and Niki Parmar and Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and \L{}ukasz Kaiser and Illia Polosukhin},
+  title     = {Attention Is All You Need},
+  journal   = {Advances in Neural Information Processing Systems},
+  volume    = {30},
+  year      = {2017},
+  note      = {Transformer architecture; context for My-Lang AI-native design targeting neural workloads}
+}
+
+@inproceedings{paszke2019pytorch,
+  author    = {Adam Paszke and Sam Gross and Francisco Massa and Adam Lerer and James Bradbury and Gregory Chanan and Trevor Killeen and Zeming Lin and Natalia Gimelshein and Luca Antiga and others},
+  title     = {{PyTorch}: An Imperative Style, High-Performance Deep Learning Library},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {32},
+  year      = {2019},
+  note      = {Differentiable programming paradigm; informs My-Lang AI dialect operator design}
+}
+
+@inproceedings{kammar2013handlers,
+  author    = {Ohad Kammar and Sam Lindley and Nicolas Oury},
+  title     = {Handlers in Action},
+  booktitle = {Proceedings of the 18th ACM SIGPLAN International Conference on Functional Programming},
+  pages     = {145--158},
+  year      = {2013},
+  note      = {Practical effect handler implementation; reference for My-Lang effect compilation}
+}
+
+@inproceedings{bauer2015programming,
+  author    = {Andrej Bauer and Matija Pretnar},
+  title     = {Programming with Algebraic Effects and Handlers},
+  journal   = {Journal of Logical and Algebraic Methods in Programming},
+  volume    = {84},
+  number    = {1},
+  pages     = {108--123},
+  year      = {2015},
+  note      = {Eff language design; direct influence on My-Lang effect system semantics}
+}

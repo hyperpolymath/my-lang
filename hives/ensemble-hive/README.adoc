@@ -1,0 +1,8 @@
+= Ensemble Hive
+
+This hive hosts the Ensemble dialect materials (agentic orchestration and examples).
+
+== Structure
+- demo/ : runnable examples (to be added)
+- .hive-meta.scm : hive metadata
+- Justfile : demo entrypoint

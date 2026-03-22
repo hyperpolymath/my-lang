@@ -1,0 +1,13 @@
+// Hello World in Solo dialect
+// Demonstrates basic syntax and function definitions
+
+fn main() -> i32 {
+    print("Hello from Solo!");
+    print("Systems programming with affine types");
+    return 0;
+}
+
+fn print(message: &str) {
+    // Built-in print function
+    // In real implementation, this would call system I/O
+}

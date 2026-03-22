@@ -1,0 +1,73 @@
+// Unit Testing and Test Framework
+
+#[test]
+fn test_addition() {
+    assert_eq!(2 + 2, 4);
+}
+
+#[test]
+fn test_subtraction() {
+    let result = 10 - 5;
+    assert_eq!(result, 5);
+}
+
+#[test]
+#[should_panic]
+fn test_panic() {
+    panic("This test should panic");
+}
+
+#[test]
+fn test_result() -> Result<(), str> {
+    if 2 + 2 == 4 {
+        Ok(())
+    } else {
+        Err("Math is broken")
+    }
+}
+
+// Test module
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_multiply() {
+        assert_eq!(multiply(3, 4), 12);
+    }
+
+    #[test]
+    fn test_divide() {
+        assert_eq!(divide(10, 2), 5);
+    }
+
+    #[test]
+    #[ignore]
+    fn expensive_test() {
+        // Skipped unless explicitly run
+    }
+}
+
+fn multiply(a: i32, b: i32) -> i32 {
+    a * b
+}
+
+fn divide(a: i32, b: i32) -> i32 {
+    a / b
+}
+
+// Property-based testing
+#[test]
+fn property_test_commutative() {
+    proptest!(|(a: i32, b: i32)| {
+        assert_eq!(a + b, b + a);
+    });
+}
+
+// Benchmark
+#[bench]
+fn bench_addition(b: &mut Bencher) {
+    b.iter(|| {
+        let _ = 2 + 2;
+    });
+}

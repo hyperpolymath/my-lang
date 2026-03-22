@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detective Blue's Mystery Game - Print & Play Cards</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+            .page-break { page-break-after: always; }
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f0f0;
+            margin: 20px;
+        }
+
+        .instructions {
+            max-width: 800px;
+            margin: 0 auto 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card-sheet {
+            display: grid;
+            grid-template-columns: repeat(3, 60mm);
+            grid-template-rows: repeat(3, 85mm);
+            gap: 3mm;
+            background: white;
+            padding: 10mm;
+            margin: 0 auto 20px;
+            width: fit-content;
+        }
+
+        .card {
+            border: 3px solid #333;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            position: relative;
+            padding: 10px;
+        }
+
+        .card-name {
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .card-category {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Category colors */
+        .suspect {
+            border-color: #9b59b6;
+            background: linear-gradient(135deg, #f5eef8 0%, #e8daef 100%);
+        }
+        .suspect .card-category { background: #9b59b6; }
+
+        .action {
+            border-color: #e67e22;
+            background: linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%);
+        }
+        .action .card-category { background: #e67e22; }
+
+        .location {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #eafaf1 0%, #d5f5e3 100%);
+        }
+        .location .card-category { background: #27ae60; }
+
+        .envelope {
+            border-color: #c0392b;
+            background: linear-gradient(135deg, #fdedec 0%, #f5b7b1 100%);
+            border-style: dashed;
+            border-width: 4px;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border-color: #2980b9;
+        }
+
+        .notebook {
+            border: 2px solid #333;
+            background: white;
+            font-size: 10px;
+            padding: 8px;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .notebook h4 {
+            margin: 0 0 5px 0;
+            font-size: 11px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .notebook-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dotted #ddd;
+            padding: 2px 0;
+        }
+
+        h1, h2 { color: #3498db; }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions no-print">
+        <h1>🔵 Detective Blue's Mystery Game</h1>
+        <h2>Print & Play Cards</h2>
+        <p><strong>Instructions:</strong></p>
+        <ol>
+            <li>Print all pages on cardstock</li>
+            <li>Cut out the cards</li>
+            <li>Print the Detective Notebooks (one per player)</li>
+            <li>Use an envelope for the "Evidence Envelope"</li>
+        </ol>
+        <button onclick="window.print()">🖨️ Print Cards</button>
+    </div>
+
+    <!-- SHEET 1: Suspects -->
+    <div class="card-sheet">
+        <div class="card suspect"><span class="card-category">SUSPECT</span>🐱<span class="card-name">Whiskers<br>the Cat</span></div>
+        <div class="card suspect"><span class="card-category">SUSPECT</span>🐶<span class="card-name">Buddy<br>the Dog</span></div>
+        <div class="card suspect"><span class="card-category">SUSPECT</span>🐰<span class="card-name">Hoppy<br>the Bunny</span></div>
+
+        <div class="card suspect"><span class="card-category">SUSPECT</span>🐸<span class="card-name">Freddy<br>the Frog</span></div>
+        <div class="card suspect"><span class="card-category">SUSPECT</span>🦉<span class="card-name">Oliver<br>the Owl</span></div>
+        <div class="card suspect"><span class="card-category">SUSPECT</span>🐻<span class="card-name">Bruno<br>the Bear</span></div>
+
+        <!-- Actions -->
+        <div class="card action"><span class="card-category">ACTION</span>🍪<span class="card-name">Ate the<br>Cookies</span></div>
+        <div class="card action"><span class="card-category">ACTION</span>🎨<span class="card-name">Made a<br>Mess</span></div>
+        <div class="card action"><span class="card-category">ACTION</span>📺<span class="card-name">Watched<br>Too Much TV</span></div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- SHEET 2: More Actions + Locations -->
+    <div class="card-sheet">
+        <div class="card action"><span class="card-category">ACTION</span>🛋️<span class="card-name">Jumped on<br>Furniture</span></div>
+        <div class="card action"><span class="card-category">ACTION</span>🔊<span class="card-name">Made Too<br>Much Noise</span></div>
+        <div class="card action"><span class="card-category">ACTION</span>💤<span class="card-name">Took a<br>Long Nap</span></div>
+
+        <div class="card location"><span class="card-category">LOCATION</span>🏠<span class="card-name">Living<br>Room</span></div>
+        <div class="card location"><span class="card-category">LOCATION</span>🍳<span class="card-name">Kitchen</span></div>
+        <div class="card location"><span class="card-category">LOCATION</span>🛏️<span class="card-name">Bedroom</span></div>
+
+        <div class="card location"><span class="card-category">LOCATION</span>🛁<span class="card-name">Bathroom</span></div>
+        <div class="card location"><span class="card-category">LOCATION</span>🌳<span class="card-name">Garden</span></div>
+        <div class="card location"><span class="card-category">LOCATION</span>🚗<span class="card-name">Garage</span></div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- SHEET 3: Card Backs + Evidence Envelope -->
+    <div class="card-sheet">
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+
+        <div class="card envelope" style="font-size:24px">
+            📁<br>
+            <span style="font-size:14px; font-weight:bold">EVIDENCE<br>ENVELOPE</span><br>
+            <span style="font-size:10px">(Put 3 solution<br>cards inside)</span>
+        </div>
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+        <div class="card card-back"><span style="font-size:36px">🔵</span><br><span style="font-size:16px">DETECTIVE<br>BLUE</span></div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- SHEET 4: Detective Notebooks (print 6 copies) -->
+    <div class="card-sheet" style="grid-template-columns: repeat(2, 90mm); grid-template-rows: repeat(2, 120mm);">
+        <div class="notebook">
+            <h4>🔵 DETECTIVE NOTEBOOK</h4>
+            <strong>SUSPECTS (WHO)</strong>
+            <div class="notebook-row"><span>🐱 Whiskers</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐶 Buddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐰 Hoppy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐸 Freddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🦉 Oliver</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐻 Bruno</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">ACTIONS (WHAT)</strong>
+            <div class="notebook-row"><span>🍪 Ate cookies</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🎨 Made mess</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>📺 Watched TV</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛋️ Jumped furn.</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🔊 Made noise</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>💤 Took nap</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">LOCATIONS (WHERE)</strong>
+            <div class="notebook-row"><span>🏠 Living Room</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🍳 Kitchen</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛏️ Bedroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛁 Bathroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🌳 Garden</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🚗 Garage</span><span>□ Mine □ Seen □ ✗</span></div>
+        </div>
+
+        <div class="notebook">
+            <h4>🔵 DETECTIVE NOTEBOOK</h4>
+            <strong>SUSPECTS (WHO)</strong>
+            <div class="notebook-row"><span>🐱 Whiskers</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐶 Buddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐰 Hoppy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐸 Freddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🦉 Oliver</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐻 Bruno</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">ACTIONS (WHAT)</strong>
+            <div class="notebook-row"><span>🍪 Ate cookies</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🎨 Made mess</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>📺 Watched TV</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛋️ Jumped furn.</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🔊 Made noise</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>💤 Took nap</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">LOCATIONS (WHERE)</strong>
+            <div class="notebook-row"><span>🏠 Living Room</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🍳 Kitchen</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛏️ Bedroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛁 Bathroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🌳 Garden</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🚗 Garage</span><span>□ Mine □ Seen □ ✗</span></div>
+        </div>
+
+        <div class="notebook">
+            <h4>🔵 DETECTIVE NOTEBOOK</h4>
+            <strong>SUSPECTS (WHO)</strong>
+            <div class="notebook-row"><span>🐱 Whiskers</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐶 Buddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐰 Hoppy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐸 Freddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🦉 Oliver</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐻 Bruno</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">ACTIONS (WHAT)</strong>
+            <div class="notebook-row"><span>🍪 Ate cookies</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🎨 Made mess</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>📺 Watched TV</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛋️ Jumped furn.</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🔊 Made noise</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>💤 Took nap</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">LOCATIONS (WHERE)</strong>
+            <div class="notebook-row"><span>🏠 Living Room</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🍳 Kitchen</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛏️ Bedroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛁 Bathroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🌳 Garden</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🚗 Garage</span><span>□ Mine □ Seen □ ✗</span></div>
+        </div>
+
+        <div class="notebook">
+            <h4>🔵 DETECTIVE NOTEBOOK</h4>
+            <strong>SUSPECTS (WHO)</strong>
+            <div class="notebook-row"><span>🐱 Whiskers</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐶 Buddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐰 Hoppy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐸 Freddy</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🦉 Oliver</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🐻 Bruno</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">ACTIONS (WHAT)</strong>
+            <div class="notebook-row"><span>🍪 Ate cookies</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🎨 Made mess</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>📺 Watched TV</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛋️ Jumped furn.</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🔊 Made noise</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>💤 Took nap</span><span>□ Mine □ Seen □ ✗</span></div>
+
+            <strong style="margin-top:5px; display:block">LOCATIONS (WHERE)</strong>
+            <div class="notebook-row"><span>🏠 Living Room</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🍳 Kitchen</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛏️ Bedroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🛁 Bathroom</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🌳 Garden</span><span>□ Mine □ Seen □ ✗</span></div>
+            <div class="notebook-row"><span>🚗 Garage</span><span>□ Mine □ Seen □ ✗</span></div>
+        </div>
+    </div>
+</body>
+</html>

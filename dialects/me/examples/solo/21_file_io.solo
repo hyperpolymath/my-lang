@@ -1,0 +1,47 @@
+// File I/O Operations
+
+import std::fs::{File, read_to_string, write};
+import std::io::{BufReader, BufWriter};
+
+fn main() {
+    // Read entire file to string
+    let contents = read_to_string("input.txt")?;
+    println(contents);
+
+    // Write string to file
+    write("output.txt", "Hello, file!")?;
+
+    // File handle with buffering
+    let file = File::open("data.txt")?;
+    let reader = BufReader::new(file);
+
+    for line in reader.lines() {
+        println(line?);
+    }
+
+    // Write with buffering
+    let file = File::create("output.txt")?;
+    let mut writer = BufWriter::new(file);
+
+    writer.write_line("Line 1")?;
+    writer.write_line("Line 2")?;
+    writer.flush()?;
+
+    // Binary file I/O
+    let bytes = [0u8, 1, 2, 3, 4];
+    write("binary.dat", &bytes)?;
+
+    let read_bytes = read("binary.dat")?;
+
+    // File metadata
+    let metadata = File::metadata("input.txt")?;
+    println("File size: " + metadata.len());
+    println("Is file: " + metadata.is_file());
+    println("Is directory: " + metadata.is_dir());
+
+    // Directory operations
+    for entry in fs::read_dir(".")? {
+        let entry = entry?;
+        println(entry.path().display());
+    }
+}

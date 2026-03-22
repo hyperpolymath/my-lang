@@ -1,0 +1,42 @@
+// Neural Function Approximation
+
+// Define a neural network to approximate a function
+#[neural(
+    architecture: "feedforward",
+    layers: [64, 128, 64],
+    training_data: training_set
+)]
+fn complex_math_function(x: f64, y: f64) -> f64 {
+    // Too complex for analytical solution
+    // Neural network learns to approximate it
+}
+
+// Learn from examples
+#[neural]
+fn user_preference_score(user: User, item: Item) -> f64 {
+    learn_from user_interactions_dataset
+}
+
+// Approximate expensive computation
+#[neural(
+    approximate: expensive_simulation,
+    epochs: 1000,
+    loss: "mse"
+)]
+fn fast_simulation(params: SimParams) -> SimResult;
+
+fn expensive_simulation(params: SimParams) -> SimResult {
+    // Very slow but accurate
+}
+
+fn main() {
+    let result = complex_math_function(3.14, 2.71);
+    
+    let user = User { id: 123, ... };
+    let item = Item { id: 456, ... };
+    let score = user_preference_score(user, item);
+
+    let params = SimParams::new();
+    let approx = fast_simulation(params);  // Fast neural approximation
+    let exact = expensive_simulation(params);  // Slow exact version
+}

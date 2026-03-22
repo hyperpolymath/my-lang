@@ -1,0 +1,26 @@
+{
+  "name": "7-tentacles",
+  "sources": [
+    {
+      "dir": "agents",
+      "subdirs": false
+    },
+    {
+      "dir": "tools",
+      "subdirs": false
+    }
+  ],
+  "package-specs": [
+    {
+      "module": "es6",
+      "in-source": true
+    }
+  ],
+  "suffix": ".res.mjs",
+  "bs-dependencies": [
+    "@rescript/core"
+  ],
+  "warnings": {
+    "error": "+101"
+  }
+}

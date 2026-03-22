@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Conformance (INVALID): missing closing brace
+
+fn main() -> Int {
+    let x = 42;
+    return x;
+

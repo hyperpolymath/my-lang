@@ -1,0 +1,152 @@
+// Test Suite: AI Synthesis
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+module Test::Synthesis
+
+import std::test::{describe, it, expect}
+import std::duet::{synth, verify}
+
+/// Test basic synthesis from specification.
+#[test]
+fn test_synth_from_spec() {
+    @synth(spec: |x| x * 3)
+    fn triple(x: i32) -> i32;
+
+    expect(triple(1)).to_equal(3)
+    expect(triple(10)).to_equal(30)
+    expect(triple(-5)).to_equal(-15)
+}
+
+/// Test synthesis from examples.
+#[test]
+fn test_synth_from_examples() {
+    @synth(examples: [
+        (1, 2),
+        (2, 4),
+        (3, 6),
+        (4, 8),
+    ])
+    fn learned_double(x: i32) -> i32;
+
+    // Test learned function generalizes
+    expect(learned_double(5)).to_equal(10)
+    expect(learned_double(100)).to_equal(200)
+}
+
+/// Test synthesis with constraints.
+#[test]
+fn test_synth_with_constraints() {
+    @synth(
+        spec: |arr| arr.iter().all(|&x| x >= 0),
+        constraints: ["no_allocation"]
+    )
+    fn make_non_negative(arr: &mut [i32]);
+
+    let mut data = [-1, 2, -3, 4]
+    make_non_negative(&mut data)
+
+    for x in data.iter() {
+        expect(*x).to_be_greater_than_or_equal(0)
+    }
+}
+
+/// Test synthesis with fallback.
+#[test]
+fn test_synth_with_fallback() {
+    @synth(
+        spec: |s| s.chars().all(|c| c.is_uppercase()),
+        fallback: |s| s.to_uppercase(),
+        timeout: 100  // Very short timeout to trigger fallback
+    )
+    fn uppercase_with_fallback(s: &str) -> String;
+
+    let result = uppercase_with_fallback("hello")
+    expect(result).to_equal("HELLO")
+}
+
+/// Test synthesis of sorting function.
+#[test]
+fn test_synth_sort() {
+    @synth(
+        spec: |arr, result| {
+            is_sorted(&result) &&
+            is_permutation(arr, &result)
+        }
+    )
+    fn synthesized_sort(arr: &[i32]) -> Vec<i32>;
+
+    let unsorted = [5, 2, 8, 1, 9]
+    let sorted = synthesized_sort(&unsorted)
+
+    expect(is_sorted(&sorted)).to_be_true()
+    expect(sorted.len()).to_equal(unsorted.len())
+}
+
+/// Test that synthesis respects type constraints.
+#[test]
+fn test_synth_type_safety() {
+    @synth(examples: [
+        ("hello", 5),
+        ("world", 5),
+        ("hi", 2),
+    ])
+    fn string_length(s: &str) -> usize;
+
+    expect(string_length("duet")).to_equal(4)
+    expect(string_length("")).to_equal(0)
+}
+
+/// Test synthesis verification integration.
+#[test]
+fn test_synth_with_verify() {
+    @synth(spec: |n| n * (n + 1) / 2)
+    @verify(property: "equals_sum_1_to_n")
+    fn sum_to_n(n: i32) -> i32;
+
+    expect(sum_to_n(10)).to_equal(55)
+    expect(sum_to_n(100)).to_equal(5050)
+
+    // Check verification passed
+    expect(verify_status!(sum_to_n).is_proven()).to_be_true()
+}
+
+/// Test synthesis model selection.
+#[test]
+fn test_synth_model_selection() {
+    @synth(
+        examples: [(1, 1), (2, 8), (3, 27)],
+        model: "code-synthesis-v2"
+    )
+    fn cube(x: i32) -> i32;
+
+    expect(cube(4)).to_equal(64)
+    expect(cube(5)).to_equal(125)
+}
+
+/// Test synthesis confidence threshold.
+#[test]
+fn test_synth_confidence() {
+    @synth(
+        examples: [(1, 2), (2, 4)],
+        confidence: 0.99  // High confidence required
+    )
+    fn high_confidence_double(x: i32) -> i32;
+
+    // Should have high confidence synthesis
+    let meta = synth_meta!(high_confidence_double)
+    expect(meta.confidence).to_be_greater_than(0.99)
+}
+
+// Helper functions
+fn is_sorted(arr: &[i32]) -> bool {
+    arr.windows(2).all(|w| w[0] <= w[1])
+}
+
+fn is_permutation(a: &[i32], b: &[i32]) -> bool {
+    if a.len() != b.len() { return false }
+    let mut sorted_a = a.to_vec()
+    let mut sorted_b = b.to_vec()
+    sorted_a.sort()
+    sorted_b.sort()
+    sorted_a == sorted_b
+}

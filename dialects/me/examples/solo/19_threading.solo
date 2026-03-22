@@ -1,0 +1,130 @@
+// Threading and Parallelism with M:N threading
+
+import std::thread::{spawn, sleep, Thread};
+import std::sync::{Mutex, Arc, Channel};
+
+fn main() {
+    // Basic thread spawning
+    let handle = spawn(|| {
+        println("Hello from thread!");
+    });
+
+    handle.join();  // Wait for thread to finish
+
+    // Thread with return value
+    let handle = spawn(|| {
+        42
+    });
+
+    let result = handle.join();  // result = 42
+
+    // Multiple threads
+    let mut handles = vec![];
+
+    for i in 0..10 {
+        let handle = spawn(move || {
+            println("Thread " + i);
+            i * i
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        let result = handle.join();
+        println("Result: " + result);
+    }
+
+    // Shared state with Mutex
+    let counter = Arc::new(Mutex::new(0));
+    let mut threads = vec![];
+
+    for i in 0..10 {
+        let counter_clone = counter.clone();
+        let handle = spawn(move || {
+            let mut num = counter_clone.lock();
+            *num = *num + 1;
+        });
+        threads.push(handle);
+    }
+
+    for handle in threads {
+        handle.join();
+    }
+
+    println("Counter: " + *counter.lock());  // 10
+
+    // Channels for communication
+    let (tx, rx) = Channel::new();
+
+    spawn(move || {
+        tx.send("Hello from thread");
+    });
+
+    let message = rx.recv();  // Blocks until message received
+    println(message);
+
+    // Multiple producers
+    let (tx, rx) = Channel::new();
+
+    for i in 0..5 {
+        let tx_clone = tx.clone();
+        spawn(move || {
+            tx_clone.send(i);
+        });
+    }
+
+    drop(tx);  // Drop original sender
+
+    for received in rx {
+        println("Received: " + received);
+    }
+
+    // Thread pool (M:N threading)
+    let pool = ThreadPool::new(4);  // 4 worker threads
+
+    for i in 0..20 {
+        pool.execute(move || {
+            println("Task " + i + " on thread " + Thread::current().id());
+        });
+    }
+
+    pool.join();  // Wait for all tasks
+
+    // Parallel iteration
+    let numbers = (0..1000).collect();
+    let sum = numbers.par_iter()
+        .map(|x| x * x)
+        .sum();
+
+    // Scoped threads (can borrow from parent scope)
+    let data = vec![1, 2, 3, 4, 5];
+
+    Thread::scope(|s| {
+        s.spawn(|| {
+            println(data[0]);  // Can borrow data
+        });
+
+        s.spawn(|| {
+            println(data.len());
+        });
+    });  // All scoped threads joined here
+
+    // Thread local storage
+    thread_local! {
+        static COUNTER: RefCell<u32> = RefCell::new(0);
+    }
+
+    COUNTER.with(|c| {
+        *c.borrow_mut() = *c.borrow() + 1;
+    });
+
+    // Work stealing scheduler (M:N threading)
+    async fn async_work() {
+        for i in 0..100 {
+            spawn_task(async move {
+                // M:N runtime schedules these tasks
+                println("Async task " + i);
+            }).await;
+        }
+    }
+}

@@ -1,0 +1,81 @@
+// Modules and Code Organization
+
+mod math {
+    pub fn add(a: i32, b: i32) -> i32 {
+        a + b
+    }
+
+    pub fn multiply(a: i32, b: i32) -> i32 {
+        a * b
+    }
+
+    // Private function (not pub)
+    fn internal_helper() -> i32 {
+        42
+    }
+
+    pub mod advanced {
+        pub fn factorial(n: u64) -> u64 {
+            if n <= 1 { 1 } else { n * factorial(n - 1) }
+        }
+    }
+}
+
+mod geometry {
+    pub struct Point {
+        pub x: f64,
+        pub y: f64
+    }
+
+    pub struct Circle {
+        pub center: Point,
+        pub radius: f64
+    }
+
+    impl Point {
+        pub fn new(x: f64, y: f64) -> Point {
+            Point { x, y }
+        }
+
+        pub fn distance(&self, other: &Point) -> f64 {
+            let dx = self.x - other.x;
+            let dy = self.y - other.y;
+            (dx * dx + dy * dy).sqrt()
+        }
+    }
+
+    impl Circle {
+        pub fn new(center: Point, radius: f64) -> Circle {
+            Circle { center, radius }
+        }
+
+        pub fn area(&self) -> f64 {
+            3.14159 * self.radius * self.radius
+        }
+    }
+}
+
+// Re-exports
+mod shapes {
+    pub use super::geometry::{Circle, Point};
+}
+
+fn main() {
+    // Using module functions
+    let sum = math::add(10, 20);
+    let product = math::multiply(5, 6);
+
+    // Using nested modules
+    let fact = math::advanced::factorial(5);
+
+    // Using module types
+    let point1 = geometry::Point::new(0.0, 0.0);
+    let point2 = geometry::Point::new(3.0, 4.0);
+    let distance = point1.distance(&point2);
+
+    let circle = geometry::Circle::new(point1, 5.0);
+    let area = circle.area();
+
+    // Using re-exports
+    let p = shapes::Point::new(1.0, 1.0);
+}

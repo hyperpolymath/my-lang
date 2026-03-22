@@ -1,0 +1,184 @@
+// Compile-time Execution and Metaprogramming
+
+// Comptime constant
+const SIZE: usize = comptime {
+    let x = 10;
+    let y = 20;
+    x * y  // 200
+};
+
+// Comptime function (evaluated at compile time)
+comptime fn factorial(n: u64) -> u64 {
+    if n <= 1 {
+        1
+    } else {
+        n * factorial(n - 1)
+    }
+}
+
+// Use comptime result as const
+const FACT_10: u64 = comptime factorial(10);
+
+// Generate code at compile time
+comptime fn generate_array<T>(value: T, count: usize) -> [T; count] {
+    let mut arr: [T; count];
+    for i in 0..count {
+        arr[i] = value;
+    }
+    arr
+}
+
+// Comptime type generation
+comptime fn max_int_type(bits: usize) -> type {
+    if bits <= 8 {
+        u8
+    } else if bits <= 16 {
+        u16
+    } else if bits <= 32 {
+        u32
+    } else if bits <= 64 {
+        u64
+    } else {
+        u128
+    }
+}
+
+// Use comptime-generated type
+type MyInt = comptime max_int_type(32);  // Resolves to u32
+
+// Comptime reflection
+struct Person {
+    name: str,
+    age: u32,
+    email: str
+}
+
+comptime fn field_count<T>() -> usize {
+    // Introspect type T at compile time
+    @type_info(T).fields.len()
+}
+
+comptime fn field_names<T>() -> [str] {
+    @type_info(T).fields.map(|f| f.name)
+}
+
+const PERSON_FIELDS: usize = comptime field_count::<Person>();
+const PERSON_FIELD_NAMES: [str] = comptime field_names::<Person>();
+
+// Comptime code generation
+comptime {
+    // Generate getter methods for Person
+    for field in @type_info(Person).fields {
+        let getter_name = "get_" + field.name;
+        let field_type = field.type;
+
+        @generate_method(Person, {
+            fn ${getter_name}(&self) -> ${field_type} {
+                self.${field.name}
+            }
+        });
+    }
+}
+
+// Compile-time assertions
+comptime {
+    if SIZE < 100 {
+        @compile_error("SIZE must be at least 100");
+    }
+}
+
+// Comptime loop unrolling
+fn dot_product(a: &[f64; 4], b: &[f64; 4]) -> f64 {
+    let mut sum = 0.0;
+
+    comptime for i in 0..4 {
+        // Loop is unrolled at compile time
+        sum = sum + a[i] * b[i];
+    }
+
+    sum
+}
+
+// Comptime string concatenation
+const GREETING: str = comptime {
+    let hello = "Hello";
+    let world = "World";
+    hello + ", " + world + "!"  // "Hello, World!"
+};
+
+// Comptime conditional compilation
+fn platform_specific() {
+    comptime if @platform() == "linux" {
+        println("Running on Linux");
+    } else if @platform() == "windows" {
+        println("Running on Windows");
+    } else {
+        println("Running on other platform");
+    }
+}
+
+// Comptime format string validation
+fn print_formatted(value: i32) {
+    // Format string checked at compile time
+    comptime @validate_format("Value: {}", value);
+    println("Value: {}", value);
+}
+
+// Build-time configuration
+const DEBUG: bool = comptime @build_option("debug");
+const VERSION: str = comptime @build_option("version");
+
+// Comptime optimization hints
+fn optimized_function(x: i32) -> i32 {
+    comptime if @optimization_level() >= 2 {
+        // Use faster algorithm for release builds
+        fast_algorithm(x)
+    } else {
+        // Use simpler algorithm for debug builds
+        simple_algorithm(x)
+    }
+}
+
+fn fast_algorithm(x: i32) -> i32 {
+    x * x  // Optimized version
+}
+
+fn simple_algorithm(x: i32) -> i32 {
+    x * x  // Simple version
+}
+
+// Comptime interface generation
+comptime {
+    // Generate trait implementations
+    let types = [i32, f64, str];
+
+    for type in types {
+        @implement_trait(Printable, type, {
+            fn print(&self) {
+                println(self.to_string());
+            }
+        });
+    }
+}
+
+fn main() {
+    // All these values are computed at compile time
+    println("SIZE: " + SIZE);
+    println("FACT_10: " + FACT_10);
+    println("GREETING: " + GREETING);
+    println("PERSON_FIELDS: " + PERSON_FIELDS);
+
+    // Comptime-generated array
+    let zeros: [i32; 10] = comptime generate_array(0, 10);
+
+    // Use comptime type
+    let my_num: MyInt = 42;
+
+    // Comptime unrolled loop
+    let a = [1.0, 2.0, 3.0, 4.0];
+    let b = [5.0, 6.0, 7.0, 8.0];
+    let result = dot_product(&a, &b);
+
+    platform_specific();
+    print_formatted(123);
+}

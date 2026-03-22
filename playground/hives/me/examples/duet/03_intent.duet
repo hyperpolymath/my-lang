@@ -1,0 +1,32 @@
+// Natural Language Programming with intent()
+
+fn main() {
+    // Simple intent
+    let sorted = intent("sort this list in ascending order", {
+        inputs: [5, 2, 8, 1, 9],
+        outputs: [i32]
+    });
+
+    // Complex intent with context
+    let report = intent("generate a summary report of user activity", {
+        inputs: user_data,
+        outputs: str,
+        constraints: ["concise", "markdown_format"],
+        examples: [
+            (sample_data, sample_report)
+        ]
+    });
+
+    // Intent with type inference
+    let result = intent("find the top 5 most common words");
+
+    // Interactive intent (AI asks for clarification if needed)
+    let visualization = intent(
+        "create a bar chart of this data",
+        {
+            inputs: sales_data,
+            interactive: true,
+            explain: true  // AI explains what it's doing
+        }
+    );
+}

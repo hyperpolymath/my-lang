@@ -1,0 +1,37 @@
+// Serialization: JSON, Binary, etc.
+
+import std::serde::{Serialize, Deserialize};
+import std::json;
+
+#[derive(Serialize, Deserialize)]
+struct User {
+    name: str,
+    age: u32,
+    email: str
+}
+
+fn main() {
+    let user = User {
+        name: "Alice",
+        age: 30,
+        email: "alice@example.com"
+    };
+
+    // Serialize to JSON
+    let json = json::to_string(&user)?;
+    println(json);
+
+    // Deserialize from JSON
+    let user2: User = json::from_str(json)?;
+
+    // Pretty JSON
+    let pretty = json::to_string_pretty(&user)?;
+
+    // Working with JSON values
+    let value = json!({
+        "name": "Bob",
+        "age": 25
+    });
+
+    println(value["name"]);  // "Bob"
+}

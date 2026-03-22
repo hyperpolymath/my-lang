@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Conformance: struct declaration
+
+struct Point {
+    x: Int,
+    y: Int,
+}
+
+fn main() -> Int {
+    return 0;
+}

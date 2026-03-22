@@ -1,0 +1,12 @@
+= Solo Hive
+
+This hive hosts the Solo dialect materials (core syntax, semantics, typing, and examples).
+
+== Structure
+- demo/ : runnable examples (to be added)
+- .hive-meta.scm : hive metadata
+- Justfile : demo entrypoint
+- `docs/reference/solo-v1-grammar.ebnf` : canonical Solo v1.0 grammar
+
+== Notes
+- Use the Solo v1.0 grammar under `docs/reference` as the authoritative spec when finishing the parser/toolchain.

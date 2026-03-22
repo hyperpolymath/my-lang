@@ -1,0 +1,190 @@
+= My: Progressive AI-Native Language
+
+image:https://img.shields.io/badge/License-PMPL--1.0-indigo.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+
+
+:toc: macro
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+[.lead]
+*Let learning unfold. Let types guard. Let agents compose.*
+
+Progressive-disclosure programming language with first-class AI integration—four dialects scaling from visual blocks to agentic orchestration.
+
+'''
+
+toc::[]
+
+== Who This Is For
+
+[cols="1,3"]
+|===
+|*Me-curious* |Educators seeking visual programming that secretly teaches affine types and reversible computation
+|*Solo practitioners* |Developers wanting Rust-level safety with Python-level approachability—human-first, AI-assisted
+|*Duet partners* |Teams exploring balanced human-AI pair programming with explicit collaboration protocols
+|*Ensemble conductors* |Architects orchestrating multi-agent systems with neurosymbolic grammar extensions
+|===
+
+== The Four Dialects
+
+My is not four languages—it is one language with *progressive reveal*. Concepts introduced as playful metaphors in Me unmask their CS foundations as learners advance.
+
+[cols="1,1,2,2"]
+|===
+|Dialect |Stage |Mode |Core Insight
+
+|*Me*
+|Visual (ages 8-12)
+|Blockly-like drag-and-drop
+|Resources as colored tokens; affine types as "use once" rules
+
+|*Solo*
+|Text (ages 13+)
+|Human-first, AI-assists
+|Explicit affine/linear types, checkpoint/rollback, cut operators
+
+|*Duet*
+|Collaborative
+|Balanced co-creation
+|Two-party protocols, neurosymbolic extensions
+
+|*Ensemble*
+|Orchestration
+|AI-leads, human-refines
+|Full agentic composition, Newtonian spectrum agents
+|===
+
+== Why My?
+
+[source,my]
+----
+// Type-safe AI with effect tracking
+fn summarize(text: String) -> AI<String> {
+    ai query {
+        prompt: "Summarize concisely"
+        context: text
+        model: claude
+    }
+}
+
+// Affine types prevent resource bugs
+fn transfer(affine token: Token) -> Result {
+    checkpoint save_state {
+        let result = process(move token);  // must move, can't copy
+        if !result.is_ok() {
+            rollback save_state;
+        }
+        return result;
+    }
+}
+
+// Cut operator for parser commitment
+fn parse(input: String) -> Expr {
+    match input {
+        "(" => { let e = parse_nested(); !; expect(")"); e },
+        _ => parse_simple()
+    }
+}
+----
+
+=== Technical Differentiators
+
+[cols="2,3"]
+|===
+|*AI as First-Class Citizen* |Native `ai!` expressions, typed `AI<T>` return values, prompt templates with effect tracking
+|*Progressive Safety* |Optional affine/linear types—start simple, add safety constraints as complexity grows
+|*Reversible Computation* |Checkpoint/rollback at language level, not library level
+|*Prolog-Heritage Parsing* |Cut operator (`!`) for committed choice in recursive descent
+|*Neurosymbolic Bridge* |Duet dialect enables explicit symbolic-neural protocol boundaries
+|===
+
+== Quick Start
+
+[source,bash]
+----
+# Clone and build
+git clone https://github.com/hyperpolymath/my-lang
+cd my-lang
+cargo build --release
+
+# Run the REPL
+cargo run -- repl
+
+# Run a program
+cargo run -- run examples/hello.my
+
+# Build a static site with My SSG
+cd my-ssg && cargo run -- new my-blog
+----
+
+== Architecture
+
+----
+my-lang/
+├── src/                    # Core language (Rust)
+│   ├── lexer.rs
+│   ├── parser.rs
+│   ├── checker.rs         # Type checker with AI<T> support
+│   └── interpreter.rs
+├── my-ssg/                 # Static site generator
+├── docs/wiki/              # Full documentation
+├── solo-dialect/           # OCaml reference (Solo mode)
+└── grammar.ebnf            # Formal specification
+----
+
+== Ecosystem Integration
+
+My participates in the *poly-mcp* constellation:
+
+[cols="1,2"]
+|===
+|https://github.com/hyperpolymath/poly-ssg-mcp[poly-ssg-mcp] |MCP hub for static site generators—My SSG exposes `my_init`, `my_build`, `my_serve`
+|https://github.com/hyperpolymath/poly-container-mcp[poly-container-mcp] |Multi-runtime container management
+|https://github.com/hyperpolymath/poly-iac-mcp[poly-iac-mcp] |Infrastructure-as-code MCP servers
+|===
+
+My SSG is one satellite in the broader poly-ssg ecosystem alongside Eclipse (Pony), Tyrano (TypeScript→ReScript migration), and others.
+
+== Newtonian Spectrum
+
+In Ensemble mode, seven specialized agents—colored by Newton's spectrum—orchestrate compilation and execution:
+
+[cols="1,2,2"]
+|===
+|Color |Role |Solo Foundation
+
+|Red |Performance (hot paths) |Optimized parser
+|Orange |Concurrency (async) |Async/await runtime
+|Yellow |Contracts (safety) |Affine type tracking
+|Green |Config (schema) |Structured AST
+|Blue |Audit (trace) |Checkpoint system
+|Indigo |Comptime (meta) |Compile-time evaluation
+|Violet |Governance (policy) |Mode declarations
+|===
+
+== Status
+
+[cols="2,1"]
+|===
+|Component |Status
+
+|Solo dialect (human-first) |Complete
+|Lexer, Parser, Type Checker |Complete
+|Interpreter & REPL |Complete
+|AI Runtime (mock) |Complete
+|My SSG |Complete
+|Duet dialect |In Development
+|Ensemble dialect |Planned
+|Native compiler |Planned
+|===
+
+== License
+
+PMPL-1.0-or-later (Palimpsest License)—see link:LICENSE[LICENSE].
+
+'''
+
+[quote]
+A language that grows with you—from visual tokens to agentic ensembles.

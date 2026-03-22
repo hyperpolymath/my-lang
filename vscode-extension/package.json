@@ -1,0 +1,93 @@
+{
+  "name": "my-lang",
+  "displayName": "My Language",
+  "description": "Language support for My Language - AI-native programming language",
+  "version": "0.2.0",
+  "publisher": "hyperpolymath",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyperpolymath/my-lang"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:my"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "my",
+        "aliases": [
+          "My Language",
+          "my"
+        ],
+        "extensions": [
+          ".my"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "my",
+        "scopeName": "source.my",
+        "path": "./syntaxes/my.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "My Language",
+      "properties": {
+        "my-lang.lsp.path": {
+          "type": "string",
+          "default": "my-lsp",
+          "description": "Path to my-lsp executable"
+        },
+        "my-lang.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the language server"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "my-lang.run",
+        "title": "My: Run File"
+      },
+      {
+        "command": "my-lang.build",
+        "title": "My: Build Binary"
+      },
+      {
+        "command": "my-lang.test",
+        "title": "My: Run Tests"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

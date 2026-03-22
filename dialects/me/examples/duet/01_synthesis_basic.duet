@@ -1,0 +1,31 @@
+// Basic AI Synthesis with @synth
+
+import std::duet::{synth, verify};
+
+// Synthesize a function from specification
+@synth(spec: |x| x * 2)
+fn double(x: i32) -> i32;
+
+// Synthesize from examples
+@synth(examples: [
+    (0, 0),
+    (1, 1),
+    (2, 4),
+    (3, 9)
+])
+fn square(x: i32) -> i32;
+
+// Synthesize with constraints
+@synth(
+    spec: |arr| arr.iter().sum() == 0,
+    constraints: ["efficient", "no_allocation"]
+)
+fn generate_balanced_array(size: usize) -> [i32];
+
+fn main() {
+    println(double(21));  // 42, synthesized implementation
+    println(square(5));   // 25, learned from examples
+
+    let arr = generate_balanced_array(10);
+    println(arr.iter().sum());  // 0
+}

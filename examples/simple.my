@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Simple test program for My Language
+
+fn add(x: Int, y: Int) -> Int {
+    return x + y;
+}
+
+fn main() -> Int {
+    let result = add(5, 3);
+    return result;
+}

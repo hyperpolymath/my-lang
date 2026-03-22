@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Conformance: if/else conditional
+
+fn abs(n: Int) -> Int {
+    if n < 0 {
+        return 0 - n;
+    } else {
+        return n;
+    }
+}
+
+fn main() -> Int {
+    return abs(-5);
+}

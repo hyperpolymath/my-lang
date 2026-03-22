@@ -1,0 +1,133 @@
+// Intent-Driven Programming
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates intent blocks where you describe WHAT you want
+// and the AI helps implement HOW.
+
+module Main
+
+import std::io
+import std::duet::{intent, ai_implement}
+
+fn main() {
+    io::println("Intent-Driven Programming Demo")
+    io::println("===============================")
+    io::println("")
+
+    // Simple intent: describe what you want
+    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    intent "calculate the sum of all even numbers" {
+        given: numbers
+        ensure: result == numbers.iter().filter(|x| x % 2 == 0).sum()
+        @ai_implement
+    }
+
+    io::println("Sum of evens: ", result)  // 30
+
+    // More complex intent with multiple constraints
+    let data = load_user_data()
+
+    intent "find users who are active and have made purchases in the last 30 days" {
+        given: data
+        ensure:
+            result.iter().all(|u| u.is_active) &&
+            result.iter().all(|u| u.last_purchase.days_ago() <= 30)
+        optimize: "memory_efficient"
+        @ai_implement
+    }
+
+    io::println("Active recent buyers: ", result.len())
+
+    // Intent with natural language description
+    intent "create a function that validates email addresses" {
+        ensure:
+            validates("user@example.com") == true &&
+            validates("invalid-email") == false &&
+            validates("test@domain.org") == true
+        @ai_implement
+    }
+
+    io::println("Email validation test:")
+    io::println("  user@example.com: ", validate_email("user@example.com"))
+    io::println("  invalid-email: ", validate_email("invalid-email"))
+}
+
+/// Intent with explanation.
+fn data_processing_example() {
+    let raw_data = fetch_data()
+
+    intent "clean and normalize the data" {
+        given: raw_data
+        ensure:
+            result.iter().all(|r| !r.has_null_values()) &&
+            result.iter().all(|r| r.is_normalized())
+        explain: true  // AI provides explanation of steps
+        @ai_implement
+    }
+
+    io::println("Cleaned records: ", result.len())
+    io::println("AI Explanation: ", @ai_explanation)
+}
+
+/// Intent with human approval.
+fn approved_intent_example() {
+    let sensitive_data = load_sensitive()
+
+    intent "transform for export" {
+        given: sensitive_data
+        ensure: result.iter().all(|r| !r.contains_pii())
+        require_approval: true  // Human must approve before execution
+        @ai_implement
+    }
+}
+
+/// Intent for algorithm design.
+fn algorithm_intent_example() {
+    let graph = build_graph()
+
+    intent "find the shortest path between nodes A and B" {
+        given: (graph, "A", "B")
+        ensure:
+            is_valid_path(result, graph) &&
+            starts_with(result, "A") &&
+            ends_with(result, "B")
+        optimize: "time_complexity"
+        @ai_implement
+    }
+
+    io::println("Shortest path: ", result.join(" -> "))
+}
+
+/// Chained intents.
+fn chained_intent_example() {
+    let text = "Hello World from Duet programming language"
+
+    intent "extract all words" {
+        given: text
+        ensure: result == text.split_whitespace().collect()
+        @ai_implement
+    } then intent "count word frequencies" {
+        given: words  // from previous intent
+        ensure: result.values().sum() == words.len()
+        @ai_implement
+    } then intent "find the most common word" {
+        given: frequencies
+        ensure: frequencies[result] == frequencies.values().max()
+        @ai_implement
+    }
+
+    io::println("Most common word: ", result)
+}
+
+// Helper types and functions
+struct User {
+    id: u64,
+    is_active: bool,
+    last_purchase: DateTime,
+}
+
+fn load_user_data() -> Vec<User> { vec![] }
+fn load_sensitive() -> Vec<Record> { vec![] }
+fn fetch_data() -> Vec<RawRecord> { vec![] }
+fn build_graph() -> Graph { Graph::new() }

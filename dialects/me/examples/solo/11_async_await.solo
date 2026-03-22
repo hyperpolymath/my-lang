@@ -1,0 +1,164 @@
+// Async/Await and Concurrency
+
+import std::async::{Future, sleep, spawn};
+import std::net::http;
+
+// Async function
+async fn fetch_data(url: str) -> str {
+    let response = http::get(url).await;
+    response.body()
+}
+
+// Async function with error handling
+async fn safe_fetch(url: str) -> Result<str, str> {
+    let response = http::get(url).await;
+    if response.status() == 200 {
+        Result::Ok(response.body())
+    } else {
+        Result::Err("Failed to fetch: " + url)
+    }
+}
+
+// Multiple concurrent requests
+async fn fetch_multiple(urls: [str]) -> [str] {
+    let mut futures = [];
+
+    for url in urls {
+        let future = fetch_data(url);
+        futures.push(future);
+    }
+
+    // Wait for all futures
+    let results = Future::join_all(futures).await;
+    results
+}
+
+// Race multiple requests
+async fn fetch_fastest(urls: [str]) -> str {
+    let futures = urls.map(|url| fetch_data(url));
+    let result = Future::race(futures).await;
+    result
+}
+
+// Async with timeout
+async fn fetch_with_timeout(url: str, seconds: u64) -> Result<str, str> {
+    let fetch_future = fetch_data(url);
+    let timeout_future = sleep(seconds);
+
+    let result = Future::select(fetch_future, timeout_future).await;
+
+    match result {
+        Future::First(data) => Result::Ok(data),
+        Future::Second(_) => Result::Err("Timeout")
+    }
+}
+
+// Background task spawning
+async fn process_in_background(data: str) {
+    spawn(async move {
+        // Process data asynchronously in background
+        let processed = heavy_computation(data).await;
+        save_result(processed).await;
+    });
+}
+
+// Async closure
+fn create_async_task(id: i32) -> impl Future<Output = str> {
+    async move {
+        sleep(1).await;
+        "Task " + id + " completed"
+    }
+}
+
+// Async streams (generators)
+async fn count_forever() -> impl AsyncIterator<Item = i32> {
+    let mut i = 0;
+    loop {
+        yield i;
+        i = i + 1;
+        sleep(1).await;
+    }
+}
+
+// Task with cancellation
+async fn cancellable_task(cancel_token: CancelToken) {
+    loop {
+        if cancel_token.is_cancelled() {
+            break;
+        }
+
+        // Do some work
+        sleep(1).await;
+    }
+}
+
+// Parallel computation with M:N threading
+async fn parallel_sum(numbers: [i32]) -> i32 {
+    let chunk_size = numbers.len() / 4;  // 4 threads
+
+    let futures = [
+        spawn(async { sum_range(&numbers[0..chunk_size]) }),
+        spawn(async { sum_range(&numbers[chunk_size..chunk_size*2]) }),
+        spawn(async { sum_range(&numbers[chunk_size*2..chunk_size*3]) }),
+        spawn(async { sum_range(&numbers[chunk_size*3..]) })
+    ];
+
+    let results = Future::join_all(futures).await;
+    results.iter().sum()
+}
+
+fn sum_range(numbers: &[i32]) -> i32 {
+    numbers.iter().sum()
+}
+
+async fn heavy_computation(data: str) -> str {
+    // Simulate heavy work
+    sleep(5).await;
+    data.to_uppercase()
+}
+
+async fn save_result(data: str) {
+    // Save to file or database
+    println("Saved: " + data);
+}
+
+// Main async function
+async fn main() {
+    // Single async operation
+    let data = fetch_data("https://api.example.com/data").await;
+
+    // Concurrent operations
+    let urls = [
+        "https://api.example.com/users",
+        "https://api.example.com/posts",
+        "https://api.example.com/comments"
+    ];
+
+    let results = fetch_multiple(urls).await;
+
+    // Race condition
+    let fastest = fetch_fastest(urls).await;
+
+    // With timeout
+    let result = fetch_with_timeout("https://slow-api.com", 5).await;
+    match result {
+        Result::Ok(data) => println(data),
+        Result::Err(err) => println("Error: " + err)
+    };
+
+    // Background processing
+    process_in_background("large dataset").await;
+
+    // Async tasks
+    let tasks = [
+        create_async_task(1),
+        create_async_task(2),
+        create_async_task(3)
+    ];
+
+    let task_results = Future::join_all(tasks).await;
+
+    // Parallel computation
+    let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let total = parallel_sum(numbers).await;
+}

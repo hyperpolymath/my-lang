@@ -1,0 +1,108 @@
+// Test Suite: Linear Types
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+module Test::LinearTypes
+
+import std::test::{describe, it, expect}
+
+/// Test basic linear type consumption.
+#[test]
+fn test_linear_consumption() {
+    let resource = LinearResource::new(42)
+    let value = resource.consume()
+    expect(value).to_equal(42)
+    // resource is consumed, cannot be used again
+}
+
+/// Test that linear types cannot be copied.
+#[test]
+#[should_fail(compile)]
+fn test_linear_no_copy() {
+    let resource = LinearResource::new(1)
+    let copy = resource  // Move, not copy
+    // resource.consume()  // Would fail: resource was moved
+    copy.consume()
+}
+
+/// Test linear type in function parameters.
+#[test]
+fn test_linear_parameter() {
+    let resource = LinearResource::new(100)
+    let result = consume_and_return(resource)
+    expect(result).to_equal(100)
+}
+
+/// Test linear type returned from function.
+#[test]
+fn test_linear_return() {
+    let resource = create_linear_resource()
+    let value = resource.consume()
+    expect(value).to_be_greater_than(0)
+}
+
+/// Test chained linear operations.
+#[test]
+fn test_linear_chaining() {
+    let conn = Connection::new()
+    let conn = conn.send("hello")
+    let conn = conn.send("world")
+    let result = conn.close()
+    expect(result).to_be_ok()
+}
+
+/// Test linear type with explicit drop.
+#[test]
+fn test_linear_drop() {
+    let resource = LinearResource::new(999)
+    // Explicit consumption via drop
+    drop(resource)
+    // Test passes if no leak detected
+}
+
+// Helper types for tests
+struct LinearResource {
+    value: linear i32,
+}
+
+impl LinearResource {
+    fn new(v: i32) -> LinearResource {
+        LinearResource { value: v }
+    }
+
+    fn consume(self) -> i32 {
+        self.value
+    }
+}
+
+struct Connection {
+    state: linear ConnectionState,
+}
+
+impl Connection {
+    fn new() -> Connection {
+        Connection { state: ConnectionState::Open }
+    }
+
+    fn send(self, msg: &str) -> Connection {
+        // Send message, return self for chaining
+        self
+    }
+
+    fn close(self) -> Result<(), Error> {
+        // Consume connection
+        Ok(())
+    }
+}
+
+enum ConnectionState {
+    Open,
+    Closed,
+}
+
+fn consume_and_return(res: LinearResource) -> i32 {
+    res.consume()
+}
+
+fn create_linear_resource() -> LinearResource {
+    LinearResource::new(42)
+}

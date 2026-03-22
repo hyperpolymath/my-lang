@@ -1,0 +1,78 @@
+// Linear Types - Must Be Used Exactly Once
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Linear types are the foundation of Solo's memory safety guarantees.
+// They ensure resources are properly managed without garbage collection.
+
+module Main
+
+import std::io
+
+/// A file handle that MUST be closed (used exactly once).
+struct FileHandle {
+    fd: i32,
+    path: str,
+}
+
+impl FileHandle {
+    /// Open a file, returning a linear handle.
+    fn open(path: str) -> FileHandle {
+        let fd = sys::open(path, O_RDONLY)
+        FileHandle { fd, path }
+    }
+
+    /// Read contents and consume the handle.
+    /// After this call, the FileHandle cannot be used again.
+    fn read_and_close(self) -> str {
+        let content = sys::read_all(self.fd)
+        sys::close(self.fd)
+        content
+    }
+}
+
+/// A database connection with linear semantics.
+struct Connection {
+    handle: linear DbHandle,
+}
+
+impl Connection {
+    fn connect(url: str) -> Connection {
+        Connection {
+            handle: db::connect(url)
+        }
+    }
+
+    /// Execute query and return connection for reuse.
+    fn query(self, sql: str) -> (Connection, QueryResult) {
+        let result = db::execute(self.handle, sql)
+        // Return self to allow continued use
+        (self, result)
+    }
+
+    /// Close the connection, consuming the linear resource.
+    fn close(self) {
+        db::disconnect(self.handle)
+        // self.handle is now consumed - no resource leak possible
+    }
+}
+
+fn main() {
+    // Linear file handling
+    let file = FileHandle::open("data.txt")
+    let contents = file.read_and_close()  // file is consumed here
+    io::println(contents)
+
+    // Error: file was already consumed
+    // let more = file.read_and_close()  // COMPILE ERROR!
+
+    // Database connection with explicit lifecycle
+    let conn = Connection::connect("postgres://localhost/db")
+    let (conn, users) = conn.query("SELECT * FROM users")
+    let (conn, orders) = conn.query("SELECT * FROM orders")
+    conn.close()  // Must explicitly close
+
+    // Forgetting to close would be a compile error:
+    // let conn2 = Connection::connect("...")
+    // // ...code that doesn't close conn2...
+    // // COMPILE ERROR: linear resource not consumed!
+}

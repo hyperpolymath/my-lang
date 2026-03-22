@@ -1,0 +1,186 @@
+// Newroom Journalism Automation (Variant B - Mode-Based)
+// This is regular Duet code with Ensemble hints
+
+#![ensemble(
+    mode: "collaborative",
+    agents: ["reporter", "editor", "fact_checker", "publisher"],
+    coordination: "sequential"
+)]
+
+// Regular Duet struct - no special agent syntax
+struct Article {
+    title: str,
+    content: str,
+    sources: Vec<Source>,
+    claims: Vec<Claim>,
+    confidence: f64
+}
+
+// Workflow defined as attribute, not language construct
+#[workflow({
+    "research": { agent: "reporter", depends_on: [] },
+    "edit": { agent: "editor", depends_on: ["research"] },
+    "fact_check": { agent: "fact_checker", depends_on: ["edit"] },
+    "publish": { agent: "publisher", depends_on: ["fact_check"] }
+})]
+fn newroom_pipeline(topic: str) -> Article {
+    // Stage 1: Research (handled by reporter agent)
+    #[agent("reporter")]
+    let raw_article = research_topic(topic);
+
+    // Stage 2: Edit (handled by editor agent)
+    #[agent("editor")]
+    #[collaborate(strategy: "sequential_refinement")]
+    let edited = edit_article(raw_article);
+
+    // Stage 3: Fact-check (multiple agents)
+    #[agent("fact_checker")]
+    #[require_consensus(threshold: 0.85)]
+    let verified = verify_facts(edited);
+
+    // Stage 4: Publish (publisher agent)
+    #[agent("publisher")]
+    let published = publish_article(verified);
+
+    published
+}
+
+// Agent hint: this function should be handled by reporter
+#[agent("reporter")]
+#[prefer_agent("investigative_reporter", expertise: "research")]
+fn research_topic(topic: str) -> Article {
+    // Use Duet AI features
+    let sources = intent("find authoritative sources on: " + topic, {
+        outputs: Vec<Source>,
+        constraints: ["credible", "recent"]
+    });
+
+    @synth(
+        spec: |sources| extract_key_facts(sources),
+        confidence: 0.9
+    )
+    fn extract_facts(sources: &[Source]) -> Vec<Claim>;
+
+    let claims = extract_facts(&sources);
+
+    Article {
+        title: generate_headline(&claims),
+        content: write_article(&claims),
+        sources,
+        claims,
+        confidence: 0.0  // Will be set by fact-checker
+    }
+}
+
+// Editor agent function
+#[agent("editor")]
+fn edit_article(mut article: Article) -> Article {
+    // Check grammar using AI
+    @verify(property: |text| has_correct_grammar(text))
+    fn check_grammar(text: &str) -> bool;
+
+    if !check_grammar(&article.content) {
+        article.content = intent("fix grammar and improve clarity", {
+            inputs: article.content,
+            outputs: str
+        });
+    }
+
+    // Improve structure
+    #[ai_optimize(strategy: "maximize_clarity")]
+    fn improve_structure(content: str) -> str {
+        // AI optimizes article structure
+        content
+    }
+
+    article.content = improve_structure(article.content);
+    article
+}
+
+// Fact-checker with multi-agent verification
+#[agent("fact_checker")]
+#[require_consensus]
+fn verify_facts(article: Article) -> Article {
+    use std::ensemble::{gather, coordinate};
+
+    let mut confidences = Vec::new();
+
+    // Each claim verified independently (can distribute to multiple agents)
+    #[distribute(strategy: "balanced")]
+    for claim in &article.claims {
+        let belief_mass = verify_claim_dempster_shafer(claim, &article.sources);
+        confidences.push(belief_mass);
+    }
+
+    // Aggregate using Dempster-Shafer fusion
+    let overall_confidence = dempster_shafer_fusion(&confidences, {
+        conflict_resolution: "skeptical",
+        threshold: 0.85
+    });
+
+    Article {
+        confidence: overall_confidence,
+        ..article
+    }
+}
+
+// Dempster-Shafer belief fusion (normal Duet function)
+fn dempster_shafer_fusion(
+    beliefs: &[BeliefMass],
+    config: DempsterConfig
+) -> f64 {
+    // Standard belief fusion algorithm
+    // No special syntax - just regular code
+}
+
+fn verify_claim_dempster_shafer(claim: &Claim, sources: &[Source]) -> BeliefMass {
+    // Compute belief mass for claim
+    let mut belief = BeliefMass::new();
+
+    for source in sources {
+        let credibility = get_source_credibility(source);
+        let supports = source_supports_claim(source, claim);
+
+        if supports {
+            belief.add_mass(credibility, Hypothesis::True);
+        } else {
+            belief.add_mass(credibility, Hypothesis::False);
+        }
+    }
+
+    belief
+}
+
+// Publisher agent
+#[agent("publisher")]
+fn publish_article(article: Article) -> Article {
+    if article.confidence < 0.85 {
+        return article;  // Don't publish low-confidence articles
+    }
+
+    // Format for different channels
+    let html = format_for_web(&article);
+    let social = generate_social_posts(&article);
+
+    // Distribute using standard library
+    use std::ensemble::broadcast;
+
+    broadcast(html, channels: ["web"]);
+    broadcast(social, channels: ["twitter", "facebook"]);
+
+    article
+}
+
+// Main entry point
+fn main() {
+    // Ensemble mode activated via configuration (my.toml)
+    // Not through language constructs
+
+    let topic = "Breakthrough in Quantum Computing";
+
+    // Run pipeline - orchestrator routes to appropriate agents
+    let article = newroom_pipeline(topic);
+
+    println("Published article: " + article.title);
+    println("Confidence: " + article.confidence);
+}

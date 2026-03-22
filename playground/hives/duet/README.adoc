@@ -1,0 +1,116 @@
+= Duet Playground
+:toc: macro
+:icons: font
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+*Playground for Duet - AI-Assisted Neuro-Symbolic Development Language*
+
+image:https://img.shields.io/badge/Language-Duet-purple[Duet]
+image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+
+toc::[]
+
+== Overview
+
+Duet is an AI-assisted programming language that combines neural and symbolic reasoning. It enables human-AI collaboration in software development with formal verification guarantees.
+
+=== Key Features
+
+* **AI Pair Programming**: Built-in LLM integration for code assistance
+* **Neuro-Symbolic Fusion**: Combine neural nets with symbolic logic
+* **Intent Specification**: Describe what you want, AI helps implement
+* **Formal Verification**: Prove AI-generated code is correct
+* **Explainable AI**: Understand why AI made specific suggestions
+
+== Language Design
+
+=== Intent Blocks
+
+[source,duet]
+----
+-- Describe intent, AI helps implement
+intent "sort array efficiently":
+    given: arr: [Int]
+    ensure: is_sorted(result) && permutation(arr, result)
+    -- AI fills implementation
+    @ai_implement
+----
+
+=== Neural-Symbolic Types
+
+[source,duet]
+----
+-- Hybrid types combining neural and symbolic
+type ImageClassifier = neural {
+    model: CNN,
+    symbolic_rules: [Rule],
+}
+
+-- Neural inference with symbolic constraints
+fn classify(img: Image) -> Label:
+    let neural_result = self.model.infer(img)
+    let symbolic_check = apply_rules(self.symbolic_rules, neural_result)
+    merge(neural_result, symbolic_check)
+----
+
+=== AI Collaboration
+
+[source,duet]
+----
+-- Ask AI to suggest implementation
+@ai_suggest
+fn optimize_query(query: SQL) -> SQL:
+    -- AI analyzes and suggests optimizations
+    -- Human reviews and approves
+
+-- AI explains its reasoning
+@ai_explain
+fn complex_algorithm(data: Dataset) -> Result:
+    -- AI provides step-by-step explanation
+----
+
+== Getting Started
+
+=== Prerequisites
+
+* Solo compiler (foundation)
+* LLM backend (local or API)
+* Guix or Nix
+
+=== Installation
+
+[source,bash]
+----
+guix install duet
+----
+
+=== Hello World
+
+[source,duet]
+----
+module Main
+
+import AI.Assistant (suggest)
+
+fn main() -> ():
+    @ai_assist
+    print("Hello from Duet!")
+    -- AI can suggest improvements
+----
+
+== Examples
+
+* `ai-pairing/` - AI pair programming demos
+* `neuro-symbolic/` - Neural-symbolic integration
+* `verification/` - Formal verification of AI code
+
+== Related Languages
+
+Part of the My-Lang progressive family:
+
+* Me → Solo → *Duet* → Ensemble
+
+== License
+
+SPDX-License-Identifier: PMPL-1.0-or-later-or-later

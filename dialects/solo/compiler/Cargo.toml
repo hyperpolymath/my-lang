@@ -1,0 +1,28 @@
+[package]
+name = "solo"
+version = "0.1.0"
+edition = "2021"
+authors = ["My-newsroom Contributors"]
+license = "MIT OR Palimpsest-0.8"
+description = "Solo dialect compiler - Systems programming with affine types"
+repository = "https://gitlab.com/Hyperpolymath/My-newsroom"
+
+[dependencies]
+# No dependencies for bootstrap (pure Rust implementation)
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bin]]
+name = "solo"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

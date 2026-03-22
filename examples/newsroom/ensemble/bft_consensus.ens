@@ -1,0 +1,178 @@
+// SPDX-License-Identifier: MIT OR Palimpsest-0.8
+// SPDX-FileCopyrightText: 2024 My-newsroom Contributors
+//
+// Byzantine Fault-Tolerant Consensus Demo
+// Demonstrates resilience against malicious agents.
+
+use ensemble::prelude::*;
+use ensemble::bft::*;
+
+/// Honest agent - reports truthfully based on evidence
+agent HonestAgent {
+    id: AgentId,
+    beliefs: BeliefState,
+
+    fn new(id: AgentId) -> Self {
+        HonestAgent {
+            id,
+            beliefs: BeliefState::new(),
+        }
+    }
+
+    /// Evaluate claim honestly
+    fn evaluate(&mut self, claim: &Claim) -> BeliefMass {
+        // Simulate gathering real evidence
+        let evidence_strength = rand::thread_rng().gen_range(0.7..0.95);
+
+        let theta = claim.frame();
+        BeliefMass::from([
+            (claim.positive_hypothesis(), evidence_strength),
+            (theta, 1.0 - evidence_strength),
+        ])
+    }
+}
+
+/// Malicious agent - attempts to disrupt consensus
+agent MaliciousAgent {
+    id: AgentId,
+    strategy: MaliciousStrategy,
+
+    fn new(id: AgentId, strategy: MaliciousStrategy) -> Self {
+        MaliciousAgent { id, strategy }
+    }
+
+    /// Lie about beliefs to disrupt consensus
+    fn evaluate(&self, claim: &Claim) -> BeliefMass {
+        match self.strategy {
+            // Always claim the opposite
+            MaliciousStrategy::Contrarian => {
+                BeliefMass::from([
+                    (claim.negative_hypothesis(), 0.99),
+                    (claim.frame(), 0.01),
+                ])
+            }
+            // Claim extreme certainty to dominate fusion
+            MaliciousStrategy::Dominator => {
+                BeliefMass::from([
+                    (claim.negative_hypothesis(), 0.999),
+                    (claim.frame(), 0.001),
+                ])
+            }
+            // Random noise
+            MaliciousStrategy::Chaos => {
+                let r = rand::thread_rng().gen_range(0.0..1.0);
+                BeliefMass::from([
+                    (claim.positive_hypothesis(), r),
+                    (claim.negative_hypothesis(), 1.0 - r),
+                ])
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum MaliciousStrategy {
+    Contrarian,  // Always disagree
+    Dominator,   // Try to overpower with confidence
+    Chaos,       // Random confusion
+}
+
+/// Orchestration with Byzantine fault tolerance
+comptime orchestrate BFTConsensus {
+    agents: [HonestAgent; 67] + [MaliciousAgent; 33],  // 33% Byzantine
+
+    topology: FullyConnected,
+    fusion: Dempster,
+
+    // BFT consensus requires 2/3 + 1 honest agents
+    consensus: ByzantineFaultTolerant {
+        threshold: 0.67,
+        max_byzantine: 33,
+    },
+}
+
+/// Run the BFT demonstration
+fn main() {
+    println!("=== Byzantine Fault Tolerance Demo ===\n");
+    println!("Configuration:");
+    println!("  Total agents: 100");
+    println!("  Honest agents: 67 (67%)");
+    println!("  Malicious agents: 33 (33%)");
+    println!("  BFT threshold: 67%\n");
+
+    let mut system = BFTConsensus::new();
+
+    // Initialize malicious agents with different strategies
+    for (i, agent) in system.malicious_agents_mut().iter_mut().enumerate() {
+        agent.strategy = match i % 3 {
+            0 => MaliciousStrategy::Contrarian,
+            1 => MaliciousStrategy::Dominator,
+            _ => MaliciousStrategy::Chaos,
+        };
+    }
+
+    // Claim that should reach positive consensus
+    let claim = Claim::new("Water is wet");
+    println!("Claim: \"{}\"\n", claim);
+
+    // Gather beliefs from all agents
+    println!("Gathering beliefs...");
+
+    let mut honest_beliefs = Vec::new();
+    for agent in system.honest_agents_mut() {
+        let belief = agent.evaluate(&claim);
+        honest_beliefs.push(belief.clone());
+        agent.beliefs.set(&claim, belief);
+    }
+
+    let mut malicious_beliefs = Vec::new();
+    for agent in system.malicious_agents() {
+        let belief = agent.evaluate(&claim);
+        malicious_beliefs.push(belief);
+    }
+
+    // Analyze honest vs malicious beliefs
+    let avg_honest: f64 = honest_beliefs.iter()
+        .map(|b| b.belief(&claim.positive_hypothesis()))
+        .sum::<f64>() / honest_beliefs.len() as f64;
+
+    let avg_malicious: f64 = malicious_beliefs.iter()
+        .map(|b| b.belief(&claim.positive_hypothesis()))
+        .sum::<f64>() / malicious_beliefs.len() as f64;
+
+    println!("  Honest agents avg belief in 'true': {:.2}", avg_honest);
+    println!("  Malicious agents avg belief in 'true': {:.2}\n", avg_malicious);
+
+    // Run BFT consensus
+    println!("Running Byzantine fault-tolerant consensus...\n");
+    let result = system.bft_consensus(&claim);
+
+    match result {
+        ConsensusResult::Reached { belief, confidence, honest_count, .. } => {
+            println!("CONSENSUS REACHED despite {} malicious agents!", 33);
+            println!("  Final belief in 'true': {:.4}", belief.belief(&claim.positive_hypothesis()));
+            println!("  Confidence: {:.4}", confidence);
+            println!("  Honest agents contributing: {}", honest_count);
+        }
+        ConsensusResult::Failed { reason, .. } => {
+            println!("CONSENSUS FAILED: {}", reason);
+        }
+    }
+
+    // Demonstrate Byzantine detection
+    println!("\n=== Byzantine Detection ===");
+    let suspects = system.detect_byzantine_agents(&claim);
+    println!("Suspected malicious agents: {} / {}", suspects.len(), 33);
+
+    // Verify we correctly identified most liars
+    let true_positives = suspects.iter()
+        .filter(|id| system.is_malicious(id))
+        .count();
+    println!("True positives: {} ({:.0}% accuracy)",
+        true_positives,
+        100.0 * true_positives as f64 / suspects.len().max(1) as f64);
+
+    println!("\n=== Conclusion ===");
+    println!("BFT consensus successfully reached correct conclusion");
+    println!("despite 33% of agents actively trying to disrupt it.");
+}

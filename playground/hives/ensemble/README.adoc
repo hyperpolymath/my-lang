@@ -1,0 +1,91 @@
+= Ensemble Playground
+:toc: macro
+:icons: font
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+*Playground for Ensemble - AI-Native Application Language*
+
+image:https://img.shields.io/badge/Language-Ensemble-green[Ensemble]
+image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+
+toc::[]
+
+== Overview
+
+Ensemble is the culmination of the My-Lang family, designed for building AI-native applications where multiple AI agents collaborate with humans.
+
+=== Key Features
+
+* **Multi-Agent Orchestration**: Coordinate multiple AI agents
+* **Human-in-the-Loop**: Seamless human oversight
+* **Distributed AI**: Scale across nodes
+* **Consensus Protocols**: AI agents reach agreement
+* **Auditable Decisions**: Track all AI reasoning
+
+== Language Design
+
+=== Agent Definition
+
+[source,ensemble]
+----
+agent Researcher:
+    capabilities: [web_search, summarize, cite]
+    constraints: [factual_accuracy, source_verification]
+
+    fn research(topic: String) -> Report:
+        let sources = web_search(topic)
+        let summary = summarize(sources)
+        Report { summary, citations: cite(sources) }
+----
+
+=== Multi-Agent Collaboration
+
+[source,ensemble]
+----
+ensemble DocumentReview:
+    agents: [Researcher, Editor, FactChecker]
+
+    workflow:
+        1. Researcher.draft(topic)
+        2. Editor.review(draft) |> FactChecker.verify
+        3. human_approval(reviewed_draft)
+        4. publish(approved)
+----
+
+=== Consensus
+
+[source,ensemble]
+----
+fn collective_decision(agents: [Agent], question: Query) -> Decision:
+    let votes = agents.map(|a| a.vote(question))
+    let consensus = reach_consensus(votes, threshold: 0.7)
+
+    match consensus:
+        | Agreed(decision): decision
+        | Disagreement(positions):
+            escalate_to_human(positions)
+----
+
+== Getting Started
+
+[source,bash]
+----
+guix install ensemble
+----
+
+== Examples
+
+* `multi-agent/` - Multi-agent collaboration
+* `consensus/` - Consensus protocols
+* `human-loop/` - Human oversight patterns
+
+== Related Languages
+
+Culmination of My-Lang family:
+
+* Me → Solo → Duet → *Ensemble*
+
+== License
+
+SPDX-License-Identifier: PMPL-1.0-or-later-or-later

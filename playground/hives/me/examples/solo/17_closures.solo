@@ -1,0 +1,159 @@
+// Closures and Function Objects
+
+fn main() {
+    // Basic closure
+    let add_one = |x| x + 1;
+    let result = add_one(5);  // 6
+
+    // Closure with type annotations
+    let multiply = |x: i32, y: i32| -> i32 {
+        x * y
+    };
+    let product = multiply(3, 4);  // 12
+
+    // Capturing environment
+    let factor = 10;
+    let scale = |x| x * factor;  // Captures 'factor'
+    let scaled = scale(5);  // 50
+
+    // Mutable capture
+    let mut count = 0;
+    let mut increment = || {
+        count = count + 1;
+        count
+    };
+    increment();  // count = 1
+    increment();  // count = 2
+    increment();  // count = 3
+
+    // Move closure (takes ownership)
+    let data = vec![1, 2, 3];
+    let consume = move || {
+        println(data.len());
+        // data is now owned by closure
+    };
+    consume();
+    // data is no longer accessible here
+
+    // Closures as function parameters
+    fn apply<F>(f: F, value: i32) -> i32
+    where
+        F: fn(i32) -> i32
+    {
+        f(value)
+    }
+
+    let double = |x| x * 2;
+    let result = apply(double, 21);  // 42
+
+    // Returning closures
+    fn make_adder(n: i32) -> impl Fn(i32) -> i32 {
+        move |x| x + n
+    }
+
+    let add_5 = make_adder(5);
+    let result = add_5(10);  // 15
+
+    // Higher-order functions
+    fn compose<F, G>(f: F, g: G) -> impl Fn(i32) -> i32
+    where
+        F: Fn(i32) -> i32,
+        G: Fn(i32) -> i32
+    {
+        move |x| f(g(x))
+    }
+
+    let add_one = |x| x + 1;
+    let times_two = |x| x * 2;
+    let combined = compose(times_two, add_one);
+    let result = combined(5);  // (5 + 1) * 2 = 12
+
+    // Closure in collections
+    let operations = [
+        |x| x + 1,
+        |x| x * 2,
+        |x| x - 3
+    ];
+
+    let value = 10;
+    for op in operations {
+        println(op(value));
+    }
+
+    // Closure for callbacks
+    fn execute_callback<F>(callback: F)
+    where
+        F: Fn(str)
+    {
+        callback("Task completed");
+    }
+
+    execute_callback(|msg| {
+        println("Callback received: " + msg);
+    });
+
+    // Closure with iterator
+    let numbers = [1, 2, 3, 4, 5];
+
+    let sum = numbers.iter()
+        .filter(|x| *x % 2 == 0)
+        .map(|x| x * x)
+        .fold(0, |acc, x| acc + x);
+
+    // FnOnce, FnMut, Fn traits
+    fn call_once<F>(f: F) where F: FnOnce() {
+        f();
+    }
+
+    fn call_many<F>(mut f: F) where F: FnMut() {
+        f();
+        f();
+        f();
+    }
+
+    fn call_repeatedly<F>(f: F) where F: Fn() {
+        for i in 0..5 {
+            f();
+        }
+    }
+
+    // Closure capturing by reference
+    let mut x = 5;
+    {
+        let mut borrow = || x = x + 1;
+        borrow();
+    }
+    println(x);  // 6
+
+    // Async closure
+    let async_task = async || {
+        sleep(1).await;
+        42
+    };
+
+    // Closure for lazy evaluation
+    fn lazy<F>(f: F) -> impl Fn() -> i32
+    where
+        F: Fn() -> i32
+    {
+        let mut cached = Option::None;
+        move || {
+            match cached {
+                Option::Some(v) => v,
+                Option::None => {
+                    let value = f();
+                    cached = Option::Some(value);
+                    value
+                }
+            }
+        }
+    }
+
+    let expensive = lazy(|| {
+        println("Computing...");
+        42
+    });
+
+    let val1 = expensive();  // Prints "Computing...", returns 42
+    let val2 = expensive();  // Returns 42 (cached)
+}

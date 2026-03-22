@@ -1,0 +1,114 @@
+// Affine Types - Can Be Used At Most Once
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Affine types are less strict than linear types - they can be
+// dropped without use, but still prevent double-use.
+
+module Main
+
+import std::io
+import std::net
+
+/// Network socket with affine semantics.
+/// Can be dropped (auto-closed) or explicitly closed.
+struct Socket {
+    handle: affine SocketHandle,
+    address: str,
+}
+
+impl Socket {
+    fn connect(addr: str) -> Socket {
+        Socket {
+            handle: net::tcp_connect(addr),
+            address: addr,
+        }
+    }
+
+    /// Send data, returning socket for continued use.
+    fn send(self, data: &[u8]) -> Socket {
+        net::write(self.handle, data)
+        self
+    }
+
+    /// Receive data, returning socket and data.
+    fn recv(self) -> (Socket, Vec<u8>) {
+        let data = net::read(self.handle)
+        (self, data)
+    }
+
+    /// Explicitly close the socket.
+    fn close(self) {
+        net::close(self.handle)
+    }
+}
+
+// Drop is automatically called if Socket goes out of scope
+impl Drop for Socket {
+    fn drop(&mut self) {
+        // Auto-close on drop - affine allows this
+        net::close(self.handle)
+    }
+}
+
+/// Optional resource that may or may not be used.
+struct MaybeResource {
+    data: affine Option<ExpensiveData>,
+}
+
+impl MaybeResource {
+    fn new() -> MaybeResource {
+        MaybeResource {
+            data: Some(ExpensiveData::allocate())
+        }
+    }
+
+    /// Take the resource if present.
+    fn take(self) -> Option<ExpensiveData> {
+        self.data
+    }
+
+    /// Explicitly discard without using.
+    fn discard(self) {
+        // Affine allows this - just drop without use
+        drop(self.data)
+    }
+}
+
+fn main() {
+    // Socket with explicit close
+    let sock = Socket::connect("example.com:80")
+    let sock = sock.send(b"GET / HTTP/1.1\r\n\r\n")
+    let (sock, response) = sock.recv()
+    sock.close()  // Explicit close
+
+    // Socket with implicit drop (auto-close)
+    {
+        let temp_sock = Socket::connect("temp.example.com:80")
+        temp_sock.send(b"PING")
+        // temp_sock dropped here, auto-closes
+    }
+
+    // MaybeResource - can choose to use or discard
+    let resource = MaybeResource::new()
+    if should_use_resource() {
+        let data = resource.take()
+        process(data)
+    } else {
+        resource.discard()  // OK with affine types
+    }
+
+    // Double-use is still prevented:
+    // let sock2 = Socket::connect("...")
+    // let sock2 = sock2.send(b"hello")
+    // let sock2 = sock2.send(b"world")  // OK - returned self
+    // sock2.close()
+    // sock2.send(b"oops")  // COMPILE ERROR: sock2 was consumed
+}
+
+fn should_use_resource() -> bool {
+    true
+}
+
+fn process(data: Option<ExpensiveData>) {
+    io::println("Processing resource...")
+}

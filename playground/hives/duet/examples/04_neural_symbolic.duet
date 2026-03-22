@@ -1,0 +1,236 @@
+// Neural-Symbolic Hybrid Programming
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates combining neural networks with symbolic reasoning
+// for more robust and explainable AI systems.
+
+module Main
+
+import std::io
+import std::duet::neuro_symbolic::{Neural, Symbolic, Hybrid}
+import std::ai::models::{CNN, Transformer}
+
+/// A hybrid image classifier that combines neural inference
+/// with symbolic rule-based validation.
+struct SmartClassifier {
+    /// Neural component: CNN for image feature extraction
+    neural: Neural<CNN>,
+
+    /// Symbolic component: rules for validation and explanation
+    rules: Vec<SymbolicRule>,
+}
+
+impl SmartClassifier {
+    fn new(model_path: &str) -> SmartClassifier {
+        SmartClassifier {
+            neural: Neural::load(model_path),
+            rules: vec![
+                // Rule: confidence must exceed threshold
+                SymbolicRule::new("confidence_threshold")
+                    .when(|pred| pred.confidence < 0.7)
+                    .then(|pred| pred.mark_uncertain()),
+
+                // Rule: certain classes require additional validation
+                SymbolicRule::new("sensitive_class_check")
+                    .when(|pred| pred.label.is_sensitive())
+                    .then(|pred| pred.require_human_review()),
+
+                // Rule: physical constraints
+                SymbolicRule::new("size_constraint")
+                    .when(|pred| pred.label == "elephant" && pred.bounding_box.area() < 100)
+                    .then(|pred| pred.mark_implausible("elephant too small")),
+            ],
+        }
+    }
+
+    /// Classify an image using hybrid neural-symbolic approach.
+    fn classify(&self, image: &Image) -> ClassificationResult {
+        // Step 1: Neural inference
+        let neural_output = self.neural.infer(image)
+
+        // Step 2: Apply symbolic rules
+        let validated = self.rules.iter()
+            .fold(neural_output, |output, rule| rule.apply(output))
+
+        // Step 3: Generate explanation
+        let explanation = self.generate_explanation(&validated)
+
+        ClassificationResult {
+            label: validated.label,
+            confidence: validated.confidence,
+            explanation,
+            flags: validated.flags,
+        }
+    }
+
+    /// Generate human-readable explanation.
+    fn generate_explanation(&self, result: &NeuralOutput) -> String {
+        let mut explanation = format!(
+            "Classified as '{}' with {:.1}% confidence.",
+            result.label,
+            result.confidence * 100.0
+        )
+
+        for rule in &self.rules {
+            if rule.was_triggered(result) {
+                explanation.push_str(&format!(
+                    "\n- Rule '{}' applied: {}",
+                    rule.name,
+                    rule.explanation(result)
+                ))
+            }
+        }
+
+        explanation
+    }
+}
+
+/// Neuro-symbolic reasoning for natural language understanding.
+struct LanguageReasoner {
+    /// Neural: Transformer for language understanding
+    encoder: Neural<Transformer>,
+
+    /// Symbolic: Knowledge graph for factual grounding
+    knowledge: KnowledgeGraph,
+
+    /// Symbolic: Logic rules for inference
+    inference_rules: Vec<LogicRule>,
+}
+
+impl LanguageReasoner {
+    /// Answer a question using hybrid reasoning.
+    fn answer(&self, question: &str, context: &str) -> Answer {
+        // Neural: encode question and context
+        let question_embedding = self.encoder.encode(question)
+        let context_embedding = self.encoder.encode(context)
+
+        // Neural: find relevant facts
+        let neural_candidates = self.encoder.find_relevant(
+            question_embedding,
+            context_embedding,
+        )
+
+        // Symbolic: retrieve from knowledge graph
+        let entities = self.knowledge.extract_entities(question)
+        let facts = self.knowledge.retrieve_facts(entities)
+
+        // Symbolic: apply inference rules
+        let inferred = self.inference_rules.iter()
+            .flat_map(|rule| rule.apply(&facts))
+            .collect()
+
+        // Merge neural and symbolic results
+        let merged = self.merge_evidence(neural_candidates, facts, inferred)
+
+        // Generate answer with explanation
+        Answer {
+            text: self.generate_answer_text(merged),
+            confidence: merged.confidence,
+            sources: merged.sources,
+            reasoning_chain: merged.reasoning_chain,
+        }
+    }
+
+    fn merge_evidence(
+        &self,
+        neural: Vec<Candidate>,
+        facts: Vec<Fact>,
+        inferred: Vec<Fact>,
+    ) -> MergedEvidence {
+        // Combine evidence from all sources
+        // Weight by confidence and source reliability
+        MergedEvidence::combine(neural, facts, inferred)
+    }
+}
+
+/// Symbolic rule definition.
+struct SymbolicRule {
+    name: String,
+    condition: Box<dyn Fn(&NeuralOutput) -> bool>,
+    action: Box<dyn Fn(NeuralOutput) -> NeuralOutput>,
+    explanation_fn: Box<dyn Fn(&NeuralOutput) -> String>,
+}
+
+impl SymbolicRule {
+    fn new(name: &str) -> SymbolicRuleBuilder {
+        SymbolicRuleBuilder::new(name)
+    }
+
+    fn apply(&self, output: NeuralOutput) -> NeuralOutput {
+        if (self.condition)(&output) {
+            (self.action)(output)
+        } else {
+            output
+        }
+    }
+
+    fn was_triggered(&self, output: &NeuralOutput) -> bool {
+        (self.condition)(output)
+    }
+
+    fn explanation(&self, output: &NeuralOutput) -> String {
+        (self.explanation_fn)(output)
+    }
+}
+
+fn main() {
+    io::println("Neural-Symbolic Hybrid Demo")
+    io::println("===========================")
+    io::println("")
+
+    // Create hybrid classifier
+    let classifier = SmartClassifier::new("models/image_classifier.onnx")
+
+    // Classify with explanation
+    let image = Image::load("test_image.jpg")
+    let result = classifier.classify(&image)
+
+    io::println("Classification Result:")
+    io::println("  Label: ", result.label)
+    io::println("  Confidence: ", result.confidence)
+    io::println("  Explanation: ", result.explanation)
+
+    if result.flags.contains(&Flag::NeedsReview) {
+        io::println("  [!] Human review required")
+    }
+
+    // Language reasoning example
+    let reasoner = LanguageReasoner::new()
+    let answer = reasoner.answer(
+        "What is the capital of France?",
+        "France is a country in Western Europe."
+    )
+
+    io::println("")
+    io::println("Question Answering:")
+    io::println("  Answer: ", answer.text)
+    io::println("  Confidence: ", answer.confidence)
+    io::println("  Reasoning: ", answer.reasoning_chain)
+}
+
+// Type definitions
+struct Image { data: Vec<u8> }
+impl Image { fn load(path: &str) -> Image { Image { data: vec![] } } }
+
+struct ClassificationResult {
+    label: String,
+    confidence: f64,
+    explanation: String,
+    flags: Vec<Flag>,
+}
+
+enum Flag { NeedsReview, Uncertain, Implausible }
+
+struct Answer {
+    text: String,
+    confidence: f64,
+    sources: Vec<String>,
+    reasoning_chain: String,
+}
+
+struct NeuralOutput {
+    label: String,
+    confidence: f64,
+    bounding_box: BoundingBox,
+    flags: Vec<Flag>,
+}

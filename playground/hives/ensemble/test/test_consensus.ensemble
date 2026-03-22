@@ -1,0 +1,243 @@
+// Test Suite: Consensus Protocols
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+module Test::Consensus
+
+import std::test::{describe, it, expect}
+import std::ensemble::{Agent, consensus}
+import std::ensemble::consensus::{majority, weighted, ranked_choice, unanimous}
+
+/// Test majority voting with clear winner.
+#[test]
+fn test_majority_clear_winner() {
+    let votes = vec![
+        Vote { choice: Choice::A, confidence: 0.9 },
+        Vote { choice: Choice::A, confidence: 0.8 },
+        Vote { choice: Choice::A, confidence: 0.7 },
+        Vote { choice: Choice::B, confidence: 0.6 },
+        Vote { choice: Choice::B, confidence: 0.5 },
+    ]
+
+    let result = consensus::majority(&votes)
+
+    expect(result).to_be_some()
+    expect(result.unwrap()).to_equal(Choice::A)
+}
+
+/// Test majority voting with no winner.
+#[test]
+fn test_majority_no_winner() {
+    let votes = vec![
+        Vote { choice: Choice::A, confidence: 0.9 },
+        Vote { choice: Choice::B, confidence: 0.8 },
+        Vote { choice: Choice::C, confidence: 0.7 },
+    ]
+
+    let result = consensus::majority(&votes)
+
+    expect(result).to_be_none()
+}
+
+/// Test weighted voting with threshold met.
+#[test]
+fn test_weighted_threshold_met() {
+    let votes = vec![
+        (Vote { choice: Choice::A, confidence: 0.9 }, 0.5),  // High weight
+        (Vote { choice: Choice::A, confidence: 0.8 }, 0.3),
+        (Vote { choice: Choice::B, confidence: 0.7 }, 0.2),
+    ]
+
+    let result = consensus::weighted(&votes, threshold: 0.6)
+
+    expect(result).to_be_some()
+    expect(result.unwrap()).to_equal(Choice::A)
+}
+
+/// Test weighted voting below threshold.
+#[test]
+fn test_weighted_below_threshold() {
+    let votes = vec![
+        (Vote { choice: Choice::A, confidence: 0.9 }, 0.4),
+        (Vote { choice: Choice::B, confidence: 0.8 }, 0.3),
+        (Vote { choice: Choice::C, confidence: 0.7 }, 0.3),
+    ]
+
+    let result = consensus::weighted(&votes, threshold: 0.6)
+
+    expect(result).to_be_none()
+}
+
+/// Test ranked choice voting.
+#[test]
+fn test_ranked_choice_first_round() {
+    let ballots = vec![
+        vec![Choice::A, Choice::B, Choice::C],
+        vec![Choice::A, Choice::C, Choice::B],
+        vec![Choice::A, Choice::B, Choice::C],
+        vec![Choice::B, Choice::A, Choice::C],
+        vec![Choice::C, Choice::B, Choice::A],
+    ]
+
+    let result = consensus::ranked_choice(&ballots)
+
+    // A has majority in first round (3/5)
+    expect(result).to_be_some()
+    expect(result.unwrap()).to_equal(Choice::A)
+}
+
+/// Test ranked choice with elimination.
+#[test]
+fn test_ranked_choice_with_elimination() {
+    let ballots = vec![
+        vec![Choice::A, Choice::B, Choice::C],
+        vec![Choice::A, Choice::B, Choice::C],
+        vec![Choice::B, Choice::A, Choice::C],
+        vec![Choice::B, Choice::A, Choice::C],
+        vec![Choice::C, Choice::A, Choice::B],  // C eliminated, votes transfer to A
+    ]
+
+    let result = consensus::ranked_choice(&ballots)
+
+    // After C elimination, A gets majority
+    expect(result).to_be_some()
+}
+
+/// Test unanimous consent achieved.
+#[test]
+fn test_unanimous_achieved() {
+    let votes = vec![
+        Vote { choice: Choice::A, confidence: 0.9 },
+        Vote { choice: Choice::A, confidence: 0.8 },
+        Vote { choice: Choice::A, confidence: 0.7 },
+    ]
+
+    let result = consensus::unanimous(&votes)
+
+    match result {
+        ConsensusResult::Unanimous { decision, .. } => {
+            expect(decision).to_equal(Choice::A)
+        }
+        _ => panic("Expected unanimous result")
+    }
+}
+
+/// Test unanimous consent failed.
+#[test]
+fn test_unanimous_failed() {
+    let votes = vec![
+        Vote { choice: Choice::A, confidence: 0.9 },
+        Vote { choice: Choice::A, confidence: 0.8 },
+        Vote { choice: Choice::B, confidence: 0.7 },  // Dissent
+    ]
+
+    let result = consensus::unanimous(&votes)
+
+    match result {
+        ConsensusResult::Dissent { positions } => {
+            expect(positions.len()).to_be_greater_than(1)
+        }
+        _ => panic("Expected dissent result")
+    }
+}
+
+/// Test consensus with agents.
+#[test]
+fn test_agent_consensus() {
+    // Create mock agents
+    let agents = vec![
+        MockAgent::new(Choice::A, 0.9),
+        MockAgent::new(Choice::A, 0.8),
+        MockAgent::new(Choice::B, 0.7),
+    ]
+
+    let question = Query { text: "Test question".to_string() }
+    let result = consensus::reach(&agents, question, threshold: 0.6)
+
+    match result {
+        ConsensusResult::Agreed { decision, support, .. } => {
+            expect(decision).to_equal(Choice::A)
+            expect(support).to_be_greater_than(0.6)
+        }
+        _ => panic("Expected agreed result")
+    }
+}
+
+/// Test consensus timeout.
+#[test]
+#[timeout(1000)]
+fn test_consensus_timeout() {
+    let slow_agents = vec![
+        SlowAgent::new(Duration::seconds(5)),  // Too slow
+    ]
+
+    let question = Query { text: "Timeout test".to_string() }
+    let result = consensus::reach_with_timeout(&slow_agents, question, timeout: Duration::millis(100))
+
+    match result {
+        ConsensusResult::Timeout => {
+            // Expected
+        }
+        _ => panic("Expected timeout")
+    }
+}
+
+/// Test consensus with escalation.
+#[test]
+fn test_consensus_escalation() {
+    let agents = vec![
+        MockAgent::new(Choice::A, 0.9),
+        MockAgent::new(Choice::B, 0.9),
+        MockAgent::new(Choice::C, 0.9),
+    ]
+
+    let question = Query { text: "Divisive question".to_string() }
+    let result = consensus::reach(&agents, question, threshold: 0.9)
+
+    // No agent has 90% support, should need escalation
+    match result {
+        ConsensusResult::Disagreement { positions, .. } => {
+            expect(positions.len()).to_equal(3)
+        }
+        _ => panic("Expected disagreement requiring escalation")
+    }
+}
+
+// Helper types
+#[derive(Clone, PartialEq, Debug)]
+enum Choice { A, B, C }
+
+struct Vote { choice: Choice, confidence: f64 }
+struct Query { text: String }
+
+enum ConsensusResult {
+    Agreed { decision: Choice, support: f64, votes: Vec<Vote> },
+    Unanimous { decision: Choice, votes: Vec<Vote> },
+    Disagreement { positions: Vec<(Choice, f64)>, closest: Option<Choice> },
+    Dissent { positions: Vec<(Choice, String)> },
+    Timeout,
+}
+
+struct MockAgent { choice: Choice, confidence: f64 }
+impl MockAgent {
+    fn new(choice: Choice, confidence: f64) -> MockAgent {
+        MockAgent { choice, confidence }
+    }
+}
+
+impl Agent for MockAgent {
+    fn vote(&self, _question: &Query) -> Vote {
+        Vote { choice: self.choice.clone(), confidence: self.confidence }
+    }
+}
+
+struct SlowAgent { delay: Duration }
+impl SlowAgent {
+    fn new(delay: Duration) -> SlowAgent { SlowAgent { delay } }
+}
+
+impl Agent for SlowAgent {
+    fn vote(&self, _question: &Query) -> Vote {
+        std::thread::sleep(self.delay)
+        Vote { choice: Choice::A, confidence: 0.5 }
+    }
+}

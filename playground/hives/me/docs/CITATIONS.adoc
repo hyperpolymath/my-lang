@@ -1,0 +1,36 @@
+= me-dialect-playground - Citation Guide
+:toc:
+
+== BibTeX
+
+[source,bibtex]
+----
+@software{me-dialect-playground_2025,
+  author = {Polymath, Hyper},
+  title = {me-dialect-playground},
+  year = {2025},
+  url = {https://github.com/hyperpolymath/me-dialect-playground},
+  license = {PMPL-1.0-or-later}
+}
+----
+
+== Harvard Style
+
+Polymath, H. (2025) _me-dialect-playground_ [Computer software]. Available at: https://github.com/hyperpolymath/me-dialect-playground
+
+== OSCOLA
+
+Hyper Polymath, 'me-dialect-playground' (2025) <https://github.com/hyperpolymath/me-dialect-playground>
+
+== MLA
+
+Polymath, Hyper. "me-dialect-playground." 2025, github.com/hyperpolymath/me-dialect-playground.
+
+== APA 7
+
+Polymath, H. (2025). _me-dialect-playground_ [Computer software]. GitHub. https://github.com/hyperpolymath/me-dialect-playground
+
+== See Also
+
+* link:../CITATION.cff[CITATION.cff]
+* link:../codemeta.json[codemeta.json]

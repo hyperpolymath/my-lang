@@ -1,0 +1,206 @@
+= My-Lang Hives: Your Learning Journey
+:toc: macro
+:icons: font
+:source-highlighter: rouge
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-FileCopyrightText: 2025 hyperpolymath
+
+*Find the right dialect for your journey*
+
+toc::[]
+
+== The My-Lang Family
+
+The My-Lang family is designed to grow with you. Each dialect builds on the previous, but you don't have to use them all. Pick what fits your needs.
+
+[source]
+----
+                        ┌─────────────────────────────────────────────────────────────┐
+                        │                  YOUR PROGRAMMING JOURNEY                    │
+                        └─────────────────────────────────────────────────────────────┘
+
+    ╔═══════════════════════════════════════════════════════════════════════════════════╗
+    ║  START HERE                                                                       ║
+    ║                                                                                   ║
+    ║    ┌─────────────────────────────────────────────────────────────────────────┐   ║
+    ║    │                              ME DIALECT                                 │   ║
+    ║    │                         (Ages 8-12, Beginners)                          │   ║
+    ║    │                                                                         │   ║
+    ║    │   Learn fundamental programming concepts with friendly HTML-like        │   ║
+    ║    │   syntax. Safe, visual, immediate feedback. No prior experience         │   ║
+    ║    │   needed.                                                               │   ║
+    ║    │                                                                         │   ║
+    ║    │   → github.com/hyperpolymath/me-dialect-playground                      │   ║
+    ║    └─────────────────────────────────────────────────────────────────────────┘   ║
+    ║                                        │                                         ║
+    ║                                        ▼                                         ║
+    ║                        "I understand the concepts!"                              ║
+    ║                                        │                                         ║
+    ╚════════════════════════════════════════╪═════════════════════════════════════════╝
+                                             │
+                                             ▼
+    ╔═══════════════════════════════════════════════════════════════════════════════════╗
+    ║  THE FOUNDATION                                                                   ║
+    ║                                                                                   ║
+    ║    ┌─────────────────────────────────────────────────────────────────────────┐   ║
+    ║    │                              SOLO DIALECT                               │   ║
+    ║    │                     (Ages 8+ through Undergrad & Beyond)                │   ║
+    ║    │                                                                         │   ║
+    ║    │   The core language. Systems programming with safety. Linear types,    │   ║
+    ║    │   memory control, WebAssembly. Good enough for most applications.      │   ║
+    ║    │   Many programmers stay here their entire career.                      │   ║
+    ║    │                                                                         │   ║
+    ║    │   → ./solo/  (this repo)                                               │   ║
+    ║    └─────────────────────────────────────────────────────────────────────────┘   ║
+    ║                                        │                                         ║
+    ║                                        ▼                                         ║
+    ║                  ┌─────────────────────┴─────────────────────┐                   ║
+    ║                  │                                           │                   ║
+    ║           "Solo is perfect!"                    "I need AI integration"          ║
+    ║                  │                                           │                   ║
+    ║                  ▼                                           ▼                   ║
+    ║           Stay with Solo                            Continue below               ║
+    ║                                                                                   ║
+    ╚═══════════════════════════════════════════════════════════════════════════════════╝
+                                                                   │
+                                             ┌─────────────────────┘
+                                             │
+                                             ▼
+    ╔═══════════════════════════════════════════════════════════════════════════════════╗
+    ║  ADVANCED (When You Need It)                                                      ║
+    ║                                                                                   ║
+    ║    ┌─────────────────────────────────────────────────────────────────────────┐   ║
+    ║    │                              DUET DIALECT                               │   ║
+    ║    │                    (Final Year Students / Industry)                     │   ║
+    ║    │                                                                         │   ║
+    ║    │   Solo + AI integration. Human-AI pair programming. The AI assists     │   ║
+    ║    │   you, helps implement from intent, suggests optimizations.            │   ║
+    ║    │                                                                         │   ║
+    ║    │   Use when: You need AI to help write/optimize code                    │   ║
+    ║    │                                                                         │   ║
+    ║    │   → ./duet/  (this repo)                                               │   ║
+    ║    └─────────────────────────────────────────────────────────────────────────┘   ║
+    ║                                        │                                         ║
+    ║                                        ▼                                         ║
+    ║                        "I need to orchestrate multiple AIs"                      ║
+    ║                                        │                                         ║
+    ║                                        ▼                                         ║
+    ║    ┌─────────────────────────────────────────────────────────────────────────┐   ║
+    ║    │                            ENSEMBLE DIALECT                             │   ║
+    ║    │                    (Final Year Students / Industry)                     │   ║
+    ║    │                                                                         │   ║
+    ║    │   Multi-agent AI orchestration. Coordinate teams of AI agents.         │   ║
+    ║    │   Complex workflows, agent communication, emergent behavior.           │   ║
+    ║    │                                                                         │   ║
+    ║    │   Use when: Building AI-native applications with multiple agents       │   ║
+    ║    │                                                                         │   ║
+    ║    │   → ./ensemble/  (this repo)                                           │   ║
+    ║    └─────────────────────────────────────────────────────────────────────────┘   ║
+    ║                                                                                   ║
+    ╚═══════════════════════════════════════════════════════════════════════════════════╝
+----
+
+== Quick Decision Guide
+
+[cols="1,2,2,2"]
+|===
+|Question |Answer |Recommendation |Link
+
+|*New to programming?*
+|Yes, ages 8-12
+|Start with **Me**
+|https://github.com/hyperpolymath/me-dialect-playground[me-dialect-playground]
+
+|*Understand basic concepts?*
+|Yes, ready for more
+|Move to **Solo**
+|link:solo/[hives/solo]
+
+|*Need systems programming?*
+|Yes, performance matters
+|Use **Solo**
+|link:solo/[hives/solo]
+
+|*Need AI assistance?*
+|Yes, AI should help write code
+|Use **Duet**
+|link:duet/[hives/duet]
+
+|*Building multi-agent apps?*
+|Yes, orchestrating AI teams
+|Use **Ensemble**
+|link:ensemble/[hives/ensemble]
+|===
+
+== Age & Experience Guide
+
+[horizontal]
+Ages 8-12, No Experience:: **Me Dialect** - Learn fundamental concepts with visual, safe syntax
+Ages 8+, After Me:: **Solo Dialect** - The foundation. Many stay here for life
+Undergrad+, Need AI:: **Duet Dialect** - When AI assistance adds value to your work
+Industry/Advanced:: **Ensemble Dialect** - When orchestrating AI agent teams
+
+== Important Notes
+
+=== Solo is Complete
+
+**Solo is not a stepping stone.** It's a fully capable systems programming language. Many professional developers will use Solo exclusively and never need Duet or Ensemble. Only move to the advanced dialects if your specific application requires it:
+
+- **Duet**: Your work involves AI-assisted code generation
+- **Ensemble**: You're building multi-agent AI applications
+
+=== Progressive, Not Linear
+
+You don't have to use every dialect in order. The progression is:
+
+1. **Me** → Learn concepts (required foundation)
+2. **Solo** → Build things (where most people stay)
+3. **Duet/Ensemble** → Specialized tools (use if needed)
+
+== Directory Structure
+
+[source]
+----
+hives/
+├── README.adoc      # This file - your guide
+├── me/              # Legacy - see me-dialect-playground
+├── solo/            # Solo dialect playground
+├── duet/            # Duet dialect playground
+└── ensemble/        # Ensemble dialect playground
+----
+
+NOTE: The **Me dialect** has been moved to its own standalone repository for better educational focus. Visit https://github.com/hyperpolymath/me-dialect-playground[me-dialect-playground] for the Me learning experience.
+
+== Getting Started
+
+=== For Absolute Beginners (Ages 8-12)
+
+[source,bash]
+----
+# Start with Me
+git clone https://github.com/hyperpolymath/me-dialect-playground.git
+cd me-dialect-playground
+deno task demo
+----
+
+=== For Programmers Ready to Build
+
+[source,bash]
+----
+# Clone this repo for Solo/Duet/Ensemble
+git clone --recursive https://github.com/hyperpolymath/mylang-playground.git
+cd mylang-playground/hives/solo
+----
+
+== Philosophy
+
+[quote]
+Learn what you need, when you need it. The best dialect is the one that fits your current needs.
+
+- **Me** teaches you to think like a programmer
+- **Solo** lets you build real applications
+- **Duet** amplifies your productivity with AI
+- **Ensemble** unlocks AI-native architectures
+
+Choose your path. There's no wrong answer.

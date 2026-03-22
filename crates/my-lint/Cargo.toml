@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+[package]
+name = "my-lint"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Linter for My Language"
+
+[lib]
+name = "my_lint"
+path = "src/lib.rs"
+
+[[bin]]
+name = "my-lint"
+path = "src/main.rs"
+
+[dependencies]
+my-lang = { path = "../my-lang" }
+thiserror.workspace = true
+anyhow.workspace = true
+clap.workspace = true

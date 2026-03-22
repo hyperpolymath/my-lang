@@ -1,0 +1,614 @@
+(*
+  Ensemble Language Grammar - VARIANT A (Agent-as-Construct)
+
+  This variant treats agents as first-class language constructs with
+  explicit syntax for agent declarations, workflows, and orchestration.
+
+  Version: 1.0.0
+  Last Updated: 2025-11-22
+
+  Base: DUET_GRAMMAR.ebnf (all Duet constructs are inherited)
+*)
+
+(* ========== Ensemble Extensions to Duet ========== *)
+
+(*
+  Ensemble Variant A: Agent-Oriented Programming
+
+  Agents are first-class citizens with their own syntax, state, capabilities,
+  and communication protocols. This enables explicit multi-agent orchestration.
+*)
+
+(* ========== Agent Declarations ========== *)
+
+agent_def =
+    [ attributes ]
+    [ visibility ]
+    "agent" identifier
+    [ generic_params ]
+    [ ":" agent_trait_bounds ]
+    [ where_clause ]
+    "{" { agent_item } "}"
+    ;
+
+agent_trait_bounds = identifier { "+" identifier } ;
+
+agent_item =
+    | agent_state_block
+    | agent_capabilities_block
+    | agent_goals_block
+    | agent_constraints_block
+    | agent_communication_block
+    | function_def
+    | const_def
+    | type_alias
+    ;
+
+(* ========== Agent State ========== *)
+
+agent_state_block =
+    "state" "{" { state_field } "}"
+    ;
+
+state_field =
+    [ visibility ]
+    [ "persistent" | "ephemeral" | "shared" ]
+    identifier ":" type_expr
+    [ "=" expression ]
+    [ state_annotations ]
+    ";"
+    ;
+
+state_annotations =
+    "where" state_annotation { "," state_annotation }
+    ;
+
+state_annotation =
+    | "sync" ":" sync_strategy
+    | "versioned"
+    | "audited"
+    | "encrypted"
+    ;
+
+sync_strategy = "eventual" | "strong" | "causal" | custom_sync ;
+custom_sync = identifier ;
+
+(* ========== Agent Capabilities ========== *)
+
+agent_capabilities_block =
+    "capabilities" "{" { capability_decl } "}"
+    ;
+
+capability_decl =
+    [ attributes ]
+    identifier
+    [ "(" [ capability_params ] ")" ]
+    [ ":" capability_type ]
+    [ capability_config ]
+    ";"
+    ;
+
+capability_params = param_list ;
+
+capability_type =
+    | "action"
+    | "perception"
+    | "communication"
+    | "reasoning"
+    | "learning"
+    | identifier  (* custom capability type *)
+    ;
+
+capability_config =
+    "with" "{" { config_item } "}"
+    ;
+
+config_item = identifier ":" expression ";" ;
+
+(* ========== Agent Goals ========== *)
+
+agent_goals_block =
+    "goals" "{" { goal_decl } "}"
+    ;
+
+goal_decl =
+    [ attributes ]
+    [ goal_priority ]
+    identifier ":"
+    goal_expression
+    [ "deadline" ":" expression ]
+    [ "rewards" ":" expression ]
+    ";"
+    ;
+
+goal_priority = "high" | "medium" | "low" | integer_literal ;
+
+goal_expression =
+    | expression                      (* logical goal *)
+    | "achieve" expression            (* achievement goal *)
+    | "maintain" expression           (* maintenance goal *)
+    | "optimize" expression           (* optimization goal *)
+    ;
+
+(* ========== Agent Constraints ========== *)
+
+agent_constraints_block =
+    "constraints" "{" { constraint_decl } "}"
+    ;
+
+constraint_decl =
+    [ attributes ]
+    [ "hard" | "soft" ]
+    identifier ":"
+    expression
+    [ "penalty" ":" expression ]
+    ";"
+    ;
+
+(* ========== Agent Communication ========== *)
+
+agent_communication_block =
+    "communication" "{" { comm_protocol } "}"
+    ;
+
+comm_protocol =
+    | message_handler
+    | subscription_decl
+    | publication_decl
+    ;
+
+message_handler =
+    "on" message_pattern [ "from" agent_pattern ] block
+    ;
+
+message_pattern =
+    | identifier                      (* message type *)
+    | identifier "{" pattern "}"      (* structured message *)
+    ;
+
+agent_pattern =
+    | identifier                      (* specific agent *)
+    | "_"                            (* any agent *)
+    | "role" "(" identifier ")"      (* agents with role *)
+    ;
+
+subscription_decl =
+    "subscribe" "to" topic_expr [ subscription_config ] ";"
+    ;
+
+publication_decl =
+    "publish" "to" topic_expr [ publication_config ] ";"
+    ;
+
+topic_expr = string_literal | identifier ;
+
+subscription_config = "with" "{" { config_item } "}" ;
+publication_config = "with" "{" { config_item } "}" ;
+
+(* ========== Workflow Declarations ========== *)
+
+workflow_def =
+    [ attributes ]
+    [ visibility ]
+    "workflow" identifier
+    [ generic_params ]
+    [ where_clause ]
+    "{" { workflow_item } "}"
+    ;
+
+workflow_item =
+    | workflow_stages_block
+    | workflow_coordination_block
+    | workflow_data_flow_block
+    | workflow_error_handling_block
+    | workflow_monitoring_block
+    | const_def
+    ;
+
+(* ========== Workflow Stages ========== *)
+
+workflow_stages_block =
+    "stages" "{" stage_graph "}"
+    ;
+
+stage_graph =
+    | sequential_stages
+    | parallel_stages
+    | conditional_stages
+    | loop_stages
+    ;
+
+sequential_stages = stage { "->" stage } ;
+
+parallel_stages = "[" stage { "||" stage } "]" ;
+
+conditional_stages =
+    "if" expression "then" stage
+    [ "else" stage ]
+    ;
+
+loop_stages =
+    "loop" [ loop_condition ] "{" stage_graph "}"
+    ;
+
+loop_condition =
+    | "while" expression
+    | "until" expression
+    | "for" identifier "in" expression
+    ;
+
+stage =
+    | identifier                      (* agent identifier *)
+    | agent_invocation
+    | "(" stage_graph ")"            (* nested workflow *)
+    ;
+
+agent_invocation =
+    identifier [ generic_args ] [ stage_config ]
+    ;
+
+stage_config =
+    "{" { stage_config_item } "}"
+    ;
+
+stage_config_item =
+    | identifier ":" expression
+    | "timeout" ":" expression
+    | "retry" ":" retry_policy
+    | "fallback" ":" identifier
+    ;
+
+retry_policy =
+    "{" "max_attempts" ":" integer_literal
+        [ "," "backoff" ":" backoff_strategy ]
+    "}"
+    ;
+
+backoff_strategy =
+    | "exponential" [ "(" expression ")" ]
+    | "linear" [ "(" expression ")" ]
+    | "constant" [ "(" expression ")" ]
+    ;
+
+(* ========== Workflow Coordination ========== *)
+
+workflow_coordination_block =
+    "coordination" "{" { coordination_rule } "}"
+    ;
+
+coordination_rule =
+    | consensus_rule
+    | voting_rule
+    | arbitration_rule
+    | synchronization_rule
+    ;
+
+consensus_rule =
+    "consensus" [ "(" consensus_params ")" ] "on" expression block
+    ;
+
+consensus_params = consensus_param { "," consensus_param } [ "," ] ;
+
+consensus_param =
+    | "threshold" ":" expression
+    | "timeout" ":" expression
+    | "protocol" ":" identifier
+    ;
+
+voting_rule =
+    "vote" "on" expression
+    "with" voting_method
+    block
+    ;
+
+voting_method =
+    | "majority"
+    | "unanimous"
+    | "weighted" "(" weight_function ")"
+    | "ranked"
+    | identifier  (* custom voting method *)
+    ;
+
+weight_function = expression ;
+
+arbitration_rule =
+    "arbitrate" "on" expression
+    "by" arbitration_strategy
+    block
+    ;
+
+arbitration_strategy =
+    | "priority"
+    | "fairness"
+    | "performance"
+    | expression  (* custom strategy *)
+    ;
+
+synchronization_rule =
+    "synchronize" agent_list
+    [ "on" expression ]
+    [ "timeout" ":" expression ]
+    ";"
+    ;
+
+agent_list = identifier { "," identifier } [ "," ] ;
+
+(* ========== Workflow Data Flow ========== *)
+
+workflow_data_flow_block =
+    "data_flow" "{" { data_flow_rule } "}"
+    ;
+
+data_flow_rule =
+    | data_transformation
+    | data_aggregation
+    | data_distribution
+    ;
+
+data_transformation =
+    identifier "->" identifier ":" expression ";"
+    ;
+
+data_aggregation =
+    "aggregate" expression_list
+    "as" identifier
+    "using" aggregation_function
+    ";"
+    ;
+
+expression_list = expression { "," expression } [ "," ] ;
+
+aggregation_function =
+    | "merge"
+    | "reduce" "(" expression ")"
+    | "belief_fusion" "(" fusion_method ")"
+    | identifier
+    ;
+
+fusion_method =
+    | "dempster_shafer" [ "(" fusion_params ")" ]
+    | "bayesian"
+    | "fuzzy"
+    | identifier  (* custom fusion *)
+    ;
+
+fusion_params = fusion_param { "," fusion_param } [ "," ] ;
+
+fusion_param =
+    | "confidence_threshold" ":" expression
+    | "conflict_resolution" ":" identifier
+    ;
+
+data_distribution =
+    "distribute" expression
+    "to" agent_list
+    [ "strategy" ":" distribution_strategy ]
+    ";"
+    ;
+
+distribution_strategy =
+    | "broadcast"
+    | "round_robin"
+    | "load_balanced"
+    | "custom" "(" expression ")"
+    ;
+
+(* ========== Workflow Error Handling ========== *)
+
+workflow_error_handling_block =
+    "error_handling" "{" { error_handler } "}"
+    ;
+
+error_handler =
+    "on" error_pattern
+    [ "from" agent_pattern ]
+    error_recovery_block
+    ;
+
+error_pattern =
+    | identifier                      (* error type *)
+    | "_"                            (* any error *)
+    ;
+
+error_recovery_block =
+    | "retry" retry_policy
+    | "fallback" "to" identifier
+    | "compensate" block
+    | "abort" [ block ]
+    | "escalate" [ "to" identifier ]
+    | block                          (* custom handler *)
+    ;
+
+(* ========== Workflow Monitoring ========== *)
+
+workflow_monitoring_block =
+    "monitoring" "{" { monitoring_rule } "}"
+    ;
+
+monitoring_rule =
+    | metric_definition
+    | alarm_definition
+    | trace_definition
+    ;
+
+metric_definition =
+    "metric" identifier ":" expression [ metric_config ] ";"
+    ;
+
+metric_config =
+    "with" "{" { config_item } "}"
+    ;
+
+alarm_definition =
+    "alarm" identifier
+    "when" expression
+    [ "severity" ":" alarm_severity ]
+    block
+    ;
+
+alarm_severity = "critical" | "high" | "medium" | "low" | "info" ;
+
+trace_definition =
+    "trace" trace_target [ trace_config ] ";"
+    ;
+
+trace_target =
+    | "all"
+    | "agent" identifier
+    | "message" identifier
+    | "stage" identifier
+    ;
+
+trace_config =
+    "with" "{" { config_item } "}"
+    ;
+
+(* ========== Agent Instantiation ========== *)
+
+agent_instance_expr =
+    "spawn" identifier [ generic_args ]
+    [ "(" [ argument_list ] ")" ]
+    [ agent_instance_config ]
+    ;
+
+agent_instance_config =
+    "{" { agent_config_item } "}"
+    ;
+
+agent_config_item =
+    | identifier ":" expression
+    | "priority" ":" integer_literal
+    | "affinity" ":" expression
+    | "resources" ":" resource_spec
+    ;
+
+resource_spec =
+    "{" { resource_item } "}"
+    ;
+
+resource_item =
+    | "cpu" ":" expression
+    | "memory" ":" expression
+    | "gpu" ":" expression
+    | identifier ":" expression
+    ;
+
+argument_list = expression { "," expression } [ "," ] ;
+
+(* ========== Agent Communication Expressions ========== *)
+
+send_expr =
+    "send" expression
+    "to" agent_expr
+    [ "with" send_options ]
+    ;
+
+agent_expr =
+    | identifier                      (* agent instance *)
+    | expression                      (* dynamic agent selection *)
+    ;
+
+send_options =
+    "{" { send_option } "}"
+    ;
+
+send_option =
+    | "priority" ":" expression
+    | "timeout" ":" expression
+    | "async" ":" bool_literal
+    | identifier ":" expression
+    ;
+
+receive_expr =
+    "receive" [ receive_filter ] [ receive_timeout ]
+    ;
+
+receive_filter =
+    "where" expression
+    ;
+
+receive_timeout =
+    "timeout" expression [ "else" block ]
+    ;
+
+broadcast_expr =
+    "broadcast" expression
+    [ "to" broadcast_target ]
+    [ "with" send_options ]
+    ;
+
+broadcast_target =
+    | "all"
+    | "role" "(" identifier ")"
+    | expression
+    ;
+
+(* ========== Belief and Knowledge Management ========== *)
+
+belief_expr =
+    "believe" expression [ "with" "confidence" ":" expression ]
+    ;
+
+knowledge_query_expr =
+    "know" "?" expression
+    ;
+
+knowledge_update_expr =
+    "learn" expression [ "from" identifier ]
+    ;
+
+(* ========== Extended Expressions (Ensemble-specific) ========== *)
+
+ensemble_expression =
+    | agent_instance_expr
+    | send_expr
+    | receive_expr
+    | broadcast_expr
+    | belief_expr
+    | knowledge_query_expr
+    | knowledge_update_expr
+    ;
+
+(* ========== Extended Top-Level Items (Ensemble-specific) ========== *)
+
+ensemble_top_level_item =
+    | agent_def
+    | workflow_def
+    ;
+
+(* ========== Integration with Duet ========== *)
+
+(*
+  In Ensemble mode (Variant A), the following rules from Duet are extended:
+
+  expression ::= duet_expression | ensemble_expression
+  top_level_item ::= duet_top_level_item | ensemble_top_level_item
+
+  All Duet and Solo constructs remain valid and unchanged.
+*)
+
+(* ========== Reserved Keywords (Ensemble Variant A) ========== *)
+
+(*
+  Additional keywords beyond Duet:
+
+  Agent Keywords:
+  agent, state, capabilities, goals, constraints, communication,
+  persistent, ephemeral, shared, sync, achieve, maintain, optimize
+
+  Workflow Keywords:
+  workflow, stages, coordination, data_flow, error_handling, monitoring,
+  consensus, vote, arbitrate, synchronize, aggregate, distribute,
+  metric, alarm, trace
+
+  Communication Keywords:
+  spawn, send, receive, broadcast, on, from, to, subscribe, publish,
+  role, message
+
+  Belief/Knowledge Keywords:
+  believe, know, learn, confidence
+
+  Strategy Keywords:
+  majority, unanimous, weighted, ranked, priority, fairness,
+  performance, dempster_shafer, bayesian, fuzzy
+*)

@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Conformance: effect declaration
+
+effect Logger {
+    op log: String -> (),
+}
+
+fn main() -> Int {
+    return 0;
+}

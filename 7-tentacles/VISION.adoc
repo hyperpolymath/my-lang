@@ -1,0 +1,577 @@
+= The Seven Tentacles Vision
+:toc: left
+:toclevels: 4
+:icons: font
+:source-highlighter: rouge
+:sectnums:
+
+*A Complete Pedagogical Framework for Teaching Compiler Architecture*
+
+== Executive Summary
+
+Seven Tentacles is a *radically innovative 10-year learning framework* that teaches university and graduate-level compiler architecture concepts to children aged 8-18 without them realizing it.
+
+=== The Core Insight
+
+Kids learn by playing games with colorful mascots. At age 8, they meet "Speedy Red" and play racing games. At age 16, they discover that "Speedy Red" has been teaching them about recursive descent parsing, and Red now goes by "Performance Agent Red." They've been learning compilers for 8 years without noticing.
+
+=== The Stack
+
+* **7 cephalopod mascots** (octopus agents) — each teaches one compiler component
+* **4 language dialects** (Me, Solo, Duet, Ensemble) — matching their age/maturity
+* **Progressive reveal system** — concepts introduced as games, revealed as CS
+* **10-year narrative journey** — Cuttle → Squidlet → Duet → Octopus
+
+=== Target Outcome
+
+16-year-olds with *graduate-level understanding* of:
+
+* Parsing & lexical analysis
+* Concurrency & async/await
+* Type systems & affine types
+* AST construction & manipulation
+* Audit trails & verification
+* Compile-time evaluation
+* Language governance & policy enforcement
+
+== The Seven Tentacles (The Agents)
+
+Each agent teaches a compiler component through games that gradually reveal CS concepts.
+
+=== Speedy Red — The Parser
+
+*What they teach:* Lexical analysis → Parsing → Syntax trees
+
+==== Age 8-12: "Speedy Red"
+
+* **Playing:** Racing games, obstacle courses
+* **Learning (hidden):** Algorithms, efficiency, pattern matching
+* **How:** "Speedy is really good at following rules!"
+
+==== Age 13-14: "Fast Finder Red"
+
+* **Reveal moment:** "Red finds patterns REALLY fast"
+* **Learning:** Algorithmic complexity, optimization
+* **How:** Comparing different racing strategies
+
+==== Age 15: "Performance Agent Red"
+
+* **Reveal moment:** "Red is teaching you PARSING"
+* **Learning:** Recursive descent, syntax trees, grammar
+* **How:** Building mini-languages, tokenizing text
+
+==== Age 16+: "Performance Agent Red" (with full context)
+
+* **Integration:** Works with all 7 agents in Ensemble mode
+* **Learning:** Compiler architecture, optimization strategies
+* **How:** Building complete compiler pipeline
+
+=== Juggler Orange — The Concurrency Engine
+
+*What they teach:* Async/await, scheduling, event loops, concurrency
+
+==== Age 8-12: "Juggler Orange"
+
+* **Playing:** Juggling games, coordination challenges
+* **Learning (hidden):** Timing, coordination, sequencing
+* **How:** "Orange juggles LOTS of things at once!"
+
+==== Age 13-14: "Event Orange"
+
+* **Reveal moment:** "Orange juggles events, not balls"
+* **Learning:** Event systems, queues, scheduling
+* **How:** Building event-driven games
+
+==== Age 15: "Concurrency Agent Orange"
+
+* **Reveal moment:** "Orange teaches you about ASYNC"
+* **Learning:** Promises, async/await, race conditions
+* **How:** Building multi-task systems
+
+==== Age 16+: "Concurrency Orchestrator Orange"
+
+* **Integration:** Manages which tentacle runs when
+* **Learning:** Scheduler architecture, execution models
+* **How:** Building concurrent systems
+
+=== Safety Yellow — The Type System
+
+*What they teach:* Type systems, affine types, memory safety, ownership
+
+==== Age 8-12: "Safety Yellow"
+
+* **Playing:** Sorting games, classification games
+* **Learning (hidden):** Categories, constraints, logic
+* **How:** "Yellow keeps everything organized!"
+
+==== Age 13-14: "Checker Yellow"
+
+* **Reveal moment:** "Yellow checks if things fit together"
+* **Learning:** Type checking, contracts, invariants
+* **How:** Building logical puzzles with constraints
+
+==== Age 15: "Type System Yellow"
+
+* **Reveal moment:** "Yellow teaches you about TYPE SAFETY"
+* **Learning:** Type inference, affine types, linear logic
+* **How:** Building systems that can't crash
+
+==== Age 16+: "Safety Guarantor Yellow"
+
+* **Integration:** Validates all agent actions
+* **Learning:** Formal verification, theorem proving
+* **How:** Building provably correct systems
+
+=== Builder Green — The AST Architect
+
+*What they teach:* Abstract syntax trees, code representation, manipulation
+
+==== Age 8-12: "Builder Green"
+
+* **Playing:** Construction games, building structures
+* **Learning (hidden):** Composition, hierarchy, structure
+* **How:** "Green builds things from pieces!"
+
+==== Age 13-14: "Maker Green"
+
+* **Reveal moment:** "Green constructs code structures"
+* **Learning:** Tree structures, representation, data structures
+* **How:** Building game worlds from components
+
+==== Age 15: "Structure Agent Green"
+
+* **Reveal moment:** "Green builds the AST"
+* **Learning:** Abstract syntax trees, IR, code generation
+* **How:** Transforming code into executable form
+
+==== Age 16+: "Code Architecture Specialist Green"
+
+* **Integration:** Transforms between representations
+* **Learning:** Intermediate representations, optimization
+* **How:** Building optimizing compilers
+
+=== Detective Blue — The Auditor
+
+*What they teach:* Verification, auditing, tracing, debugging, proof systems
+
+==== Age 8-12: "Detective Blue"
+
+* **Playing:** Mystery games, detective puzzles
+* **Learning (hidden):** Logic, deduction, proof
+* **How:** "Blue solves mysteries!"
+
+==== Age 13-14: "Tracker Blue"
+
+* **Reveal moment:** "Blue tracks what happened"
+* **Learning:** Logging, tracing, execution traces
+* **How:** Solving murder mysteries through evidence
+
+==== Age 15: "Verification Agent Blue"
+
+* **Reveal moment:** "Blue PROVES your code is correct"
+* **Learning:** Formal verification, Hoare logic, proof checking
+* **How:** Building systems that provide guarantees
+
+==== Age 16+: "Verification Oracle Blue"
+
+* **Integration:** Checks all claims, provides proofs
+* **Learning:** Theorem proving, formal semantics
+* **How:** Certifying correct systems
+
+=== Magic Indigo — The Compile-Time Metaprogrammer
+
+*What they teach:* Metaprogramming, compile-time evaluation, macros, reflection
+
+==== Age 8-12: "Magic Indigo"
+
+* **Playing:** Alchemy games, spell-casting games
+* **Learning (hidden):** Transformation, rules, patterns
+* **How:** "Indigo performs magic!"
+
+==== Age 13-14: "Spell Indigo"
+
+* **Reveal moment:** "Indigo casts computational spells"
+* **Learning:** Macros, templating, code generation
+* **How:** Building games with "magic" shortcuts
+
+==== Age 15: "Metaprogramming Wizard Indigo"
+
+* **Reveal moment:** "Indigo runs BEFORE the program runs"
+* **Learning:** Compile-time evaluation, staged computation
+* **How:** Building specialized optimized code
+
+==== Age 16+: "Compile-Time Execution Master Indigo"
+
+* **Integration:** Optimizes and specializes code
+* **Learning:** Partial evaluation, supercompilation
+* **How:** Building compilers that are also interpreters
+
+=== Teacher Violet — The Governance System
+
+*What they teach:* Language design, policy enforcement, access control, ethics
+
+==== Age 8-12: "Teacher Violet"
+
+* **Playing:** Rule-based games, society-building games
+* **Learning (hidden):** Rules, fairness, cooperation
+* **How:** "Violet makes sure everyone plays fair!"
+
+==== Age 13-14: "Judge Violet"
+
+* **Reveal moment:** "Violet enforces the rules"
+* **Learning:** Constraints, policies, governance
+* **How:** Building fair game systems
+
+==== Age 15: "Language Designer Violet"
+
+* **Reveal moment:** "Violet DESIGNED these rules"
+* **Learning:** Language design, DSL creation, policy languages
+* **How:** Designing new languages
+
+==== Age 16+: "Governance Architect Violet"
+
+* **Integration:** Enforces ethical constraints
+* **Learning:** Language philosophy, power dynamics, accessibility
+* **How:** Building responsible systems
+
+== The Cephalopod Journey: Ages 8-18
+
+As learners progress, they don't meet new mascots — the *same mascot evolves*.
+
+=== Cuttle Stage: Ages 8-12 (One Tentacle at a Time)
+
+[horizontal]
+Mascot:: Cuttle (baby cuttlefish)
+Language:: "Me Language" (Blockly-like visual)
+Setup:: Kids pick ONE color agent (Red, Orange, Yellow, etc.)
+Goal:: Love playing with your favorite tentacle
+
+*What happens:*
+
+* "I like Red best! Let's race!"
+* Play Red's racing game
+* Develop intuition about optimization
+* Literally no CS vocabulary yet
+* *Completion:* 20 Cuttle-level lessons per color (140+ total)
+
+=== Squidlet Stage: Ages 13-14 (Growing Independence)
+
+[horizontal]
+Mascot:: Squidlet (adolescent squid, getting bigger)
+Language:: "Solo Language" (text-based, affine types emerge)
+Setup:: All 7 agents available; choose your path
+Goal:: Start seeing the agents work together
+
+*What happens:*
+
+* "Wait, Yellow is teaching me TYPE SAFETY?"
+* First reveal: names change, concepts emerge
+* Realize Red/Orange/Yellow are connected
+* Start building multi-agent systems
+* *Completion:* 30 Squidlet-level lessons per color (210+ total)
+
+=== Duet Stage: Ages 15 (Collaboration)
+
+[horizontal]
+Mascot:: Duet (two squid dancing together)
+Language:: "Duet Language" (cooperative, two-party protocols)
+Setup:: Explicitly combine agents
+Goal:: Understand dependencies and choreography
+
+*What happens:*
+
+* "Red needs Yellow to validate the syntax tree"
+* "Orange schedules which agent runs next"
+* Build systems with explicit agent interaction
+* Comp Sci vocabulary EXPLODES
+* *Completion:* 20 Duet-level lessons per agent pair (70+ total)
+
+=== Octopus Stage: Ages 16+ (Orchestration & Mastery)
+
+[horizontal]
+Mascot:: Octopus (all tentacles coordinating)
+Language:: "Ensemble Language" (full distributed orchestration)
+Setup:: All 7 agents, full coordination
+Goal:: Design compiler architectures
+
+*What happens:*
+
+* **BOOM** "I've been learning COMPILERS for 8 YEARS"
+* Build complete compiler pipelines
+* Understand formal semantics
+* Start considering language design, ethics, verification
+* Can read compiler papers, understand production systems
+* *Completion:* Graduate-level compiler architecture project
+
+==== The AHA Moment
+
+At age 16, kids suddenly understand:
+
+* "Speedy Red was parsing all along"
+* "Juggler Orange was scheduling execution"
+* "Safety Yellow was preventing segfaults"
+* "Detective Blue was verifying correctness"
+
+They realize they've been learning *compiler architecture* through games.
+
+== Language Progression: Me → Solo → Duet → Ensemble
+
+Each dialect of "Me Language" matches the current tentacle stage.
+
+=== Me Language (Ages 8-12) — Visual/Blockly
+
+[source]
+----
+// Blocks, no syntax
+[Red] do [race]
+[Orange] do [juggle] [Red result]
+[Yellow] check [all types valid]
+[show] [result on screen]
+----
+
+*Features:*
+
+* No text syntax
+* Drag-and-drop blocks
+* Visual representation of data flow
+* One agent at a time (mostly)
+* Immediate visual feedback
+
+=== Solo Language (Ages 13-14) — Affine Text
+
+[source,rust]
+----
+fun race(distance: Meters) -> Time {
+  Red.optimize(distance) |> Racer.run
+}
+
+fun sort_game(items: List[Item]) -> List[Item] {
+  Yellow.check_types(items);
+  items.sort_by(|x| x.speed)
+}
+----
+
+*Features:*
+
+* Text-based, clean syntax
+* Affine types (resources, ownership)
+* Single agent/function focus
+* Gradual type inference
+* Error messages mention agent names
+
+=== Duet Language (Ages 15) — Two-Party Protocols
+
+[source,rust]
+----
+protocol DuetDance {
+  role Red {
+    send parsed_ast to Yellow
+    wait for validation_result
+  }
+
+  role Yellow {
+    receive ast from Red
+    verify_all_constraints(ast)
+    send validation_result to Red
+  }
+}
+
+let result = DuetDance::run(my_code)
+----
+
+*Features:*
+
+* Protocol-oriented, explicit interaction
+* Two agents coordinate
+* Session types ensure correctness
+* Error messages explain protocol violations
+* Visual representation of message flow
+
+=== Ensemble Language (Ages 16+) — Full Orchestration
+
+[source,rust]
+----
+ensemble Compiler {
+  agent red: Red
+  agent orange: Orange
+  agent yellow: Yellow
+  agent green: Green
+  agent blue: Blue
+  agent indigo: Indigo
+  agent violet: Violet
+
+  pipeline {
+    let tokens = red.lex(source_code)
+    let ast = red.parse(tokens)
+    yellow.check_types(ast)?
+    let ir = green.construct(ast)
+    let optimized = indigo.specialize(ir)
+    let machine_code = red.codegen(optimized)
+    blue.verify_all(machine_code)?
+    violet.approve_execution(machine_code)?
+    machine_code
+  }
+}
+----
+
+*Features:*
+
+* 7 agents coordinate
+* Explicit pipeline / orchestration
+* Error handling with verification
+* Formal guarantees via Blue & Violet
+* Full compiler architecture visible
+
+== Curriculum Structure
+
+=== Phase 1: Cuttle Era (140+ lessons)
+
+==== Red Lessons (20)
+
+1. Racing Intro — Speed intuition
+2. Different Tracks — Efficiency concepts
+3. Obstacle Courses — Pattern matching
+4. Speed Measurements — Algorithmic thinking
+5-20. Increasing complexity → Real parsing
+
+==== Orange Lessons (20)
+
+1. Basic Juggling — Sequencing
+2. Multiple Balls — Coordination
+3. Timing Games — Event loops
+4. Spectator Juggling — Concurrency basics
+5-20. Event systems, race conditions
+
+==== Yellow Lessons (20)
+
+1. Color Sorting — Classification
+2. Shape Sorting — Type categories
+3. Rule-Based Games — Constraints
+4. Logic Puzzles — Type safety
+5-20. Type checking, invariants
+
+==== Green Lessons (20)
+
+1. Building Blocks — Composition
+2. House Design — Hierarchy
+3. Complex Structures — Trees
+4. Assembly Instructions — Code generation
+5-20. Data structures, ASTs
+
+==== Blue Lessons (20)
+
+1. Mystery Intro — Deduction
+2. Clue Finding — Logic
+3. Solving Puzzles — Proof by evidence
+4. Detective Reports — Documentation
+5-20. Verification, audit trails
+
+==== Indigo Lessons (20)
+
+1. Magic Show — Transformation
+2. Spell Casting — Rule-based systems
+3. Potion Mixing — Computation
+4. Magic Tricks Explained — Metaprogramming
+5-20. Macros, specialization
+
+==== Violet Lessons (20)
+
+1. Fair Games — Rules
+2. Fair Play — Ethics
+3. Referee Role — Enforcement
+4. Rule Design — Language design
+5-20. Governance, accessibility
+
+=== Phase 2: Squidlet Era (210+ lessons)
+
+Same 7 agents, but:
+
+* Names change (Speedy Red → Performance Agent Red)
+* Lessons connect to CS concepts explicitly
+* "Agent interview" moments: "Agent Red, why does parsing matter?"
+* 30 lessons each (more complex topics)
+* Cross-agent challenges
+
+=== Phase 3: Duet Era (70+ lessons)
+
+15 Duet combinations:
+
+* Red + Orange: Parser → Scheduler
+* Red + Yellow: Parser → Type Checker
+* Orange + Green: Scheduler → AST Builder
+* Yellow + Green: Type Checker → Code Generator
+* And 11 more...
+
+Each lesson explores one agent pair:
+
+* How they communicate
+* What happens if one fails
+* Real compiler examples
+* Protocol design exercises
+
+=== Phase 4: Octopus Era (Unlimited)
+
+Full compiler architecture:
+
+* Build your own compiler (80% of the components)
+* Understand real compiler source code
+* Academic papers become readable
+* Design your own DSL
+* Implement formal verification
+* Consider language design ethics
+
+== Success Criteria
+
+=== Technical Success
+
+* All 400+ curriculum lessons written and tested
+* Four language implementations complete and working
+* Seven agents with distinct personalities
+* Interactive lesson player with real-time feedback
+* Mascot evolution system (age-based reveal)
+* 95%+ accessibility score (WCAG 2.1 AA)
+
+=== Pedagogical Success
+
+* 8-year-olds can complete Cuttle lessons without CS background
+* 14-year-olds understand agent interconnection
+* 16-year-olds recognize compiler patterns in real code
+* Learning retention ≥ 80% over 6 months
+* Transfer to other programming languages demonstrated
+
+=== Academic Success
+
+* Pedagogical validation study completed
+* 2+ peer-reviewed papers published
+* OpenLearn partnership established
+* Teacher training materials created
+* Community adoption metrics
+
+== Why This Matters
+
+=== The Global Problem
+
+* Only 1-2% of CS students understand compiler architecture deeply
+* Systems programming knowledge is disappearing from curriculum
+* Industry desperately needs people who understand low-level concepts
+* Education is failing to make CS accessible to young learners
+
+=== The Seven Tentacles Solution
+
+* Make compiler architecture *playful*
+* Make it *accessible* (no prerequisites)
+* Make it *long-term* (10-year journey)
+* Make it *surprising* ("wait, I've been learning WHAT?!")
+* Make it *free* (AGPL licensed, OpenLearn)
+
+=== The Impact
+
+* A generation of 16-year-olds who understand compilers
+* Self-taught understanding that's more durable than lecture-based
+* Bridge between K-12 and CS degree programs
+* Global educational resource (translatable, remixable)
+* New standard for how CS is taught (playful, narrative-driven)
+
+---
+
+_"The Seven Tentacles framework combines pedagogical innovation, narrative design, and formal CS concepts into a unified system. This is not just another educational game — it's a 10-year learning journey that secretly teaches graduate-level concepts."_

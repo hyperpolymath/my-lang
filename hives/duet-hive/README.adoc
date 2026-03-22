@@ -1,0 +1,8 @@
+= Duet Hive
+
+This hive hosts the Duet dialect materials (neurosymbolic collaboration, protocols, and examples).
+
+== Structure
+- demo/ : runnable examples (to be added)
+- .hive-meta.scm : hive metadata
+- Justfile : demo entrypoint

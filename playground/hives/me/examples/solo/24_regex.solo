@@ -1,0 +1,35 @@
+// Regular Expressions
+
+import std::regex::Regex;
+
+fn main() {
+    // Create regex
+    let re = Regex::new(r"\d+")?;
+
+    // Test if matches
+    assert!(re.is_match("123"));
+
+    // Find first match
+    let text = "The year is 2024";
+    if let Some(mat) = re.find(text) {
+        println("Found: " + mat.as_str());  // "2024"
+    }
+
+    // Find all matches
+    for mat in re.find_iter("Numbers: 1, 22, 333") {
+        println(mat.as_str());  // Prints "1", "22", "333"
+    }
+
+    // Capture groups
+    let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2})")?;
+    let caps = re.captures("Date: 2024-11-22")?;
+
+    let year = &caps[1];   // "2024"
+    let month = &caps[2];  // "11"
+    let day = &caps[3];    // "22"
+
+    // Replace
+    let re = Regex::new(r"\d+")?;
+    let result = re.replace("Num: 123", "XXX");  // "Num: XXX"
+    let result = re.replace_all("1 and 2", "X");  // "X and X"
+}

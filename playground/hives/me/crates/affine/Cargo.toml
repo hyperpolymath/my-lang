@@ -1,0 +1,8 @@
+[package]
+name = "my-lang-affine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+my-lang-ast = { path = "../ast" }
+petgraph = "0.6"

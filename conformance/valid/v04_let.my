@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Conformance: let binding (immutable and mutable)
+
+fn main() -> Int {
+    let x = 42;
+    let mut y: Int = 10;
+    y = y + x;
+    return y;
+}

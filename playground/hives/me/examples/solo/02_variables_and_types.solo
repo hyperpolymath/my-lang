@@ -1,0 +1,36 @@
+// Variables and Type System Demo
+
+fn main() {
+    // Integer types
+    let x: i32 = 42;
+    let big_num: i128 = 9999999999999999999;
+
+    // Unsigned integers
+    let positive: u32 = 100;
+
+    // Floating point
+    let pi: f64 = 3.14159;
+
+    // Boolean
+    let is_valid: bool = true;
+
+    // Character and strings
+    let letter: char = 'A';
+    let message: str = "Solo is awesome!";
+
+    // Type inference
+    let inferred = 42;  // i32 by default
+    let also_inferred = 3.14;  // f64 by default
+
+    // Mutable variables
+    let mut counter = 0;
+    counter = counter + 1;
+
+    // Tuple
+    let point: (i32, i32) = (10, 20);
+    let (x, y) = point;  // Destructuring
+
+    // Array
+    let numbers: [i32; 5] = [1, 2, 3, 4, 5];
+    let first = numbers[0];
+}

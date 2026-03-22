@@ -1,0 +1,39 @@
+;; SPDX-License-Identifier: PMPL-1.0-or-later
+;; STATE.scm - Duet dialect state
+
+(state
+  (version . "1.0.0")
+  (phase . "framework")
+  (updated . "2025-12-30T18:00:00Z")
+
+  (project
+    (name . "duet")
+    (tier . "hive")
+    (license . "PMPL-1.0-or-later")
+    (language . "rust"))
+
+  (compliance
+    (rsr . #t)
+    (security-hardened . #t)
+    (ci-cd . #f)
+    (guix-primary . #f)
+    (nix-fallback . #f))
+
+  (current-position
+    ((overall-completion . 15)
+     (components
+       ((specification . 40)
+        (examples . 30)
+        (synthesis . 0)
+        (verification . 0)))
+     (working-features
+       ("Example programs"
+        "Synthesis concepts"))))
+
+  (milestones
+    (v0.1.0
+      (status . "planned")
+      (features
+        "Synthesis examples"
+        "Verification examples"
+        "Intent-driven programming"))))

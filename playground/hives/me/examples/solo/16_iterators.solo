@@ -1,0 +1,140 @@
+// Iterators and Functional Programming
+
+import std::iter::Iterator;
+
+fn main() {
+    // Basic iteration
+    let numbers = [1, 2, 3, 4, 5];
+
+    for n in numbers {
+        println(n);
+    }
+
+    // Iterator methods
+
+    // map: transform each element
+    let doubled = numbers.iter()
+        .map(|x| x * 2)
+        .collect();  // [2, 4, 6, 8, 10]
+
+    // filter: keep elements that match predicate
+    let evens = numbers.iter()
+        .filter(|x| x % 2 == 0)
+        .collect();  // [2, 4]
+
+    // fold/reduce: accumulate values
+    let sum = numbers.iter()
+        .fold(0, |acc, x| acc + x);  // 15
+
+    let product = numbers.iter()
+        .fold(1, |acc, x| acc * x);  // 120
+
+    // Chain multiple operations
+    let result = numbers.iter()
+        .filter(|x| x % 2 == 0)
+        .map(|x| x * x)
+        .fold(0, |acc, x| acc + x);  // 4 + 16 = 20
+
+    // take: take first n elements
+    let first_three = numbers.iter()
+        .take(3)
+        .collect();  // [1, 2, 3]
+
+    // skip: skip first n elements
+    let after_two = numbers.iter()
+        .skip(2)
+        .collect();  // [3, 4, 5]
+
+    // enumerate: get index and value
+    for (i, value) in numbers.iter().enumerate() {
+        println("Index " + i + ": " + value);
+    }
+
+    // zip: combine two iterators
+    let a = [1, 2, 3];
+    let b = [4, 5, 6];
+    let zipped = a.iter()
+        .zip(b.iter())
+        .collect();  // [(1,4), (2,5), (3,6)]
+
+    // flat_map: map and flatten
+    let nested = [[1, 2], [3, 4], [5, 6]];
+    let flattened = nested.iter()
+        .flat_map(|arr| arr.iter())
+        .collect();  // [1, 2, 3, 4, 5, 6]
+
+    // any: check if any element matches
+    let has_even = numbers.iter()
+        .any(|x| x % 2 == 0);  // true
+
+    // all: check if all elements match
+    let all_positive = numbers.iter()
+        .all(|x| x > 0);  // true
+
+    // find: find first matching element
+    let first_even = numbers.iter()
+        .find(|x| x % 2 == 0);  // Option::Some(2)
+
+    // position: find index of first match
+    let index = numbers.iter()
+        .position(|x| x == 3);  // Option::Some(2)
+
+    // partition: split into two collections
+    let (evens, odds) = numbers.iter()
+        .partition(|x| x % 2 == 0);
+    // evens: [2, 4], odds: [1, 3, 5]
+
+    // Infinite iterators
+    let range = (0..).take(10);  // 0..9
+
+    // Cycle: repeat iterator infinitely
+    let cycled = [1, 2, 3].iter()
+        .cycle()
+        .take(7)
+        .collect();  // [1, 2, 3, 1, 2, 3, 1]
+
+    // Custom iterator
+    struct Counter {
+        count: u32
+    }
+
+    impl Iterator for Counter {
+        type Item = u32;
+
+        fn next(&mut self) -> Option<u32> {
+            self.count = self.count + 1;
+            if self.count <= 5 {
+                Option::Some(self.count)
+            } else {
+                Option::None
+            }
+        }
+    }
+
+    let counter = Counter { count: 0 };
+    for n in counter {
+        println(n);  // Prints 1, 2, 3, 4, 5
+    }
+
+    // Lazy evaluation (nothing happens until collect/consume)
+    let lazy = numbers.iter()
+        .map(|x| {
+            println("Processing: " + x);
+            x * 2
+        });
+    // Nothing printed yet!
+
+    let result = lazy.collect();  // Now it runs
+
+    // Window iteration
+    let windows = numbers.windows(3);
+    for window in windows {
+        println(window);  // [1,2,3], [2,3,4], [3,4,5]
+    }
+
+    // Chunks
+    let chunks = numbers.chunks(2);
+    for chunk in chunks {
+        println(chunk);  // [1,2], [3,4], [5]
+    }
+}

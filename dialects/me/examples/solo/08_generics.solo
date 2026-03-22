@@ -1,0 +1,110 @@
+// Generics and Type Parameters
+
+// Generic function
+fn identity<T>(x: T) -> T {
+    x
+}
+
+// Multiple type parameters
+fn pair<T, U>(first: T, second: U) -> (T, U) {
+    (first, second)
+}
+
+// Generic struct
+struct Pair<T, U> {
+    first: T,
+    second: U
+}
+
+impl<T, U> Pair<T, U> {
+    fn new(first: T, second: U) -> Pair<T, U> {
+        Pair { first, second }
+    }
+
+    fn first(&self) -> &T {
+        &self.first
+    }
+
+    fn second(&self) -> &U {
+        &self.second
+    }
+}
+
+// Constrained generics
+trait Numeric {
+    fn add(&self, other: &Self) -> Self;
+}
+
+impl Numeric for i32 {
+    fn add(&self, other: &i32) -> i32 {
+        *self + *other
+    }
+}
+
+impl Numeric for f64 {
+    fn add(&self, other: &f64) -> f64 {
+        *self + *other
+    }
+}
+
+fn sum<T: Numeric>(a: T, b: T) -> T {
+    a.add(&b)
+}
+
+// Associated types
+trait Container {
+    type Item;
+
+    fn get(&self) -> &Self::Item;
+    fn set(&mut self, item: Self::Item);
+}
+
+struct Box<T> {
+    value: T
+}
+
+impl<T> Container for Box<T> {
+    type Item = T;
+
+    fn get(&self) -> &T {
+        &self.value
+    }
+
+    fn set(&mut self, item: T) {
+        self.value = item;
+    }
+}
+
+// Const generics
+struct Matrix<T, const N: usize, const M: usize> {
+    data: [[T; M]; N]
+}
+
+impl<T, const N: usize, const M: usize> Matrix<T, N, M> {
+    fn rows(&self) -> usize {
+        N
+    }
+
+    fn cols(&self) -> usize {
+        M
+    }
+}
+
+fn main() {
+    let x = identity(42);
+    let y = identity("hello");
+
+    let p1 = pair(1, "one");
+    let p2 = Pair::new(2, "two");
+
+    let int_sum = sum(10, 20);
+    let float_sum = sum(3.14, 2.86);
+
+    let mut int_box = Box { value: 100 };
+    let val = int_box.get();
+    int_box.set(200);
+
+    let mat: Matrix<i32, 3, 3> = Matrix {
+        data: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    };
+}

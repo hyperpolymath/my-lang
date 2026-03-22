@@ -1,0 +1,27 @@
+// Epistemic types in Solo dialect
+// Demonstrates belief states with affine ownership
+
+fn main() -> i32 {
+    // Belief state with confidence level
+    belief claim_true: f64 where confidence(0.85);
+
+    // Affine types: value is moved, not copied
+    let evidence = gather_evidence();
+    let updated = update_belief(claim_true, evidence);
+    // `claim_true` and `evidence` can't be used here (moved)
+
+    if updated > 0.9 {
+        print("High confidence - publish!");
+    }
+
+    return 0;
+}
+
+fn gather_evidence() -> f64 {
+    return 0.92;
+}
+
+fn update_belief(prior: f64, evidence: f64) -> f64 {
+    // Bayesian update (simplified)
+    return (prior * evidence) / ((prior * evidence) + ((1.0 - prior) * (1.0 - evidence)));
+}

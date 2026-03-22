@@ -1,0 +1,8 @@
+= Me Hive
+
+This hive hosts the Me dialect materials (visual blocks, pedagogy, and examples).
+
+== Structure
+- demo/ : runnable examples (to be added)
+- .hive-meta.scm : hive metadata
+- Justfile : demo entrypoint

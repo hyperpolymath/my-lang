@@ -1,0 +1,94 @@
+// Traits (Interfaces)
+
+// Define a trait
+trait Printable {
+    fn print(&self);
+}
+
+trait Drawable {
+    fn draw(&self) -> str;
+}
+
+trait Comparable {
+    fn compare(&self, other: &Self) -> i32;
+}
+
+// Trait with default implementation
+trait Describable {
+    fn name(&self) -> str;
+
+    fn description(&self) -> str {
+        "An object named: " + self.name()
+    }
+}
+
+struct Circle {
+    radius: f64
+}
+
+struct Rectangle {
+    width: f64,
+    height: f64
+}
+
+impl Printable for Circle {
+    fn print(&self) {
+        println("Circle with radius: " + self.radius);
+    }
+}
+
+impl Printable for Rectangle {
+    fn print(&self) {
+        println("Rectangle: " + self.width + "x" + self.height);
+    }
+}
+
+impl Drawable for Circle {
+    fn draw(&self) -> str {
+        "○"
+    }
+}
+
+impl Drawable for Rectangle {
+    fn draw(&self) -> str {
+        "▭"
+    }
+}
+
+impl Describable for Circle {
+    fn name(&self) -> str {
+        "Circle"
+    }
+}
+
+// Generic function with trait bounds
+fn print_drawable<T: Drawable + Printable>(item: &T) {
+    println(item.draw());
+    item.print();
+}
+
+// Multiple trait bounds
+fn process<T>(item: T)
+where
+    T: Printable + Drawable
+{
+    item.print();
+    let visual = item.draw();
+    println(visual);
+}
+
+fn main() {
+    let circle = Circle { radius: 5.0 };
+    let rect = Rectangle { width: 10.0, height: 20.0 };
+
+    circle.print();
+    rect.print();
+
+    print_drawable(&circle);
+
+    // Trait object (dynamic dispatch)
+    let shapes: [&dyn Printable; 2] = [&circle, &rect];
+    for shape in shapes {
+        shape.print();
+    }
+}

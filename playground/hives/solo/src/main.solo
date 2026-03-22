@@ -1,0 +1,72 @@
+// Solo Language - Main Entry Point
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Solo is the systems programming foundation of the My-Lang family.
+// It provides low-level control with memory safety through linear/affine types.
+
+module Main
+
+import std::io
+import std::sys
+
+/// Application entry point for Solo programs.
+/// Solo emphasizes explicit resource management and zero-cost abstractions.
+fn main() -> i32 {
+    io::println("Solo - Systems Programming Foundation")
+    io::println("=====================================")
+    io::println("")
+    io::println("Features:")
+    io::println("  - Linear/Affine types for memory safety")
+    io::println("  - Zero-cost abstractions")
+    io::println("  - Bare metal support")
+    io::println("  - Compile-time execution (comptime)")
+    io::println("  - Region-based memory management")
+    io::println("")
+    io::println("Part of My-Lang: Me -> Solo -> Duet -> Ensemble")
+
+    0  // Exit code
+}
+
+/// Demonstrates linear type usage in Solo.
+/// Linear types must be used exactly once.
+fn demonstrate_linear_types() {
+    // Linear types ensure resources are properly managed
+    // The compiler tracks ownership and prevents double-free or leaks
+
+    io::println("Linear types: use exactly once, guaranteed cleanup")
+}
+
+/// Demonstrates affine type usage in Solo.
+/// Affine types can be used at most once.
+fn demonstrate_affine_types() {
+    // Affine types are more permissive than linear types
+    // They can be dropped without use, but still prevent double-use
+
+    io::println("Affine types: use at most once, explicit drop allowed")
+}
+
+/// Demonstrates compile-time execution.
+comptime fn compile_time_computation() -> i32 {
+    // This function executes at compile time
+    // Results are embedded directly in the binary
+    let sum = 0
+    for i in 1..=100 {
+        sum = sum + i
+    }
+    sum  // 5050, computed at compile time
+}
+
+/// Demonstrates region-based memory allocation.
+fn demonstrate_regions() {
+    region stack {
+        // Memory allocated here is automatically freed when region exits
+        let buffer = [u8; 1024]@stack
+        process_buffer(buffer)
+    }
+    // buffer is deallocated here, no manual free needed
+}
+
+fn process_buffer(buf: &[u8]) {
+    // Process the buffer within its lifetime
+    io::println("Processing buffer of size: ", buf.len())
+}

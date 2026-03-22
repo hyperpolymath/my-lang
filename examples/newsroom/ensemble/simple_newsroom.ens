@@ -1,0 +1,206 @@
+// SPDX-License-Identifier: MIT OR Palimpsest-0.8
+// SPDX-FileCopyrightText: 2024 My-newsroom Contributors
+//
+// Simple Newsroom: 5-Agent Fact Verification System
+// Demonstrates basic multi-agent belief fusion.
+
+use ensemble::prelude::*;
+use duet::belief::{BeliefMass, fuse_dempster};
+
+/// Reporter agent - gathers evidence from assigned domain
+agent ReporterAgent {
+    // State
+    domain: String,
+    sources: Vec<Source>,
+    beliefs: BeliefState,
+
+    // Configuration
+    config: AgentConfig {
+        update_interval: Duration::from_secs(60),
+        credibility_threshold: 0.7,
+    },
+
+    /// Initialize agent with domain assignment
+    fn new(domain: &str) -> Self {
+        ReporterAgent {
+            domain: domain.to_string(),
+            sources: Source::for_domain(domain),
+            beliefs: BeliefState::new(),
+            config: Default::default(),
+        }
+    }
+
+    /// Gather evidence for a claim from domain sources
+    fn gather_evidence(&mut self, claim: &Claim) -> Evidence {
+        let raw_evidence: Vec<Evidence> = self.sources
+            .iter()
+            .filter_map(|source| source.query(claim))
+            .collect();
+
+        // Filter by credibility threshold
+        let credible: Vec<Evidence> = raw_evidence
+            .into_iter()
+            .filter(|e| e.credibility >= self.config.credibility_threshold)
+            .collect();
+
+        // Combine into single evidence report
+        Evidence::combine(credible)
+    }
+
+    /// Update belief based on new evidence
+    fn update_belief(&mut self, claim: &Claim, evidence: Evidence) {
+        let old_belief = self.beliefs.get(claim).cloned();
+        let new_belief = self.beliefs.update(claim, &evidence);
+
+        // Emit event for ledger
+        emit BeliefUpdate {
+            agent: self.id(),
+            claim: claim.clone(),
+            old: old_belief,
+            new: new_belief.clone(),
+            evidence: evidence,
+            timestamp: now(),
+        };
+    }
+}
+
+/// Fact checker agent - verifies claims against trusted databases
+agent FactCheckerAgent {
+    sources: Vec<FactCheckSource>,
+    beliefs: BeliefState,
+
+    fn new(sources: Vec<FactCheckSource>) -> Self {
+        FactCheckerAgent {
+            sources,
+            beliefs: BeliefState::new(),
+        }
+    }
+
+    /// Verify claim against fact-checking databases
+    fn verify(&self, claim: &Claim) -> BeliefMass {
+        let results: Vec<BeliefMass> = self.sources
+            .iter()
+            .filter_map(|source| source.check(claim))
+            .collect();
+
+        // Fuse all fact-check results
+        results.into_iter()
+            .reduce(|acc, m| fuse_dempster(acc, m))
+            .unwrap_or_else(|| BeliefMass::total_ignorance())
+    }
+}
+
+/// Editor agent - makes final publish/hold decisions
+agent EditorAgent {
+    threshold: f64,
+    beliefs: BeliefState,
+
+    fn new(threshold: f64) -> Self {
+        EditorAgent {
+            threshold,
+            beliefs: BeliefState::new(),
+        }
+    }
+
+    /// Fuse beliefs from all reporters and fact-checkers
+    fn fuse_all_beliefs(&self, claim: &Claim, agents: &[&dyn Agent]) -> BeliefMass {
+        let beliefs: Vec<BeliefMass> = agents
+            .iter()
+            .filter_map(|agent| agent.beliefs().get(claim).cloned())
+            .collect();
+
+        beliefs.into_iter()
+            .reduce(|acc, m| fuse_dempster(acc, m))
+            .unwrap_or_else(|| BeliefMass::total_ignorance())
+    }
+
+    /// Make editorial decision
+    fn decide(&self, claim: &Claim, fused: &BeliefMass) -> EditorialDecision {
+        let confidence = fused.belief(&claim.positive_hypothesis());
+
+        if confidence >= self.threshold {
+            EditorialDecision::Publish {
+                claim: claim.clone(),
+                confidence,
+                timestamp: now(),
+            }
+        } else {
+            EditorialDecision::Hold {
+                claim: claim.clone(),
+                confidence,
+                reason: "Insufficient confidence".to_string(),
+            }
+        }
+    }
+}
+
+/// Orchestration: Wire up the newsroom
+comptime orchestrate SimpleNewsroom {
+    agents: [
+        ReporterAgent::new("politics"),
+        ReporterAgent::new("science"),
+        FactCheckerAgent::new(vec![Snopes, FactCheck]),
+        EditorAgent::new(0.80),
+    ],
+
+    topology: Star {
+        hub: EditorAgent,
+        spokes: [ReporterAgent, FactCheckerAgent],
+    },
+
+    fusion: Dempster,
+    consensus: Threshold(0.80),
+}
+
+/// Main entry point
+fn main() {
+    let mut newsroom = SimpleNewsroom::new();
+
+    // Claim to verify
+    let claim = Claim::new("Climate change is primarily caused by human activity");
+
+    println!("=== Simple Newsroom Demo ===\n");
+    println!("Claim: {}\n", claim);
+
+    // Reporters gather evidence
+    println!("Gathering evidence from reporters...");
+    for reporter in newsroom.reporters() {
+        let evidence = reporter.gather_evidence(&claim);
+        reporter.update_belief(&claim, evidence);
+        println!("  {} reporter: confidence = {:.2}",
+            reporter.domain,
+            reporter.beliefs.get(&claim).map(|b| b.confidence()).unwrap_or(0.0));
+    }
+
+    // Fact checker verifies
+    println!("\nFact-checking against databases...");
+    let fact_check = newsroom.fact_checker().verify(&claim);
+    println!("  Fact-checker: confidence = {:.2}", fact_check.confidence());
+
+    // Editor fuses and decides
+    println!("\nEditor fusing all beliefs...");
+    let all_agents: Vec<&dyn Agent> = newsroom.all_agents();
+    let fused = newsroom.editor().fuse_all_beliefs(&claim, &all_agents);
+    let decision = newsroom.editor().decide(&claim, &fused);
+
+    println!("\n=== Editorial Decision ===");
+    match decision {
+        EditorialDecision::Publish { confidence, .. } => {
+            println!("PUBLISH with confidence: {:.2}", confidence);
+        }
+        EditorialDecision::Hold { confidence, reason, .. } => {
+            println!("HOLD - confidence: {:.2}, reason: {}", confidence, reason);
+        }
+    }
+
+    // Print epistemic ledger
+    println!("\n=== Epistemic Ledger ===");
+    for entry in newsroom.ledger().entries().take(10) {
+        println!("[{}] Agent {}: {} -> {} (delta: {:.3})",
+            entry.timestamp,
+            entry.agent_id,
+            entry.old_confidence(),
+            entry.new_confidence(),
+            entry.delta());
+    }
+}

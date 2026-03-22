@@ -1,0 +1,7 @@
+// Hello World - The classic first program
+
+import std::io;
+
+fn main() {
+    io::println("Hello, World!");
+}

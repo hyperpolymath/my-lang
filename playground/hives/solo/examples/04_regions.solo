@@ -1,0 +1,150 @@
+// Region-Based Memory Management
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Regions provide scoped memory allocation without garbage collection.
+// All memory in a region is freed when the region exits.
+
+module Main
+
+import std::io
+import std::memory::{Region, Arena}
+
+/// Process data using stack-allocated region.
+fn process_with_stack_region() {
+    // Stack region - fast allocation, automatic cleanup
+    region stack {
+        // Allocate within the region
+        let buffer = [u8; 4096]@stack
+        let parsed = parse_data(buffer)@stack
+
+        // Use the data within the region
+        process(parsed)
+
+        // All region allocations freed here automatically
+    }
+    // buffer and parsed are no longer accessible
+}
+
+/// Long-running computation with arena allocation.
+fn process_with_arena() {
+    // Create an arena for longer-lived allocations
+    let arena = Arena::new(1024 * 1024)  // 1MB arena
+
+    region arena {
+        // Multiple allocations from the same arena
+        let nodes = Vec::new@arena()
+
+        for i in 0..1000 {
+            let node = Node::new@arena(i)
+            nodes.push(node)
+        }
+
+        // Process all nodes
+        for node in nodes.iter() {
+            node.process()
+        }
+    }
+    // Entire arena freed at once - very efficient
+}
+
+/// Nested regions for hierarchical memory management.
+fn nested_regions() {
+    region outer {
+        let outer_data = allocate_large_data()@outer
+
+        region inner {
+            let inner_data = allocate_temp_data()@inner
+
+            // Can access both outer_data and inner_data here
+            combine(outer_data, inner_data)
+
+            // inner_data freed when inner region exits
+        }
+
+        // outer_data still accessible here
+        finalize(outer_data)
+
+        // outer_data freed when outer region exits
+    }
+}
+
+/// Custom allocator with region support.
+struct BumpAllocator {
+    memory: &mut [u8],
+    offset: usize,
+}
+
+impl BumpAllocator {
+    fn new(size: usize) -> BumpAllocator {
+        BumpAllocator {
+            memory: sys::alloc(size),
+            offset: 0,
+        }
+    }
+
+    /// Allocate from the bump allocator.
+    fn alloc<T>(&mut self) -> &mut T {
+        let size = sizeof::<T>()
+        let align = alignof::<T>()
+
+        // Align the offset
+        self.offset = (self.offset + align - 1) & !(align - 1)
+
+        if self.offset + size > self.memory.len() {
+            panic("BumpAllocator: out of memory")
+        }
+
+        let ptr = &mut self.memory[self.offset] as *mut T
+        self.offset += size
+        unsafe { &mut *ptr }
+    }
+
+    /// Reset the allocator, freeing all allocations.
+    fn reset(&mut self) {
+        self.offset = 0
+    }
+}
+
+fn main() {
+    io::println("Region-Based Memory Management Demo")
+    io::println("====================================")
+
+    // Stack region example
+    process_with_stack_region()
+    io::println("Stack region processing complete")
+
+    // Arena example
+    process_with_arena()
+    io::println("Arena processing complete")
+
+    // Nested regions
+    nested_regions()
+    io::println("Nested regions complete")
+
+    // Custom bump allocator
+    let mut bump = BumpAllocator::new(4096)
+    region bump {
+        let a = bump.alloc::<i32>()
+        let b = bump.alloc::<[u8; 100]>()
+        *a = 42
+        io::println("Bump allocated values")
+    }
+    bump.reset()  // Reuse the allocator
+
+    io::println("All memory properly managed!")
+}
+
+// Helper types and functions
+struct Node { id: i32 }
+impl Node {
+    fn new(id: i32) -> Node { Node { id } }
+    fn process(&self) {}
+}
+
+fn allocate_large_data() -> &[u8] { &[] }
+fn allocate_temp_data() -> &[u8] { &[] }
+fn combine(a: &[u8], b: &[u8]) {}
+fn finalize(data: &[u8]) {}
+fn parse_data(buf: &[u8]) -> ParsedData { ParsedData {} }
+fn process(data: ParsedData) {}
+struct ParsedData {}

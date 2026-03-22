@@ -1,0 +1,203 @@
+// Duet Language - Library Root
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// This is the library entry point for Duet projects.
+// Re-exports core modules and defines the AI-assisted API.
+
+module Duet
+
+// Re-export from Solo (Duet is a superset)
+pub use solo::*
+
+// Duet-specific modules
+pub use ai::synthesis
+pub use ai::verification
+pub use ai::intent
+pub use neuro_symbolic::types
+
+/// AI synthesis module for code generation from specifications.
+pub mod synthesis {
+    /// Synthesis configuration.
+    pub struct SynthConfig {
+        pub model: String,
+        pub confidence_threshold: f64,
+        pub timeout_ms: u64,
+        pub fallback: Option<fn() -> Any>,
+    }
+
+    impl Default for SynthConfig {
+        fn default() -> SynthConfig {
+            SynthConfig {
+                model: "default".to_string(),
+                confidence_threshold: 0.8,
+                timeout_ms: 5000,
+                fallback: None,
+            }
+        }
+    }
+
+    /// Synthesize a function from a specification.
+    pub fn synth_from_spec<F, I, O>(spec: F) -> impl Fn(I) -> O
+    where
+        F: Fn(O) -> bool,
+    {
+        // AI-powered synthesis implementation
+        |input| {
+            let result = ai::synthesize(spec, input)
+            assert!(spec(result), "Synthesized result must satisfy spec")
+            result
+        }
+    }
+
+    /// Synthesize from input-output examples.
+    pub fn synth_from_examples<I, O>(examples: &[(I, O)]) -> impl Fn(I) -> O
+    where
+        I: Clone,
+        O: Clone,
+    {
+        // Learn function from examples
+        |input| {
+            ai::learn_and_apply(examples, input)
+        }
+    }
+}
+
+/// Verification module for proving AI-generated code correctness.
+pub mod verification {
+    /// Verification result.
+    pub enum VerificationResult {
+        Proven { proof: Proof },
+        Disproven { counterexample: Value },
+        Unknown { reason: String },
+        Timeout,
+    }
+
+    /// Proof object containing verification artifacts.
+    pub struct Proof {
+        pub strategy: String,
+        pub steps: Vec<ProofStep>,
+        pub confidence: f64,
+    }
+
+    /// Verify a property holds for a function.
+    pub fn verify<F, T>(
+        func: F,
+        property: &str,
+        strategy: &str,
+    ) -> VerificationResult
+    where
+        F: Fn(T) -> T,
+    {
+        // Integration with verification backend
+        ai::verify_property(func, property, strategy)
+    }
+
+    /// Verify synthesized code matches specification.
+    pub fn verify_synthesis<F, I, O>(
+        synthesized: F,
+        spec: impl Fn(I, O) -> bool,
+    ) -> VerificationResult
+    where
+        F: Fn(I) -> O,
+    {
+        ai::verify_against_spec(synthesized, spec)
+    }
+}
+
+/// Intent-driven programming module.
+pub mod intent {
+    /// Intent specification block.
+    pub struct Intent {
+        pub description: String,
+        pub given: Vec<Parameter>,
+        pub ensure: Vec<Postcondition>,
+    }
+
+    /// Execute an intent with AI assistance.
+    pub fn execute_intent(intent: Intent) -> IntentResult {
+        // AI interprets intent and generates implementation
+        let implementation = ai::interpret_intent(&intent)
+
+        // Verify implementation meets postconditions
+        let verified = verification::verify_postconditions(
+            &implementation,
+            &intent.ensure,
+        )
+
+        IntentResult {
+            implementation,
+            verified,
+            explanation: ai::explain_implementation(&implementation),
+        }
+    }
+
+    /// Intent result with implementation and verification status.
+    pub struct IntentResult {
+        pub implementation: Code,
+        pub verified: bool,
+        pub explanation: String,
+    }
+}
+
+/// Neuro-symbolic hybrid types module.
+pub mod neuro_symbolic {
+    /// Neural model wrapper.
+    pub struct Neural<M> {
+        pub model: M,
+        pub config: NeuralConfig,
+    }
+
+    /// Symbolic rule for constraining neural outputs.
+    pub struct SymbolicRule {
+        pub name: String,
+        pub condition: Box<dyn Fn(Value) -> bool>,
+        pub action: Box<dyn Fn(Value) -> Value>,
+    }
+
+    /// Hybrid type combining neural and symbolic components.
+    pub struct Hybrid<N, S> {
+        pub neural: N,
+        pub symbolic: S,
+    }
+
+    impl<N, S> Hybrid<N, S>
+    where
+        N: NeuralInference,
+        S: SymbolicReasoning,
+    {
+        /// Infer using both neural and symbolic components.
+        pub fn infer(&self, input: Input) -> Output {
+            let neural_result = self.neural.infer(input)
+            let validated = self.symbolic.validate(neural_result)
+            validated
+        }
+    }
+
+    /// Trait for neural inference.
+    pub trait NeuralInference {
+        fn infer(&self, input: Input) -> NeuralOutput;
+    }
+
+    /// Trait for symbolic reasoning.
+    pub trait SymbolicReasoning {
+        fn validate(&self, input: NeuralOutput) -> Output;
+        fn explain(&self, decision: Decision) -> Explanation;
+    }
+}
+
+/// AI assistant configuration.
+pub mod ai_config {
+    /// Configure AI model for synthesis and verification.
+    pub struct AIConfig {
+        pub model_id: String,
+        pub api_endpoint: Option<String>,
+        pub local_model_path: Option<String>,
+        pub max_tokens: u32,
+        pub temperature: f32,
+    }
+
+    /// Set global AI configuration.
+    pub fn configure(config: AIConfig) {
+        AI_CONFIG.set(config)
+    }
+}

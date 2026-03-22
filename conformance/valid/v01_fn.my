@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Conformance: function definition
+
+fn greet() -> Int {
+    return 42;
+}
+
+fn main() -> Int {
+    return greet();
+}

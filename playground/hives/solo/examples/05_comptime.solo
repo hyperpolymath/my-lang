@@ -1,0 +1,158 @@
+// Compile-Time Execution (comptime)
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Solo supports compile-time function execution for:
+// - Constant evaluation
+// - Type-level computation
+// - Code generation
+// - Static assertions
+
+module Main
+
+import std::io
+
+/// Compute factorial at compile time.
+comptime fn factorial(n: u64) -> u64 {
+    if n <= 1 {
+        1
+    } else {
+        n * factorial(n - 1)
+    }
+}
+
+/// Compute Fibonacci at compile time.
+comptime fn fibonacci(n: u32) -> u64 {
+    match n {
+        0 => 0,
+        1 => 1,
+        _ => fibonacci(n - 1) + fibonacci(n - 2),
+    }
+}
+
+/// Generate lookup table at compile time.
+comptime fn generate_sin_table() -> [f64; 360] {
+    let table: [f64; 360] = [0.0; 360]
+    for i in 0..360 {
+        table[i] = sin_approx(i as f64 * PI / 180.0)
+    }
+    table
+}
+
+/// Compile-time string manipulation.
+comptime fn make_uppercase(s: &str) -> String {
+    let result = String::new()
+    for c in s.chars() {
+        result.push(c.to_uppercase())
+    }
+    result
+}
+
+/// Type-level computation: array size based on type.
+comptime fn aligned_size<T>() -> usize {
+    let size = sizeof::<T>()
+    let align = alignof::<T>()
+    (size + align - 1) & !(align - 1)
+}
+
+/// Static assertion at compile time.
+comptime fn static_assert(condition: bool, message: &str) {
+    if !condition {
+        compile_error(message)
+    }
+}
+
+/// Generate struct fields at compile time.
+comptime fn make_vector_type(dimensions: usize) -> Type {
+    let fields = Vec::new()
+    let names = ["x", "y", "z", "w"]
+
+    for i in 0..dimensions {
+        fields.push(Field {
+            name: names[i],
+            ty: f64,
+        })
+    }
+
+    Type::Struct { fields }
+}
+
+// Use comptime to define types
+type Vec2 = comptime { make_vector_type(2) }
+type Vec3 = comptime { make_vector_type(3) }
+type Vec4 = comptime { make_vector_type(4) }
+
+/// Constants computed at compile time.
+const FACTORIAL_10: u64 = comptime { factorial(10) }
+const FIB_20: u64 = comptime { fibonacci(20) }
+const SIN_TABLE: [f64; 360] = comptime { generate_sin_table() }
+const GREETING: String = comptime { make_uppercase("hello, world!") }
+
+/// Compile-time type checking.
+comptime fn ensure_pod<T>() {
+    static_assert(
+        is_pod::<T>(),
+        "Type must be Plain Old Data (POD)"
+    )
+}
+
+/// Generic function with compile-time specialization.
+fn fast_zero<T>() -> T
+where
+    comptime { is_numeric::<T>() }
+{
+    comptime {
+        if sizeof::<T>() <= 8 {
+            // Use immediate for small types
+            emit_immediate_zero::<T>()
+        } else {
+            // Use memset for large types
+            emit_memset_zero::<T>()
+        }
+    }
+}
+
+fn main() {
+    io::println("Compile-Time Execution Demo")
+    io::println("===========================")
+
+    // These values are computed at compile time
+    io::println("10! = ", FACTORIAL_10)      // 3628800
+    io::println("fib(20) = ", FIB_20)        // 6765
+    io::println("Greeting: ", GREETING)      // HELLO, WORLD!
+
+    // Use compile-time generated lookup table
+    let angle = 45
+    io::println("sin(45°) ≈ ", SIN_TABLE[angle])
+
+    // Type-level computation
+    let size = comptime { aligned_size::<MyStruct>() }
+    io::println("Aligned size: ", size)
+
+    // Compile-time generated types
+    let v2 = Vec2 { x: 1.0, y: 2.0 }
+    let v3 = Vec3 { x: 1.0, y: 2.0, z: 3.0 }
+    io::println("Vec2: (", v2.x, ", ", v2.y, ")")
+    io::println("Vec3: (", v3.x, ", ", v3.y, ", ", v3.z, ")")
+
+    // Static assertions (these run at compile time)
+    comptime {
+        static_assert(FACTORIAL_10 == 3628800, "Factorial check")
+        static_assert(sizeof::<i32>() == 4, "i32 should be 4 bytes")
+    }
+
+    io::println("All compile-time computations verified!")
+}
+
+struct MyStruct {
+    a: i32,
+    b: f64,
+    c: u8,
+}
+
+// Helper comptime functions
+comptime fn sin_approx(x: f64) -> f64 {
+    // Taylor series approximation
+    x - (x*x*x)/6.0 + (x*x*x*x*x)/120.0
+}
+
+const PI: f64 = 3.14159265358979323846

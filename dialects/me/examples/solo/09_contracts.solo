@@ -1,0 +1,131 @@
+// Contracts: Pre/Post-conditions and Invariants
+
+import std::math;
+
+// Function with precondition
+fn divide(a: i32, b: i32) -> i32
+where
+    pre b != 0
+{
+    a / b
+}
+
+// Function with postcondition
+fn abs(x: i32) -> i32
+where
+    post result >= 0
+{
+    if x < 0 { -x } else { x }
+}
+
+// Function with both pre and post conditions
+fn sqrt(x: f64) -> f64
+where
+    pre x >= 0.0,
+    post result * result <= x + 0.0001,
+    post result * result >= x - 0.0001
+{
+    math::sqrt(x)
+}
+
+// Named postcondition with old values
+fn increment(x: &mut i32)
+where
+    ensures incremented *x == old(*x) + 1
+{
+    *x = *x + 1;
+}
+
+// Struct with invariants
+struct BankAccount {
+    balance: i32
+}
+
+impl BankAccount
+where
+    invariant self.balance >= 0
+{
+    fn new(initial: i32) -> BankAccount
+    where
+        pre initial >= 0
+    {
+        BankAccount { balance: initial }
+    }
+
+    fn deposit(&mut self, amount: i32)
+    where
+        pre amount > 0,
+        post self.balance == old(self.balance) + amount
+    {
+        self.balance = self.balance + amount;
+    }
+
+    fn withdraw(&mut self, amount: i32) -> bool
+    where
+        pre amount > 0,
+        ensures success self.balance == old(self.balance) - amount,
+        ensures failure self.balance == old(self.balance)
+    {
+        if self.balance >= amount {
+            self.balance = self.balance - amount;
+            return true;
+        }
+        false
+    }
+
+    fn balance(&self) -> i32
+    where
+        post result >= 0
+    {
+        self.balance
+    }
+}
+
+// Array bounds checking with contracts
+fn get_element(arr: &[i32], index: usize) -> i32
+where
+    pre index < arr.len()
+{
+    arr[index]
+}
+
+// Sorting with contract
+fn sort(arr: &mut [i32])
+where
+    requires arr.len() > 0,
+    ensures sorted for i in 0..arr.len()-1 { arr[i] <= arr[i+1] },
+    ensures same_elements multiset(arr) == multiset(old(arr))
+{
+    // Bubble sort implementation
+    for i in 0..arr.len() {
+        for j in 0..arr.len() - i - 1 {
+            if arr[j] > arr[j + 1] {
+                let temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+fn main() {
+    // These work fine
+    let result1 = divide(10, 2);  // 5
+    let result2 = abs(-42);       // 42
+    let result3 = sqrt(16.0);     // 4.0
+
+    // This would fail at runtime (contract violation)
+    // let result4 = divide(10, 0);  // ERROR: precondition violated
+
+    let mut account = BankAccount::new(100);
+    account.deposit(50);          // balance: 150
+    let success = account.withdraw(30);  // balance: 120, success: true
+    let failure = account.withdraw(200); // balance: 120, success: false
+
+    let numbers = [5, 2, 8, 1, 9];
+    let first = get_element(&numbers, 0);  // OK
+    // let invalid = get_element(&numbers, 10);  // ERROR: index out of bounds
+
+    let mut to_sort = [5, 2, 8, 1, 9];
+    sort(&mut to_sort);  // [1, 2, 5, 8, 9]
+}

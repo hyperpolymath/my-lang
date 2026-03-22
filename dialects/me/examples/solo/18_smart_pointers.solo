@@ -1,0 +1,198 @@
+// Smart Pointers and Memory Management
+
+import std::rc::{Rc, Weak};
+import std::cell::{RefCell, Cell};
+import std::sync::{Arc, Mutex};
+
+// Box: heap allocation
+fn box_example() {
+    // Allocate on heap
+    let boxed = Box::new(42);
+    let value = *boxed;  // Dereference
+
+    // Recursive type requires Box
+    enum List {
+        Cons(i32, Box<List>),
+        Nil
+    }
+
+    let list = List::Cons(1,
+        Box::new(List::Cons(2,
+            Box::new(List::Cons(3,
+                Box::new(List::Nil))))));
+}
+
+// Rc: Reference counted pointer (single-threaded)
+fn rc_example() {
+    let shared = Rc::new(42);
+
+    let ref1 = shared.clone();  // Increment ref count
+    let ref2 = shared.clone();  // Increment ref count
+
+    println(Rc::strong_count(&shared));  // 3
+
+    // When all Rc's are dropped, value is freed
+}
+
+// Weak: Weak reference (doesn't prevent deallocation)
+fn weak_example() {
+    let strong = Rc::new(42);
+    let weak = Rc::downgrade(&strong);  // Create weak reference
+
+    // Try to upgrade weak to strong
+    match weak.upgrade() {
+        Some(value) => println(*value),
+        None => println("Value was freed")
+    };
+
+    drop(strong);  // Free the value
+
+    // Now weak reference is invalid
+    match weak.upgrade() {
+        Some(_) => unreachable(),
+        None => println("Value was freed")
+    };
+}
+
+// RefCell: Interior mutability
+fn refcell_example() {
+    let data = RefCell::new(42);
+
+    // Borrow immutably
+    {
+        let borrowed = data.borrow();
+        println(*borrowed);
+    }
+
+    // Borrow mutably
+    {
+        let mut borrowed_mut = data.borrow_mut();
+        *borrowed_mut = 100;
+    }
+
+    // Runtime borrow checking
+    // This would panic: let b1 = data.borrow(); let b2 = data.borrow_mut();
+}
+
+// Cell: Copy types with interior mutability
+fn cell_example() {
+    let cell = Cell::new(42);
+
+    let value = cell.get();  // Get copy
+    cell.set(100);           // Set new value
+
+    // No borrowing needed for Copy types
+}
+
+// Arc: Atomic reference counted (thread-safe)
+fn arc_example() {
+    let shared = Arc::new(42);
+
+    let thread1 = spawn(move || {
+        println(*shared);
+    });
+
+    let shared2 = shared.clone();
+    let thread2 = spawn(move || {
+        println(*shared2);
+    });
+
+    thread1.join();
+    thread2.join();
+}
+
+// Mutex: Mutual exclusion (thread-safe mutable access)
+fn mutex_example() {
+    let counter = Arc::new(Mutex::new(0));
+
+    let mut handles = vec![];
+
+    for i in 0..10 {
+        let counter_clone = counter.clone();
+        let handle = spawn(move || {
+            let mut num = counter_clone.lock();
+            *num = *num + 1;
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join();
+    }
+
+    println(*counter.lock());  // 10
+}
+
+// Combining Rc and RefCell for shared mutable data
+struct Node {
+    value: i32,
+    children: RefCell<Vec<Rc<Node>>>
+}
+
+fn tree_example() {
+    let root = Rc::new(Node {
+        value: 1,
+        children: RefCell::new(vec![])
+    });
+
+    let child1 = Rc::new(Node {
+        value: 2,
+        children: RefCell::new(vec![])
+    });
+
+    let child2 = Rc::new(Node {
+        value: 3,
+        children: RefCell::new(vec![])
+    });
+
+    // Add children
+    root.children.borrow_mut().push(child1.clone());
+    root.children.borrow_mut().push(child2.clone());
+
+    // Traverse tree
+    println(root.value);
+    for child in root.children.borrow().iter() {
+        println(child.value);
+    }
+}
+
+// Custom smart pointer
+struct MyBox<T> {
+    value: T
+}
+
+impl<T> MyBox<T> {
+    fn new(value: T) -> MyBox<T> {
+        MyBox { value }
+    }
+}
+
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+
+impl<T> Drop for MyBox<T> {
+    fn drop(&mut self) {
+        println("Dropping MyBox");
+    }
+}
+
+fn main() {
+    box_example();
+    rc_example();
+    weak_example();
+    refcell_example();
+    cell_example();
+    arc_example();
+    mutex_example();
+    tree_example();
+
+    // Custom smart pointer
+    let my_box = MyBox::new(42);
+    println(*my_box);  // Deref coercion
+    // MyBox dropped automatically at end of scope
+}

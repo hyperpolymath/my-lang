@@ -1,0 +1,176 @@
+= My-Lang Playground
+
+image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+image:https://img.shields.io/badge/Philosophy-Palimpsest-indigo.svg[Palimpsest,link="https://github.com/hyperpolymath/palimpsest-license"]
+
+
+:toc: macro
+:icons: font
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+*Playground for the My-Lang Progressive Language Family*
+
+image:https://img.shields.io/badge/Family-My--Lang-orange[My-Lang]
+
+toc::[]
+
+== Overview
+
+My-Lang is a progressive language family designed to grow with you. Start with fundamentals, build real applications, and optionally add AI capabilities when needed.
+
+== The Family
+
+[source]
+----
+Me → Solo → Duet → Ensemble
+│     │      │       │
+│     │      │       └── AI-native multi-agent apps (industry/advanced)
+│     │      └────────── AI-assisted pair programming (when needed)
+│     └───────────────── Systems programming foundation (ages 8+)
+└─────────────────────── Fundamental concepts (ages 8-12, beginners)
+----
+
+== Which Dialect Should I Use?
+
+[cols="1,2,1"]
+|===
+|Dialect |When to Use |Repository
+
+|**Me**
+|Learning to program (ages 8-12), no experience
+|https://github.com/hyperpolymath/me-dialect-playground[me-dialect-playground] ⭐
+
+|**Solo**
+|Building real applications (ages 8+, after Me)
+|link:hives/solo/[hives/solo]
+
+|**Duet**
+|Need AI to help write code (industry/final year)
+|link:hives/duet/[hives/duet]
+
+|**Ensemble**
+|Building multi-agent AI apps (industry/advanced)
+|link:hives/ensemble/[hives/ensemble]
+|===
+
+TIP: Most programmers use **Solo** for their entire career. Duet and Ensemble are specialized tools for specific AI use cases.
+
+== Quick Start
+
+=== New to Programming?
+
+[source,bash]
+----
+# Start with Me (standalone repository)
+git clone https://github.com/hyperpolymath/me-dialect-playground.git
+cd me-dialect-playground
+deno task demo
+----
+
+=== Ready to Build?
+
+[source,bash]
+----
+# Clone this playground with all hives
+git clone --recursive https://github.com/hyperpolymath/mylang-playground.git
+cd mylang-playground
+
+# Explore the dialects
+cd hives/solo      # Systems programming
+cd hives/duet      # AI-assisted
+cd hives/ensemble  # Multi-agent
+----
+
+== Dialect Details
+
+=== Me (Fundamental Concepts)
+
+**For ages 8-12, no experience required.**
+
+Learn programming concepts with friendly, visual syntax. Safe sandboxed execution with immediate feedback.
+
+[source,html]
+----
+<say>Hello, world!</say>
+
+<remember name="pet">cat</remember>
+<say>My pet is a {pet}!</say>
+
+<choose>
+  <when pet-is="cat"><say>Meow!</say></when>
+  <when pet-is="dog"><say>Woof!</say></when>
+</choose>
+----
+
+→ https://github.com/hyperpolymath/me-dialect-playground[**Go to Me Playground**]
+
+=== Solo (Systems Foundation)
+
+**For ages 8+ (after learning Me concepts), through undergrad and beyond.**
+
+The core language. Low-level control with safety. Linear types, memory management, WebAssembly.
+
+[source,solo]
+----
+type Buffer = linear { ptr: *mut u8, len: usize }
+
+fn allocate(size: usize) -> Buffer {
+    // Safe memory allocation with linear types
+}
+
+fn free(buf: Buffer) -> () {
+    // Resource automatically freed, cannot double-free
+}
+----
+
+→ link:hives/solo/[**Go to Solo Playground**]
+
+=== Duet (AI-Assisted)
+
+**For final year students / industry professionals who need AI integration.**
+
+Human-AI pair programming. The AI helps implement from intent.
+
+[source,duet]
+----
+intent "optimize for speed":
+    @ai_implement
+
+intent "add error handling":
+    @ai_suggest
+----
+
+→ link:hives/duet/[**Go to Duet Playground**]
+
+=== Ensemble (AI-Native)
+
+**For industry professionals building multi-agent AI applications.**
+
+Orchestrate teams of AI agents with complex workflows.
+
+[source,ensemble]
+----
+ensemble Team:
+    agents: [Researcher, Editor, Reviewer]
+    workflow: research |> edit |> review |> approve
+    consensus: majority
+----
+
+→ link:hives/ensemble/[**Go to Ensemble Playground**]
+
+== Philosophy
+
+* **Progressive Disclosure**: Learn what you need when you need it
+* **Solo is Complete**: Most programmers stay with Solo forever—and that's fine
+* **AI When Needed**: Duet and Ensemble are tools, not requirements
+* **Smooth Transitions**: Code patterns are similar across dialects
+
+== See Also
+
+* link:hives/README.adoc[**Hives Guide**] - Detailed flowchart and decision guide
+* https://github.com/hyperpolymath/me-dialect-playground[**Me Dialect Playground**] - Standalone beginner experience
+
+== License
+
+SPDX-License-Identifier: PMPL-1.0-or-later-or-later

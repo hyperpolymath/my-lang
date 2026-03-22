@@ -1,0 +1,143 @@
+// SPDX-License-Identifier: MIT OR Palimpsest-0.8
+// SPDX-FileCopyrightText: 2024 My-newsroom Contributors
+//
+// Verified Dempster-Shafer Belief Fusion
+// This example demonstrates formal verification of belief combination.
+
+use std::collections::HashMap;
+
+/// Frame of discernment - the set of all possible hypotheses
+type Frame = HashSet<String>;
+
+/// Probability value between 0 and 1
+type Probability = f64 where 0.0 <= self && self <= 1.0;
+
+/// Belief mass function - maps subsets to probability masses
+type BeliefMass = HashMap<Frame, Probability>;
+
+/// Specification: A valid belief mass has masses summing to 1.0
+@spec fn valid_belief_mass(m: &BeliefMass) -> bool {
+    let sum: f64 = m.values().sum();
+    (sum - 1.0).abs() < 1e-9 &&
+    m.values().all(|v| *v >= 0.0)
+}
+
+/// Specification: Two belief masses share the same frame
+@spec fn same_frame(m1: &BeliefMass, m2: &BeliefMass) -> bool {
+    let frame1: Frame = m1.keys().flatten().cloned().collect();
+    let frame2: Frame = m2.keys().flatten().cloned().collect();
+    frame1 == frame2
+}
+
+/// Calculate conflict between two belief masses
+intent("Calculate the conflict (mass assigned to empty set) between two beliefs")
+fn calculate_conflict(m1: &BeliefMass, m2: &BeliefMass) -> Probability where
+    @verify: "precondition: valid_belief_mass(m1)",
+    @verify: "precondition: valid_belief_mass(m2)",
+    @verify: "postcondition: result >= 0.0 && result <= 1.0" {
+
+    let mut conflict = 0.0;
+
+    for (set_a, mass_a) in m1 {
+        for (set_b, mass_b) in m2 {
+            if set_a.is_disjoint(set_b) {
+                conflict += mass_a * mass_b;
+            }
+        }
+    }
+
+    conflict
+}
+
+/// Combine two belief masses using Dempster's rule
+intent("Combine two belief masses using Dempster's rule of combination")
+fn fuse_dempster(m1: BeliefMass, m2: BeliefMass) -> BeliefMass where
+    @verify: "precondition: valid_belief_mass(m1)",
+    @verify: "precondition: valid_belief_mass(m2)",
+    @verify: "precondition: same_frame(m1, m2)",
+    @verify: "postcondition: valid_belief_mass(result)",
+    @verify: "commutativity: fuse_dempster(m1, m2) == fuse_dempster(m2, m1)" {
+
+    @synth(strategy = "heuristic", hints = ["normalize by 1 - conflict"]) {
+        let mut result = HashMap::new();
+        let conflict = calculate_conflict(&m1, &m2);
+
+        // Check for total conflict
+        if conflict >= 1.0 - 1e-9 {
+            panic!("Total conflict: beliefs are completely contradictory");
+        }
+
+        let normalization = 1.0 / (1.0 - conflict);
+
+        // Combine all intersecting focal elements
+        for (set_a, mass_a) in &m1 {
+            for (set_b, mass_b) in &m2 {
+                let intersection: Frame = set_a.intersection(set_b).cloned().collect();
+                if !intersection.is_empty() {
+                    *result.entry(intersection).or_insert(0.0) += mass_a * mass_b;
+                }
+            }
+        }
+
+        // Normalize
+        for mass in result.values_mut() {
+            *mass *= normalization;
+        }
+
+        result
+    }
+}
+
+/// Calculate belief (lower probability) for a hypothesis
+fn belief(m: &BeliefMass, hypothesis: &Frame) -> Probability where
+    @verify: "precondition: valid_belief_mass(m)",
+    @verify: "postcondition: result >= 0.0 && result <= 1.0" {
+
+    m.iter()
+        .filter(|(set, _)| set.is_subset(hypothesis))
+        .map(|(_, mass)| mass)
+        .sum()
+}
+
+/// Calculate plausibility (upper probability) for a hypothesis
+fn plausibility(m: &BeliefMass, hypothesis: &Frame) -> Probability where
+    @verify: "precondition: valid_belief_mass(m)",
+    @verify: "postcondition: result >= belief(m, hypothesis)",
+    @verify: "postcondition: result <= 1.0" {
+
+    m.iter()
+        .filter(|(set, _)| !set.is_disjoint(hypothesis))
+        .map(|(_, mass)| mass)
+        .sum()
+}
+
+/// Example: Newsroom fact verification
+#[ai_test(count = 100)]
+fn example_newsroom_verification() {
+    // Frame: claim is either true or false
+    let theta = Frame::from(["true", "false"]);
+
+    // Source A (Reuters): High confidence claim is true
+    let source_a = BeliefMass::from([
+        (Frame::from(["true"]), 0.85),
+        (theta.clone(), 0.15),  // Uncertainty
+    ]);
+
+    // Source B (AP News): Moderate confidence claim is true
+    let source_b = BeliefMass::from([
+        (Frame::from(["true"]), 0.70),
+        (theta.clone(), 0.30),
+    ]);
+
+    // Fuse the beliefs
+    let combined = fuse_dempster(source_a, source_b);
+
+    // Check the result
+    let bel_true = belief(&combined, &Frame::from(["true"]));
+    let pl_true = plausibility(&combined, &Frame::from(["true"]));
+
+    // Combined belief should be higher than either source alone
+    assert!(bel_true > 0.85);
+    // Uncertainty interval
+    println!("Belief in 'true': [{:.4}, {:.4}]", bel_true, pl_true);
+}

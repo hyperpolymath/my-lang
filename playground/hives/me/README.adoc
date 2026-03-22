@@ -1,0 +1,30 @@
+= Me Dialect → Moved to Standalone Repository
+:icons: font
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+[IMPORTANT]
+====
+The **Me dialect** has been moved to its own standalone repository for a better educational experience.
+
+**→ https://github.com/hyperpolymath/me-dialect-playground[Go to Me Dialect Playground]**
+====
+
+== Why the Move?
+
+The Me dialect is designed for children ages 8-12 learning to program for the first time. It deserves its own dedicated space with:
+
+* Child-focused documentation and tutorials
+* Progressive learning levels (1-5)
+* Visual, safe, sandboxed environment
+* Standalone installation without the complexity of the full My-Lang family
+
+== What's Here?
+
+This directory contains legacy code from when Me was part of this repository. It will be removed in a future update.
+
+== Continue Your Journey
+
+[horizontal]
+New to programming (ages 8-12)?:: https://github.com/hyperpolymath/me-dialect-playground[Start with Me Dialect]
+Ready to build (ages 8+, after Me)?:: link:../solo/[Continue to Solo Dialect]

@@ -1,0 +1,91 @@
+// Enums and Pattern Matching
+
+// Simple enum
+enum Direction {
+    North,
+    South,
+    East,
+    West
+}
+
+// Enum with data
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(str),
+    ChangeColor(u8, u8, u8)
+}
+
+// Option-like enum
+enum Maybe<T> {
+    Some(T),
+    None
+}
+
+// Result-like enum
+enum Result<T, E> {
+    Ok(T),
+    Err(E)
+}
+
+impl Direction {
+    fn opposite(&self) -> Direction {
+        match self {
+            Direction::North => Direction::South,
+            Direction::South => Direction::North,
+            Direction::East => Direction::West,
+            Direction::West => Direction::East
+        }
+    }
+}
+
+fn process_message(msg: Message) {
+    match msg {
+        Message::Quit => {
+            println("Quitting...");
+        },
+        Message::Move { x, y } => {
+            println("Moving to (" + x + ", " + y + ")");
+        },
+        Message::Write(text) => {
+            println("Message: " + text);
+        },
+        Message::ChangeColor(r, g, b) => {
+            println("Changing color to RGB(" + r + ", " + g + ", " + b + ")");
+        }
+    }
+}
+
+fn divide(a: i32, b: i32) -> Result<i32, str> {
+    if b == 0 {
+        Result::Err("Division by zero")
+    } else {
+        Result::Ok(a / b)
+    }
+}
+
+fn main() {
+    let dir = Direction::North;
+    let opposite = dir.opposite();
+
+    let msg1 = Message::Quit;
+    let msg2 = Message::Move { x: 10, y: 20 };
+    let msg3 = Message::Write("Hello!");
+
+    process_message(msg1);
+    process_message(msg2);
+
+    let some_value: Maybe<i32> = Maybe::Some(42);
+    let no_value: Maybe<i32> = Maybe::None;
+
+    match some_value {
+        Maybe::Some(v) => println("Value: " + v),
+        Maybe::None => println("No value")
+    };
+
+    let result = divide(10, 2);
+    match result {
+        Result::Ok(value) => println("Result: " + value),
+        Result::Err(error) => println("Error: " + error)
+    };
+}

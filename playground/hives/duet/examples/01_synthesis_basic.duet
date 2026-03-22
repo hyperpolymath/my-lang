@@ -1,0 +1,90 @@
+// Basic AI Synthesis with @synth
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates how Duet can synthesize function implementations
+// from specifications or examples.
+
+module Main
+
+import std::io
+import std::duet::{synth, verify}
+
+/// Synthesize from a specification.
+/// The AI generates code that satisfies: output == input * 2
+@synth(spec: |x| x * 2)
+fn double(x: i32) -> i32;
+
+/// Synthesize from input-output examples.
+/// The AI learns the pattern: square function.
+@synth(examples: [
+    (0, 0),
+    (1, 1),
+    (2, 4),
+    (3, 9),
+    (5, 25),
+])
+fn square(x: i32) -> i32;
+
+/// Synthesize with additional constraints.
+@synth(
+    spec: |arr| arr.iter().sum() == 0,
+    constraints: ["efficient", "no_allocation", "deterministic"]
+)
+fn generate_balanced_array(size: usize) -> Vec<i32>;
+
+/// Synthesize a sorting function from specification.
+@synth(
+    spec: |arr, result| {
+        is_sorted(result) &&
+        is_permutation(arr, result) &&
+        result.len() == arr.len()
+    },
+    model: "code-synthesis-v2",
+    confidence: 0.95
+)
+fn sort_array(arr: &[i32]) -> Vec<i32>;
+
+/// Synthesize with fallback implementation.
+@synth(
+    examples: [
+        ("hello", "HELLO"),
+        ("world", "WORLD"),
+        ("Duet", "DUET"),
+    ],
+    fallback: |s| s.chars().map(|c| c.to_ascii_uppercase()).collect()
+)
+fn to_uppercase(s: &str) -> String;
+
+fn main() {
+    io::println("Basic AI Synthesis Demo")
+    io::println("=======================")
+    io::println("")
+
+    // Use synthesized functions
+    io::println("double(21) = ", double(21))  // 42
+    io::println("square(7) = ", square(7))    // 49
+
+    let balanced = generate_balanced_array(6)
+    io::println("Balanced array: ", balanced)
+    io::println("Sum: ", balanced.iter().sum::<i32>())  // 0
+
+    let unsorted = [5, 2, 8, 1, 9, 3]
+    let sorted = sort_array(&unsorted)
+    io::println("Sorted: ", sorted)  // [1, 2, 3, 5, 8, 9]
+
+    io::println("uppercase(\"duet\") = ", to_uppercase("duet"))  // DUET
+}
+
+// Helper functions for specifications
+fn is_sorted(arr: &[i32]) -> bool {
+    arr.windows(2).all(|w| w[0] <= w[1])
+}
+
+fn is_permutation(a: &[i32], b: &[i32]) -> bool {
+    if a.len() != b.len() { return false }
+    let mut sorted_a = a.to_vec()
+    let mut sorted_b = b.to_vec()
+    sorted_a.sort()
+    sorted_b.sort()
+    sorted_a == sorted_b
+}

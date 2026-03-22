@@ -1,0 +1,316 @@
+// Distributed Agent Execution
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates running agents across multiple nodes
+// with coordination and fault tolerance.
+
+module Main
+
+import std::io
+import std::ensemble::{Agent, Ensemble, distributed}
+import std::ensemble::distributed::{Node, Cluster, LoadBalancer}
+
+/// Worker agent that can run on any node.
+agent DistributedWorker {
+    capabilities: [process, compute],
+    stateless: true,  // Can run on any node
+    replicas: 3,      // Run 3 instances
+
+    fn process(&self, task: Task) -> TaskResult {
+        let node = distributed::current_node()
+        io::println("Processing task ", task.id, " on node ", node.id)
+
+        let result = heavy_computation(task.data)
+
+        TaskResult {
+            task_id: task.id,
+            result,
+            processed_by: node.id,
+        }
+    }
+}
+
+/// Coordinator agent that manages distributed workers.
+agent Coordinator {
+    capabilities: [schedule, monitor, recover],
+    singleton: true,  // Only one instance
+
+    workers: Vec<AgentHandle<DistributedWorker>>,
+    load_balancer: LoadBalancer,
+
+    fn new(num_workers: u32) -> Coordinator {
+        let workers = (0..num_workers)
+            .map(|_| DistributedWorker::spawn())
+            .collect()
+
+        Coordinator {
+            workers,
+            load_balancer: LoadBalancer::round_robin(),
+        }
+    }
+
+    /// Distribute tasks across workers.
+    fn distribute_tasks(&self, tasks: Vec<Task>) -> Vec<TaskResult> {
+        tasks.par_map(|task| {
+            let worker = self.load_balancer.next(&self.workers)
+            worker.process(task)
+        })
+    }
+
+    /// Monitor worker health.
+    fn health_check(&self) -> ClusterHealth {
+        let statuses: Vec<NodeStatus> = self.workers.iter()
+            .map(|w| w.health())
+            .collect()
+
+        ClusterHealth {
+            total_workers: self.workers.len(),
+            healthy: statuses.iter().filter(|s| s.is_healthy()).count(),
+            unhealthy: statuses.iter().filter(|s| !s.is_healthy()).count(),
+            statuses,
+        }
+    }
+
+    /// Recover from worker failure.
+    fn recover_worker(&mut self, failed_worker_id: AgentId) {
+        io::println("Recovering failed worker: ", failed_worker_id)
+
+        // Remove failed worker
+        self.workers.retain(|w| w.id() != failed_worker_id)
+
+        // Spawn replacement
+        let new_worker = DistributedWorker::spawn()
+        self.workers.push(new_worker)
+
+        io::println("Worker replaced. Total workers: ", self.workers.len())
+    }
+}
+
+/// Distributed ensemble spanning multiple nodes.
+ensemble DistributedCluster {
+    nodes: Vec<Node>,
+    coordinator: Coordinator,
+
+    fn new(nodes: Vec<Node>) -> DistributedCluster {
+        // Deploy coordinator to first node
+        let coordinator = Coordinator::new(nodes.len() as u32 * 2)
+            .deploy_to(nodes[0].clone())
+
+        DistributedCluster { nodes, coordinator }
+    }
+
+    /// Process large dataset in parallel across nodes.
+    workflow process_distributed(data: LargeDataset) -> ProcessedDataset {
+        // Partition data for distribution
+        let partitions = data.partition(self.nodes.len())
+
+        io::println("Processing ", data.size(), " records across ", self.nodes.len(), " nodes")
+
+        // Process partitions in parallel
+        let results = partitions.par_map_with_node(|partition, node| {
+            let local_workers = self.coordinator.workers_on(node)
+            let local_results = local_workers.par_map(|worker| {
+                worker.process(partition.take_chunk())
+            })
+            local_results.flatten()
+        })
+
+        // Aggregate results
+        let aggregated = aggregate_results(results)
+
+        ProcessedDataset {
+            records: aggregated,
+            nodes_used: self.nodes.len(),
+            total_time: Instant::now() - start_time,
+        }
+    }
+
+    /// Fault-tolerant workflow with automatic recovery.
+    workflow fault_tolerant_process(tasks: Vec<Task>) -> Vec<TaskResult> {
+        let mut results = Vec::new()
+        let mut pending = tasks.clone()
+        let mut retries = 0
+        const MAX_RETRIES: u32 = 3
+
+        while !pending.is_empty() && retries < MAX_RETRIES {
+            // Process pending tasks
+            let batch_results = self.coordinator.distribute_tasks(pending.clone())
+
+            // Separate successful and failed
+            let (successful, failed): (Vec<_>, Vec<_>) = batch_results.into_iter()
+                .partition(|r| r.is_ok())
+
+            results.extend(successful.into_iter().map(|r| r.unwrap()))
+
+            // Retry failed tasks
+            if !failed.is_empty() {
+                io::println("Retrying ", failed.len(), " failed tasks...")
+
+                // Check for worker failures
+                let health = self.coordinator.health_check()
+                for status in health.statuses.iter().filter(|s| !s.is_healthy()) {
+                    self.coordinator.recover_worker(status.agent_id)
+                }
+
+                pending = failed.into_iter()
+                    .map(|r| r.unwrap_err().task)
+                    .collect()
+
+                retries += 1
+            } else {
+                pending.clear()
+            }
+        }
+
+        if !pending.is_empty() {
+            io::eprintln("Warning: ", pending.len(), " tasks could not be completed")
+        }
+
+        results
+    }
+}
+
+/// Load balancing strategies.
+impl LoadBalancer {
+    /// Round-robin distribution.
+    fn round_robin() -> LoadBalancer {
+        LoadBalancer {
+            strategy: Strategy::RoundRobin,
+            index: AtomicU32::new(0),
+        }
+    }
+
+    /// Least-loaded distribution.
+    fn least_loaded() -> LoadBalancer {
+        LoadBalancer {
+            strategy: Strategy::LeastLoaded,
+            index: AtomicU32::new(0),
+        }
+    }
+
+    /// Random distribution.
+    fn random() -> LoadBalancer {
+        LoadBalancer {
+            strategy: Strategy::Random,
+            index: AtomicU32::new(0),
+        }
+    }
+
+    /// Get next worker based on strategy.
+    fn next<'a>(&self, workers: &'a [AgentHandle<DistributedWorker>]) -> &'a AgentHandle<DistributedWorker> {
+        match self.strategy {
+            Strategy::RoundRobin => {
+                let idx = self.index.fetch_add(1, Ordering::Relaxed) as usize;
+                &workers[idx % workers.len()]
+            }
+            Strategy::LeastLoaded => {
+                workers.iter()
+                    .min_by_key(|w| w.current_load())
+                    .unwrap()
+            }
+            Strategy::Random => {
+                &workers[random_index(workers.len())]
+            }
+        }
+    }
+}
+
+fn main() {
+    io::println("Distributed Agents Demo")
+    io::println("=======================")
+    io::println("")
+
+    // Define cluster nodes
+    let nodes = vec![
+        Node::new("node-1", "192.168.1.101"),
+        Node::new("node-2", "192.168.1.102"),
+        Node::new("node-3", "192.168.1.103"),
+    ]
+
+    io::println("Creating cluster with ", nodes.len(), " nodes...")
+
+    // Create distributed cluster
+    let cluster = DistributedCluster::new(nodes)
+
+    // Check cluster health
+    let health = cluster.coordinator.health_check()
+    io::println("Cluster health: ", health.healthy, "/", health.total_workers, " workers healthy")
+    io::println("")
+
+    // Generate test tasks
+    let tasks: Vec<Task> = (0..100).map(|i| Task {
+        id: format!("task-{}", i),
+        data: generate_test_data(),
+    }).collect()
+
+    io::println("Processing ", tasks.len(), " tasks...")
+
+    // Fault-tolerant processing
+    let results = cluster.fault_tolerant_process(tasks)
+
+    io::println("")
+    io::println("Completed ", results.len(), " tasks")
+
+    // Show distribution
+    let mut node_counts: HashMap<String, u32> = HashMap::new()
+    for result in results.iter() {
+        *node_counts.entry(result.processed_by.clone()).or_insert(0) += 1
+    }
+
+    io::println("Task distribution:")
+    for (node, count) in node_counts.iter() {
+        io::println("  ", node, ": ", count, " tasks")
+    }
+
+    // Large dataset processing
+    io::println("")
+    io::println("Processing large dataset...")
+
+    let large_data = LargeDataset::generate(1_000_000)
+    let processed = cluster.process_distributed(large_data)
+
+    io::println("Processed ", processed.records.len(), " records")
+    io::println("Used ", processed.nodes_used, " nodes")
+    io::println("Total time: ", processed.total_time.as_secs(), "s")
+
+    cluster.shutdown()
+}
+
+// Type definitions
+struct Task { id: String, data: Vec<u8> }
+struct TaskResult { task_id: String, result: Vec<u8>, processed_by: String }
+impl TaskResult { fn is_ok(&self) -> bool { true } fn unwrap(self) -> Self { self } fn unwrap_err(self) -> TaskError { TaskError { task: Task::default() } } }
+struct TaskError { task: Task }
+impl Default for Task { fn default() -> Self { Task { id: String::new(), data: vec![] } } }
+
+struct LargeDataset { data: Vec<Record> }
+impl LargeDataset {
+    fn generate(size: usize) -> Self { LargeDataset { data: vec![] } }
+    fn size(&self) -> usize { self.data.len() }
+    fn partition(&self, n: usize) -> Vec<Partition> { vec![] }
+}
+struct Partition {}
+impl Partition { fn take_chunk(&self) -> Task { Task::default() } }
+struct ProcessedDataset { records: Vec<ProcessedRecord>, nodes_used: usize, total_time: Duration }
+struct ProcessedRecord {}
+
+struct ClusterHealth { total_workers: usize, healthy: usize, unhealthy: usize, statuses: Vec<NodeStatus> }
+struct NodeStatus { agent_id: String, healthy: bool }
+impl NodeStatus { fn is_healthy(&self) -> bool { self.healthy } }
+
+struct LoadBalancer { strategy: Strategy, index: AtomicU32 }
+enum Strategy { RoundRobin, LeastLoaded, Random }
+
+impl Node {
+    fn new(id: &str, addr: &str) -> Node { Node { id: id.to_string(), addr: addr.to_string() } }
+}
+struct Node { id: String, addr: String }
+
+fn heavy_computation(data: Vec<u8>) -> Vec<u8> { data }
+fn aggregate_results(results: Vec<Vec<TaskResult>>) -> Vec<ProcessedRecord> { vec![] }
+fn generate_test_data() -> Vec<u8> { vec![0; 100] }
+fn random_index(max: usize) -> usize { 0 }
+
+use std::sync::atomic::{AtomicU32, Ordering}
+use std::collections::HashMap
+use std::time::{Duration, Instant}

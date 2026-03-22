@@ -1,0 +1,205 @@
+// Agent Basics - Defining and Using Agents
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates how to define agents with capabilities,
+// constraints, and behaviors.
+
+module Main
+
+import std::io
+import std::ensemble::{Agent, spawn}
+
+/// A simple greeting agent.
+agent Greeter {
+    capabilities: [generate_greeting],
+    constraints: [polite, appropriate],
+
+    /// Generate a personalized greeting.
+    fn greet(name: String) -> String {
+        format("Hello, {}! Welcome to Ensemble.", name)
+    }
+
+    /// Generate a farewell.
+    fn farewell(name: String) -> String {
+        format("Goodbye, {}! See you next time.", name)
+    }
+}
+
+/// A calculator agent with math capabilities.
+agent Calculator {
+    capabilities: [add, subtract, multiply, divide],
+    constraints: [accurate, handle_division_by_zero],
+
+    fn add(a: f64, b: f64) -> f64 { a + b }
+    fn subtract(a: f64, b: f64) -> f64 { a - b }
+    fn multiply(a: f64, b: f64) -> f64 { a * b }
+
+    fn divide(a: f64, b: f64) -> Result<f64, Error> {
+        if b == 0.0 {
+            Err(Error::DivisionByZero)
+        } else {
+            Ok(a / b)
+        }
+    }
+}
+
+/// A weather agent that fetches weather data.
+agent WeatherAgent {
+    capabilities: [fetch_weather, forecast],
+    constraints: [use_reliable_sources, include_confidence],
+    model: "weather-predictor-v1",
+
+    /// Get current weather for a location.
+    fn current(location: String) -> WeatherReport {
+        let data = fetch_weather_data(location)
+        WeatherReport {
+            location,
+            temperature: data.temp,
+            conditions: data.conditions,
+            humidity: data.humidity,
+            confidence: 0.95,
+        }
+    }
+
+    /// Get weather forecast.
+    fn forecast(location: String, days: u32) -> Vec<DailyForecast> {
+        (1..=days).map(|day| {
+            let prediction = predict_weather(location, day)
+            DailyForecast {
+                day,
+                high: prediction.high,
+                low: prediction.low,
+                conditions: prediction.conditions,
+                confidence: 0.9 - (day as f64 * 0.05),  // Confidence decreases with time
+            }
+        }).collect()
+    }
+}
+
+/// Agent with lifecycle hooks.
+agent LifecycleDemo {
+    capabilities: [process],
+    state: AgentState,
+
+    /// Called when agent is spawned.
+    fn on_spawn(&mut self) {
+        io::println("Agent spawned!")
+        self.state = AgentState::Ready
+    }
+
+    /// Called before agent is terminated.
+    fn on_shutdown(&mut self) {
+        io::println("Agent shutting down...")
+        self.cleanup()
+    }
+
+    /// Main processing function.
+    fn process(&self, input: Input) -> Output {
+        io::println("Processing input...")
+        transform(input)
+    }
+
+    fn cleanup(&mut self) {
+        // Release resources
+    }
+}
+
+/// Agent with configurable parameters.
+agent ConfigurableAgent {
+    capabilities: [process],
+    config: AgentConfig,
+
+    /// Create with custom configuration.
+    fn new(config: AgentConfig) -> Self {
+        ConfigurableAgent { config }
+    }
+
+    fn process(&self, data: Data) -> Result {
+        // Use configuration
+        if data.size > self.config.max_size {
+            return Err(Error::TooLarge)
+        }
+        process_with_options(data, self.config.options)
+    }
+}
+
+fn main() {
+    io::println("Agent Basics Demo")
+    io::println("=================")
+    io::println("")
+
+    // Spawn agents
+    let greeter = Greeter::spawn()
+    let calculator = Calculator::spawn()
+    let weather = WeatherAgent::spawn()
+
+    // Use greeter
+    io::println(greeter.greet("Alice"))
+    io::println(greeter.farewell("Alice"))
+    io::println("")
+
+    // Use calculator
+    io::println("10 + 5 = ", calculator.add(10.0, 5.0))
+    io::println("10 * 5 = ", calculator.multiply(10.0, 5.0))
+
+    match calculator.divide(10.0, 0.0) {
+        Ok(result) => io::println("10 / 0 = ", result),
+        Err(e) => io::println("Error: ", e),
+    }
+    io::println("")
+
+    // Use weather agent
+    let current = weather.current("New York")
+    io::println("Weather in ", current.location, ":")
+    io::println("  Temperature: ", current.temperature, "F")
+    io::println("  Conditions: ", current.conditions)
+    io::println("  Confidence: ", current.confidence * 100.0, "%")
+    io::println("")
+
+    let forecast = weather.forecast("New York", 3)
+    io::println("3-day forecast:")
+    for day in forecast {
+        io::println("  Day ", day.day, ": ", day.high, "/", day.low, " - ", day.conditions)
+    }
+
+    // Shutdown agents gracefully
+    greeter.shutdown()
+    calculator.shutdown()
+    weather.shutdown()
+}
+
+// Type definitions
+struct WeatherReport {
+    location: String,
+    temperature: f64,
+    conditions: String,
+    humidity: f64,
+    confidence: f64,
+}
+
+struct DailyForecast {
+    day: u32,
+    high: f64,
+    low: f64,
+    conditions: String,
+    confidence: f64,
+}
+
+struct AgentConfig {
+    max_size: usize,
+    options: Options,
+}
+
+enum AgentState { Ready, Processing, Shutdown }
+
+fn fetch_weather_data(loc: String) -> WeatherData { WeatherData::default() }
+fn predict_weather(loc: String, day: u32) -> Prediction { Prediction::default() }
+fn transform(input: Input) -> Output { Output {} }
+fn process_with_options(data: Data, opts: Options) -> Result { Ok(()) }
+
+struct WeatherData { temp: f64, conditions: String, humidity: f64 }
+struct Prediction { high: f64, low: f64, conditions: String }
+struct Input {}
+struct Output {}
+struct Data { size: usize }
+struct Options {}

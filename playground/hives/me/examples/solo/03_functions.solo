@@ -1,0 +1,52 @@
+// Functions and Parameters
+
+// Simple function
+fn greet(name: str) -> str {
+    return "Hello, " + name + "!";
+}
+
+// Function with multiple parameters
+fn add(a: i32, b: i32) -> i32 {
+    return a + b;
+}
+
+// Expression-based return (no semicolon)
+fn multiply(a: i32, b: i32) -> i32 {
+    a * b  // Last expression is returned
+}
+
+// Generic function
+fn swap<T>(a: T, b: T) -> (T, T) {
+    (b, a)
+}
+
+// Function with default parameters
+fn power(base: i32, exponent: i32 = 2) -> i32 {
+    let mut result = 1;
+    for i in 0..exponent {
+        result = result * base;
+    }
+    result
+}
+
+// Higher-order function
+fn apply<T, U>(f: fn(T) -> U, value: T) -> U {
+    f(value)
+}
+
+fn double(x: i32) -> i32 {
+    x * 2
+}
+
+fn main() {
+    let greeting = greet("Alice");
+    let sum = add(10, 20);
+    let product = multiply(5, 6);
+
+    let (x, y) = swap(1, 2);
+
+    let squared = power(5);  // Uses default exponent
+    let cubed = power(5, 3);
+
+    let result = apply(double, 21);  // result = 42
+}

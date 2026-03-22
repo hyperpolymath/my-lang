@@ -1,0 +1,12 @@
+// Hello World - The Classic First Program in Solo
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+module Main
+
+import std::io
+
+/// Entry point demonstrating basic Solo syntax.
+fn main() {
+    io::println("Hello, World!")
+    io::println("Welcome to Solo - Systems Programming Foundation")
+}

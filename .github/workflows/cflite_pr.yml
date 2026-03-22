@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+<<<<<<< HEAD
+name: ClusterFuzzLite PR
+=======
+name: ClusterFuzzLite PR Fuzzing
+>>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
+on:
+  pull_request:
+    paths:
+      - '**/*.rs'
+<<<<<<< HEAD
+permissions: read-all
+jobs:
+  PR:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address, undefined]
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          sanitizer: ${{ matrix.sanitizer }}
+=======
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+permissions: read-all
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+>>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
+          language: rust
+      - uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fuzz-seconds: 300
+<<<<<<< HEAD
+          sanitizer: ${{ matrix.sanitizer }}
+          mode: code-change
+          output-sarif: true
+      - uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3
+        if: always()
+        with:
+          sarif_file: vulnerabilities.sarif
+=======
+>>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117

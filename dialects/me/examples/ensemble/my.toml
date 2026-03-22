@@ -1,0 +1,44 @@
+# Ensemble Configuration (Variant B)
+
+[ensemble]
+mode = "collaborative"
+
+[[ensemble.agents]]
+name = "reporter"
+role = "research"
+model = "claude-3-opus"
+capabilities = ["web_search", "data_analysis", "source_verification"]
+
+[[ensemble.agents]]
+name = "editor"
+role = "editing"
+model = "claude-3-sonnet"
+capabilities = ["grammar_check", "style_improvement", "clarity_enhancement"]
+
+[[ensemble.agents]]
+name = "fact_checker"
+role = "verification"
+model = "claude-3-opus"
+capabilities = ["fact_verification", "source_credibility", "belief_fusion"]
+
+[[ensemble.agents]]
+name = "publisher"
+role = "publication"
+model = "claude-3-haiku"
+capabilities = ["formatting", "distribution", "social_media"]
+
+[ensemble.coordination]
+strategy = "sequential"
+consensus_threshold = 0.85
+timeout_seconds = 300
+
+[ensemble.workflows.newroom]
+stages = ["reporter", "editor", "fact_checker", "publisher"]
+data_flow = "sequential"
+belief_fusion = "dempster_shafer"
+error_handling = "retry_with_backoff"
+
+[ensemble.monitoring]
+enable_tracing = true
+log_level = "debug"
+metrics_enabled = true

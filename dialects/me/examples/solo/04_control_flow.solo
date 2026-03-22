@@ -1,0 +1,76 @@
+// Control Flow: if, match, loops
+
+fn main() {
+    // If expressions
+    let x = 10;
+    let result = if x > 5 {
+        "large"
+    } else {
+        "small"
+    };
+
+    // If-else chain
+    let grade = 85;
+    let letter = if grade >= 90 {
+        'A'
+    } else if grade >= 80 {
+        'B'
+    } else if grade >= 70 {
+        'C'
+    } else {
+        'F'
+    };
+
+    // Match expression (pattern matching)
+    let number = 7;
+    let description = match number {
+        1 => "one",
+        2 | 3 | 5 | 7 => "prime",
+        4 | 6 | 8 | 9 => "composite",
+        _ => "unknown"
+    };
+
+    // Match with guards
+    let value = 42;
+    match value {
+        n if n < 0 => println("negative"),
+        n if n == 0 => println("zero"),
+        n if n > 0 => println("positive"),
+        _ => unreachable()
+    };
+
+    // Loops
+    let mut count = 0;
+    loop {
+        count = count + 1;
+        if count >= 10 {
+            break;
+        }
+    }
+
+    // While loop
+    let mut i = 0;
+    while i < 5 {
+        println(i);
+        i = i + 1;
+    }
+
+    // For loop (range)
+    for i in 0..10 {
+        println(i);
+    }
+
+    // For loop with array
+    let numbers = [1, 2, 3, 4, 5];
+    for num in numbers {
+        println(num);
+    }
+
+    // Break with value
+    let result = loop {
+        count = count + 1;
+        if count > 20 {
+            break count;
+        }
+    };
+}

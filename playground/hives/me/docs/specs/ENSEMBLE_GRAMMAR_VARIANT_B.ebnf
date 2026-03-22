@@ -1,0 +1,436 @@
+(*
+  Ensemble Language Grammar - VARIANT B (Mode-Based)
+
+  This variant treats Ensemble as a mode/configuration rather than
+  language constructs. Agents are external AI assistants configured
+  through my.toml, not language-level declarations.
+
+  Version: 1.0.0
+  Last Updated: 2025-11-22
+
+  Base: DUET_GRAMMAR.ebnf (all Duet constructs are inherited)
+*)
+
+(* ========== Ensemble Mode - Configuration-Based Approach ========== *)
+
+(*
+  Ensemble Variant B: Mode-Based Multi-Agent Collaboration
+
+  In this variant, Ensemble is NOT a distinct dialect with new syntax.
+  Instead, it's a MODE that is activated via configuration (my.toml).
+
+  Agents are external AI assistants (the "colored octopuses" mentioned
+  in the glossary) that collaborate on Duet code, not language constructs.
+
+  The language itself remains Duet, with some additional pragmas and
+  attributes for multi-agent coordination hints.
+*)
+
+(* ========== Ensemble Pragmas ========== *)
+
+ensemble_pragma =
+    "#" "!" "[" "ensemble" [ "(" ensemble_config ")" ] "]"
+    ;
+
+ensemble_config = ensemble_param { "," ensemble_param } [ "," ] ;
+
+ensemble_param =
+    | "mode" "=" ensemble_mode
+    | "agents" "=" agent_list_literal
+    | "coordination" "=" coordination_mode
+    | "verbosity" "=" verbosity_level
+    ;
+
+ensemble_mode =
+    | "collaborative"                 (* agents work together *)
+    | "competitive"                   (* agents compete *)
+    | "hierarchical"                  (* one agent leads *)
+    | "peer_to_peer"                  (* equal collaboration *)
+    ;
+
+agent_list_literal = "[" string_literal { "," string_literal } "]" ;
+
+coordination_mode =
+    | "consensus"
+    | "voting"
+    | "delegation"
+    | "parallel"
+    ;
+
+verbosity_level = "silent" | "minimal" | "normal" | "verbose" | "debug" ;
+
+(* ========== Agent Assignment Hints ========== *)
+
+(*
+  These attributes suggest which external agent should handle a task,
+  but agents themselves are not defined in the language.
+*)
+
+agent_hint_attr =
+    "#" "[" "agent" "(" agent_role ")" "]"
+    ;
+
+agent_role =
+    | string_literal                  (* role name like "reviewer", "optimizer" *)
+    | "any"                          (* any available agent *)
+    ;
+
+agent_preference_attr =
+    "#" "[" "prefer_agent" "(" string_literal [ "," preference_params ] ")" "]"
+    ;
+
+preference_params = preference_param { "," preference_param } [ "," ] ;
+
+preference_param =
+    | "expertise" "=" string_literal
+    | "priority" "=" integer_literal
+    ;
+
+(* ========== Collaboration Annotations ========== *)
+
+collaborate_attr =
+    "#" "[" "collaborate" [ "(" collaborate_params ")" ] "]"
+    ;
+
+collaborate_params = collaborate_param { "," collaborate_param } [ "," ] ;
+
+collaborate_param =
+    | "strategy" "=" collaboration_strategy
+    | "timeout" "=" integer_literal
+    | "required_consensus" "=" float_literal
+    ;
+
+collaboration_strategy =
+    | "parallel_review"               (* all agents review in parallel *)
+    | "sequential_refinement"         (* agents refine in sequence *)
+    | "divide_and_conquer"           (* split work among agents *)
+    | "debate"                       (* agents debate solutions *)
+    ;
+
+(* ========== Review and Validation Hints ========== *)
+
+review_attr =
+    "#" "[" "review_by" "(" agent_roles ")" "]"
+    ;
+
+agent_roles = string_literal { "," string_literal } [ "," ] ;
+
+validate_attr =
+    "#" "[" "validate_by" "(" agent_roles [ "," validation_criteria ] ")" "]"
+    ;
+
+validation_criteria = validation_criterion { "," validation_criterion } [ "," ] ;
+
+validation_criterion =
+    | "correctness"
+    | "performance"
+    | "security"
+    | "style"
+    | "documentation"
+    | string_literal                  (* custom criterion *)
+    ;
+
+(* ========== Multi-Agent Synthesis ========== *)
+
+(*
+  Extends Duet's @synth with multi-agent collaboration
+*)
+
+multi_agent_synth =
+    "@synth" "(" synth_params "," "ensemble" ":" ensemble_synth_config ")"
+    ;
+
+ensemble_synth_config =
+    "{" { ensemble_synth_param } "}"
+    ;
+
+ensemble_synth_param =
+    | "num_agents" ":" integer_literal
+    | "diversity" ":" float_literal   (* how different should approaches be *)
+    | "selection" ":" selection_method
+    | identifier ":" expression
+    ;
+
+selection_method =
+    | "best"                          (* select best solution *)
+    | "voting"                        (* agents vote *)
+    | "hybrid"                        (* combine solutions *)
+    | expression                      (* custom selection function *)
+    ;
+
+(* ========== Multi-Agent Verification ========== *)
+
+(*
+  Extends Duet's @verify with multi-agent checking
+*)
+
+multi_agent_verify =
+    "@verify" "(" verify_params "," "ensemble" ":" ensemble_verify_config ")"
+    ;
+
+ensemble_verify_config =
+    "{" { ensemble_verify_param } "}"
+    ;
+
+ensemble_verify_param =
+    | "num_agents" ":" integer_literal
+    | "agreement_threshold" ":" float_literal
+    | "conflict_resolution" ":" conflict_resolution_method
+    | identifier ":" expression
+    ;
+
+conflict_resolution_method =
+    | "majority"
+    | "expert_weighted"
+    | "confidence_weighted"
+    | expression                      (* custom resolution *)
+    ;
+
+(* ========== Workflow Annotations ========== *)
+
+(*
+  Workflow is expressed as comments/attributes that external
+  orchestrator reads, not as language constructs.
+*)
+
+workflow_attr =
+    "#" "[" "workflow" "(" workflow_spec ")" "]"
+    ;
+
+workflow_spec =
+    "{" { workflow_step } "}"
+    ;
+
+workflow_step =
+    string_literal ":" workflow_step_config
+    ;
+
+workflow_step_config =
+    "{" { workflow_step_param } "}"
+    ;
+
+workflow_step_param =
+    | "agent" ":" string_literal
+    | "depends_on" ":" "[" string_literal { "," string_literal } "]"
+    | "timeout" ":" integer_literal
+    | "optional" ":" bool_literal
+    | identifier ":" expression
+    ;
+
+(* ========== Task Distribution Hints ========== *)
+
+distribute_attr =
+    "#" "[" "distribute" [ "(" distribute_params ")" ] "]"
+    ;
+
+distribute_params = distribute_param { "," distribute_param } [ "," ] ;
+
+distribute_param =
+    | "granularity" "=" granularity_level
+    | "strategy" "=" distribution_strategy
+    ;
+
+granularity_level = "fine" | "medium" | "coarse" ;
+
+distribution_strategy =
+    | "balanced"                      (* balance load across agents *)
+    | "specialized"                   (* route to specialized agents *)
+    | "redundant"                     (* multiple agents for reliability *)
+    ;
+
+(* ========== Consensus Requirements ========== *)
+
+require_consensus_attr =
+    "#" "[" "require_consensus" [ "(" consensus_config ")" ] "]"
+    ;
+
+consensus_config =
+    "{" { consensus_param } "}"
+    ;
+
+consensus_param =
+    | "threshold" ":" float_literal
+    | "timeout" ":" integer_literal
+    | "fallback" ":" fallback_action
+    ;
+
+fallback_action =
+    | "use_any"
+    | "retry"
+    | "abort"
+    | expression                      (* custom fallback *)
+    ;
+
+(* ========== Agent Communication (External) ========== *)
+
+(*
+  These are library functions, not language constructs.
+  They're part of the std::ensemble module.
+*)
+
+(*
+  Example usage (as regular Duet code):
+
+  import std::ensemble::{broadcast, gather, coordinate};
+
+  fn process_with_agents() {
+      let task = create_task();
+
+      // Broadcast to external agents
+      let handle = broadcast(task, agents: ["agent1", "agent2"]);
+
+      // Gather results
+      let results = gather(handle, timeout: 30);
+
+      // Coordinate responses
+      let final_result = coordinate(results, strategy: "consensus");
+  }
+
+  No special syntax needed - just library calls.
+*)
+
+(* ========== Extended Attributes (Ensemble Mode) ========== *)
+
+ensemble_attribute =
+    | ensemble_pragma
+    | agent_hint_attr
+    | agent_preference_attr
+    | collaborate_attr
+    | review_attr
+    | validate_attr
+    | workflow_attr
+    | distribute_attr
+    | require_consensus_attr
+    ;
+
+(* ========== Configuration File (my.toml) ========== *)
+
+(*
+  The actual Ensemble configuration lives in my.toml, not in code:
+
+  [ensemble]
+  mode = "collaborative"
+
+  [[ensemble.agents]]
+  name = "reporter"
+  role = "research"
+  model = "claude-3-opus"
+  capabilities = ["web_search", "data_analysis"]
+
+  [[ensemble.agents]]
+  name = "editor"
+  role = "review"
+  model = "claude-3-sonnet"
+  capabilities = ["fact_checking", "style_review"]
+
+  [[ensemble.agents]]
+  name = "publisher"
+  role = "publication"
+  model = "claude-3-haiku"
+  capabilities = ["formatting", "distribution"]
+
+  [ensemble.coordination]
+  strategy = "sequential"
+  consensus_threshold = 0.8
+
+  [ensemble.workflows.newroom]
+  stages = ["reporter", "editor", "fact_checker", "publisher"]
+  data_flow = "sequential"
+  belief_fusion = "dempster_shafer"
+*)
+
+(* ========== Integration with Duet ========== *)
+
+(*
+  In Ensemble mode (Variant B):
+
+  - The LANGUAGE is unchanged from Duet
+  - Ensemble is a RUNTIME MODE configured externally
+  - Agents are EXTERNAL PROCESSES, not language constructs
+  - Coordination happens through standard library and tooling
+  - Attributes provide HINTS to the orchestrator
+
+  expression ::= duet_expression (no change)
+  top_level_item ::= duet_top_level_item (no change)
+  attribute ::= duet_attribute | ensemble_attribute
+
+  Standard library additions:
+  - std::ensemble module with coordination functions
+  - Agent communication through message passing APIs
+  - Workflow orchestration through external tools
+*)
+
+(* ========== Reserved Keywords (Ensemble Variant B) ========== *)
+
+(*
+  No new keywords beyond Duet!
+
+  Ensemble-specific behavior comes from:
+  - Attributes: #[agent(...)] #[collaborate] #[workflow(...)]
+  - Pragmas: #![ensemble(...)]
+  - Standard library: std::ensemble::*
+  - Configuration: my.toml [ensemble] section
+  - External tooling: Ensemble orchestrator runtime
+
+  This keeps the language simple while enabling powerful
+  multi-agent collaboration through tooling.
+*)
+
+(* ========== Semantic Notes ========== *)
+
+(*
+  Variant B Philosophy:
+
+  1. Ensemble is a DEPLOYMENT MODE, not a language feature
+  2. Agents are EXTERNAL AI ASSISTANTS (tooling), not code constructs
+  3. Coordination is LIBRARY-BASED, not syntax-based
+  4. Configuration is DECLARATIVE (my.toml), not imperative
+  5. Same code runs in Solo, Duet, or Ensemble mode
+  6. Attributes provide HINTS, not commands
+  7. Orchestration is RUNTIME behavior, not compile-time
+
+  Advantages:
+  - Simpler language (no new syntax)
+  - Same code works in all modes
+  - Easier to evolve orchestration strategies
+  - Clear separation of concerns
+  - Tooling can be upgraded independently
+
+  Disadvantages:
+  - Less explicit in code
+  - Harder to reason about at language level
+  - Requires external configuration
+  - Coordination logic is less visible
+*)
+
+(* ========== Comparison: Variant A vs Variant B ========== *)
+
+(*
+  VARIANT A (Agent-as-Construct):
+  ================================
+  Pro: Explicit, type-safe, language-level reasoning
+  Pro: Coordination logic visible in code
+  Pro: Compiler can optimize agent interactions
+  Pro: Better IDE support and static analysis
+  Con: More complex language
+  Con: Harder to evolve coordination strategies
+  Con: Tighter coupling between code and deployment
+
+  VARIANT B (Mode-Based):
+  ======================
+  Pro: Simpler language (just Duet + attributes)
+  Pro: Same code runs in all modes
+  Pro: Easier to experiment with orchestration
+  Pro: Clear separation: code vs. deployment
+  Con: Less explicit coordination
+  Con: Harder to type-check multi-agent interactions
+  Con: Requires external configuration
+  Con: Runtime-only validation of agent workflows
+
+  RECOMMENDATION:
+  ===============
+  Start with Variant B for simplicity, optionally evolve
+  to Variant A if type-safe agent coordination proves
+  essential. Consider hybrid: Variant B as default,
+  Variant A as opt-in for critical workflows.
+*)

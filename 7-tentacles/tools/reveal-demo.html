@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seven Tentacles - Progressive Reveal Demo</title>
+    <style>
+        :root {
+            --red: #E74C3C;
+            --orange: #E67E22;
+            --yellow: #F1C40F;
+            --green: #2ECC71;
+            --blue: #3498DB;
+            --indigo: #9B59B6;
+            --violet: #8E44AD;
+            --ocean-dark: #1a1a2e;
+            --ocean-mid: #16213e;
+            --ocean-light: #0f3460;
+            --text-light: #eee;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, var(--ocean-dark) 0%, var(--ocean-mid) 50%, var(--ocean-light) 100%);
+            min-height: 100vh;
+            color: var(--text-light);
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .age-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .age-btn {
+            padding: 15px 25px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .age-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .age-btn.active {
+            background: rgba(255,255,255,0.3);
+            border-color: white;
+            font-weight: bold;
+        }
+
+        .stage-display {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stage-name {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .stage-mascot {
+            font-size: 4rem;
+            margin: 20px 0;
+        }
+
+        .stage-language {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .agent-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.15);
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .agent-emoji {
+            font-size: 2.5rem;
+        }
+
+        .agent-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .agent-role {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .agent-teaches {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .reveal-section {
+            background: rgba(255,200,50,0.2);
+            border: 2px solid var(--yellow);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .reveal-section.visible {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .reveal-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--yellow);
+        }
+
+        .reveal-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .big-reveal {
+            background: linear-gradient(135deg, rgba(231,76,60,0.2), rgba(155,89,182,0.2));
+            border: 3px solid white;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .big-reveal h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.6;
+            font-size: 0.9rem;
+        }
+
+        .journey-line {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .journey-line::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--red), var(--orange), var(--yellow), var(--green), var(--blue), var(--indigo), var(--violet));
+            z-index: 0;
+        }
+
+        .journey-stage {
+            background: var(--ocean-dark);
+            padding: 15px 20px;
+            border-radius: 50%;
+            z-index: 1;
+            font-size: 2rem;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .journey-stage.current {
+            border-color: white;
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Seven Tentacles</h1>
+        <p class="subtitle">Progressive Reveal Demo - Watch concepts evolve as learners grow!</p>
+
+        <div class="age-selector">
+            <button class="age-btn" data-age="8">Age 8</button>
+            <button class="age-btn" data-age="10">Age 10</button>
+            <button class="age-btn active" data-age="12">Age 12</button>
+            <button class="age-btn" data-age="13">Age 13</button>
+            <button class="age-btn" data-age="14">Age 14</button>
+            <button class="age-btn" data-age="15">Age 15</button>
+            <button class="age-btn" data-age="16">Age 16</button>
+            <button class="age-btn" data-age="18">Age 18</button>
+        </div>
+
+        <div class="journey-line">
+            <div class="journey-stage" data-stage="cuttle" title="Cuttle (Ages 8-12)">🐚</div>
+            <div class="journey-stage" data-stage="squidlet" title="Squidlet (Ages 13-14)">🦑</div>
+            <div class="journey-stage" data-stage="duet" title="Duet (Age 15)">🦑🦑</div>
+            <div class="journey-stage" data-stage="octopus" title="Octopus (Ages 16+)">🐙</div>
+        </div>
+
+        <div class="stage-display">
+            <div class="stage-name" id="stageName">Cuttle Stage</div>
+            <div class="stage-mascot" id="stageMascot">🐚</div>
+            <div class="stage-language" id="stageLanguage">Me Language - Visual blocks that snap together!</div>
+        </div>
+
+        <div class="reveal-section" id="revealSection">
+            <h3 class="reveal-title">🌟 Stage Transition Reveal!</h3>
+            <div class="reveal-text" id="revealText"></div>
+        </div>
+
+        <div class="reveal-section big-reveal" id="bigReveal">
+            <h2>🎉 THE BIG REVEAL! 🎉</h2>
+            <div class="reveal-text">
+                <p>You've been learning <strong>COMPILER ARCHITECTURE</strong> for 8 years!</p>
+                <br>
+                <p>🔴 Speedy Red taught you <strong>PARSING</strong></p>
+                <p>🟠 Juggler Orange taught you <strong>CONCURRENCY</strong></p>
+                <p>🟡 Safety Yellow taught you <strong>TYPE SYSTEMS</strong></p>
+                <p>🟢 Builder Green taught you <strong>AST ARCHITECTURE</strong></p>
+                <p>🔵 Detective Blue taught you <strong>VERIFICATION</strong></p>
+                <p>🟣 Magic Indigo taught you <strong>METAPROGRAMMING</strong></p>
+                <p>🟤 Teacher Violet taught you <strong>LANGUAGE DESIGN</strong></p>
+                <br>
+                <p><em>Welcome to the Octopus stage. Build your own compiler!</em></p>
+            </div>
+        </div>
+
+        <div class="agents-grid" id="agentsGrid">
+            <!-- Agents will be populated by JavaScript -->
+        </div>
+
+        <div class="footer">
+            Seven Tentacles Educational Framework - Teaching Compiler Architecture Ages 8-18
+        </div>
+    </div>
+
+    <script>
+        // Agent data
+        const agents = [
+            {
+                color: 'red',
+                emoji: '🔴',
+                names: {
+                    cuttle: 'Speedy Red',
+                    squidlet: 'Fast Finder Red',
+                    duet: 'Performance Agent Red',
+                    octopus: 'Performance Agent Red'
+                },
+                role: 'The Parser',
+                teaches: {
+                    cuttle: 'Racing games, obstacle courses, pattern matching',
+                    squidlet: 'Algorithmic complexity, optimization strategies',
+                    duet: 'Recursive descent, syntax trees, grammar',
+                    octopus: 'Full parser implementation, lexer design'
+                }
+            },
+            {
+                color: 'orange',
+                emoji: '🟠',
+                names: {
+                    cuttle: 'Juggler Orange',
+                    squidlet: 'Event Orange',
+                    duet: 'Concurrency Agent Orange',
+                    octopus: 'Concurrency Orchestrator Orange'
+                },
+                role: 'The Concurrency Engine',
+                teaches: {
+                    cuttle: 'Juggling games, coordination challenges',
+                    squidlet: 'Event systems, queues, scheduling',
+                    duet: 'Promises, async/await, race conditions',
+                    octopus: 'Scheduler architecture, execution models'
+                }
+            },
+            {
+                color: 'yellow',
+                emoji: '🟡',
+                names: {
+                    cuttle: 'Safety Yellow',
+                    squidlet: 'Checker Yellow',
+                    duet: 'Type System Yellow',
+                    octopus: 'Safety Guarantor Yellow'
+                },
+                role: 'The Type System',
+                teaches: {
+                    cuttle: 'Sorting games, classification games',
+                    squidlet: 'Type checking, contracts, invariants',
+                    duet: 'Type inference, affine types, linear logic',
+                    octopus: 'Formal verification, theorem proving'
+                }
+            },
+            {
+                color: 'green',
+                emoji: '🟢',
+                names: {
+                    cuttle: 'Builder Green',
+                    squidlet: 'Maker Green',
+                    duet: 'Structure Agent Green',
+                    octopus: 'Code Architecture Specialist Green'
+                },
+                role: 'The AST Architect',
+                teaches: {
+                    cuttle: 'Construction games, building structures',
+                    squidlet: 'Tree structures, data representation',
+                    duet: 'Abstract syntax trees, IR, code generation',
+                    octopus: 'Intermediate representations, optimization'
+                }
+            },
+            {
+                color: 'blue',
+                emoji: '🔵',
+                names: {
+                    cuttle: 'Detective Blue',
+                    squidlet: 'Tracker Blue',
+                    duet: 'Verification Agent Blue',
+                    octopus: 'Verification Oracle Blue'
+                },
+                role: 'The Auditor',
+                teaches: {
+                    cuttle: 'Mystery games, detective puzzles',
+                    squidlet: 'Logging, tracing, execution traces',
+                    duet: 'Formal verification, Hoare logic',
+                    octopus: 'Theorem proving, formal semantics'
+                }
+            },
+            {
+                color: 'indigo',
+                emoji: '🟣',
+                names: {
+                    cuttle: 'Magic Indigo',
+                    squidlet: 'Spell Indigo',
+                    duet: 'Metaprogramming Wizard Indigo',
+                    octopus: 'Compile-Time Execution Master Indigo'
+                },
+                role: 'The Metaprogrammer',
+                teaches: {
+                    cuttle: 'Alchemy games, spell-casting games',
+                    squidlet: 'Macros, templating, code generation',
+                    duet: 'Compile-time evaluation, staged computation',
+                    octopus: 'Partial evaluation, supercompilation'
+                }
+            },
+            {
+                color: 'violet',
+                emoji: '🟤',
+                names: {
+                    cuttle: 'Teacher Violet',
+                    squidlet: 'Judge Violet',
+                    duet: 'Language Designer Violet',
+                    octopus: 'Governance Architect Violet'
+                },
+                role: 'The Governance System',
+                teaches: {
+                    cuttle: 'Rule-based games, society-building games',
+                    squidlet: 'Constraints, policies, governance',
+                    duet: 'Language design, DSL creation',
+                    octopus: 'Language philosophy, ethics, accessibility'
+                }
+            }
+        ];
+
+        // Stage data
+        const stages = {
+            cuttle: {
+                name: 'Cuttle Stage',
+                mascot: '🐚',
+                language: 'Me Language - Visual blocks that snap together!',
+                ageRange: [8, 12]
+            },
+            squidlet: {
+                name: 'Squidlet Stage',
+                mascot: '🦑',
+                language: 'Solo Language - Text-based code with helpful types!',
+                ageRange: [13, 14]
+            },
+            duet: {
+                name: 'Duet Stage',
+                mascot: '🦑🦑',
+                language: 'Duet Language - Protocols for two agents working together!',
+                ageRange: [15, 15]
+            },
+            octopus: {
+                name: 'Octopus Stage',
+                mascot: '🐙',
+                language: 'Ensemble Language - Full orchestration of all seven agents!',
+                ageRange: [16, 99]
+            }
+        };
+
+        // Get stage from age
+        function getStage(age) {
+            if (age <= 12) return 'cuttle';
+            if (age <= 14) return 'squidlet';
+            if (age === 15) return 'duet';
+            return 'octopus';
+        }
+
+        // Previous stage for reveal
+        function getPreviousStage(stage) {
+            const order = ['cuttle', 'squidlet', 'duet', 'octopus'];
+            const idx = order.indexOf(stage);
+            return idx > 0 ? order[idx - 1] : null;
+        }
+
+        // Update display
+        function updateDisplay(age) {
+            const stage = getStage(age);
+            const stageData = stages[stage];
+            const prevStage = getPreviousStage(stage);
+
+            // Update stage display
+            document.getElementById('stageName').textContent = stageData.name;
+            document.getElementById('stageMascot').textContent = stageData.mascot;
+            document.getElementById('stageLanguage').textContent = stageData.language;
+
+            // Update journey line
+            document.querySelectorAll('.journey-stage').forEach(el => {
+                el.classList.remove('current');
+                if (el.dataset.stage === stage) {
+                    el.classList.add('current');
+                }
+            });
+
+            // Update agents
+            const grid = document.getElementById('agentsGrid');
+            grid.innerHTML = agents.map(agent => `
+                <div class="agent-card" style="border-left: 4px solid var(--${agent.color})">
+                    <div class="agent-header">
+                        <span class="agent-emoji">${agent.emoji}</span>
+                        <div>
+                            <div class="agent-name">${agent.names[stage]}</div>
+                            <div class="agent-role">${agent.role}</div>
+                        </div>
+                    </div>
+                    <div class="agent-teaches">${agent.teaches[stage]}</div>
+                </div>
+            `).join('');
+
+            // Show reveal section if transitioning
+            const revealSection = document.getElementById('revealSection');
+            const bigReveal = document.getElementById('bigReveal');
+
+            if (stage === 'octopus' && age === 16) {
+                revealSection.classList.remove('visible');
+                bigReveal.classList.add('visible');
+            } else if (prevStage && age === stageData.ageRange[0]) {
+                bigReveal.classList.remove('visible');
+                revealSection.classList.add('visible');
+                document.getElementById('revealText').innerHTML = getRevealText(prevStage, stage);
+            } else {
+                revealSection.classList.remove('visible');
+                bigReveal.classList.remove('visible');
+            }
+
+            // Update active button
+            document.querySelectorAll('.age-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.age) === age) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Get reveal text for stage transition
+        function getRevealText(fromStage, toStage) {
+            const reveals = {
+                'cuttle-squidlet': `
+                    <p>🎉 <strong>Congratulations!</strong> You're growing from a Cuttle to a Squidlet!</p>
+                    <br>
+                    <p>Remember all those games you played?</p>
+                    <ul style="margin: 15px 0; padding-left: 20px;">
+                        <li>Speedy Red's racing games? They were teaching you about <strong>algorithms</strong>!</li>
+                        <li>Juggler Orange's coordination? That was <strong>event handling</strong>!</li>
+                        <li>Safety Yellow's sorting? That's <strong>type checking</strong>!</li>
+                    </ul>
+                    <p>Now you'll start seeing how these concepts connect...</p>
+                `,
+                'squidlet-duet': `
+                    <p>🎉 <strong>Amazing progress!</strong> You're entering the Duet stage!</p>
+                    <br>
+                    <p>You've learned so much from each agent. Now they'll work <strong>together</strong>!</p>
+                    <ul style="margin: 15px 0; padding-left: 20px;">
+                        <li>Red and Yellow will <strong>parse and type-check</strong> together</li>
+                        <li>Orange will <strong>schedule</strong> which agent runs when</li>
+                        <li>Green will <strong>build structures</strong> from their work</li>
+                    </ul>
+                    <p>This is how real compilers work!</p>
+                `,
+                'duet-octopus': `
+                    <p>🎉 <strong>You've reached the Octopus stage!</strong></p>
+                    <br>
+                    <p>All seven tentacles are now working together.</p>
+                    <p>You're ready to build <strong>real compilers</strong>!</p>
+                `
+            };
+            return reveals[`${fromStage}-${toStage}`] || '';
+        }
+
+        // Initialize
+        document.querySelectorAll('.age-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                updateDisplay(parseInt(btn.dataset.age));
+            });
+        });
+
+        // Start with age 12
+        updateDisplay(12);
+    </script>
+</body>
+</html>

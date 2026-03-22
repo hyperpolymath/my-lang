@@ -1,0 +1,179 @@
+// Ensemble Language - Main Entry Point
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Ensemble is the AI-native application language of the My-Lang family.
+// It enables multi-agent orchestration with human oversight.
+
+module Main
+
+import std::io
+import std::ensemble::{Agent, Ensemble, Workflow, Consensus}
+
+/// Application entry point for Ensemble programs.
+/// Ensemble coordinates multiple AI agents for complex tasks.
+fn main() -> i32 {
+    io::println("Ensemble - Multi-Agent AI-Native Language")
+    io::println("==========================================")
+    io::println("")
+    io::println("Features:")
+    io::println("  - Agent definition and lifecycle")
+    io::println("  - Multi-agent orchestration")
+    io::println("  - Consensus protocols")
+    io::println("  - Human-in-the-loop oversight")
+    io::println("  - Distributed execution")
+    io::println("  - Auditable decision trails")
+    io::println("")
+    io::println("Part of My-Lang: Me -> Solo -> Duet -> Ensemble")
+
+    0  // Exit code
+}
+
+/// Define a research agent with specific capabilities.
+agent Researcher {
+    capabilities: [web_search, summarize, cite_sources],
+    constraints: [factual_accuracy, source_verification],
+    model: "research-agent-v2",
+
+    /// Research a topic and return a structured report.
+    fn research(topic: String) -> Report {
+        let sources = web_search(topic, limit: 10)
+        let verified = verify_sources(sources)
+        let summary = summarize(verified)
+
+        Report {
+            topic,
+            summary,
+            citations: cite_sources(verified),
+            confidence: calculate_confidence(verified),
+        }
+    }
+}
+
+/// Define an editor agent for content review.
+agent Editor {
+    capabilities: [grammar_check, style_improve, fact_check],
+    constraints: [maintain_meaning, improve_clarity],
+
+    /// Review and improve content.
+    fn review(content: String) -> EditedContent {
+        let grammar_fixed = grammar_check(content)
+        let style_improved = style_improve(grammar_fixed)
+        let fact_checked = fact_check(style_improved)
+
+        EditedContent {
+            original: content,
+            revised: fact_checked,
+            changes: diff(content, fact_checked),
+        }
+    }
+}
+
+/// Define a fact-checker agent.
+agent FactChecker {
+    capabilities: [verify_claims, cross_reference],
+    constraints: [high_accuracy, cite_evidence],
+
+    /// Verify claims in content.
+    fn verify(content: String) -> VerificationResult {
+        let claims = extract_claims(content)
+        let verifications = claims.iter()
+            .map(|claim| (claim, cross_reference(claim)))
+            .collect()
+
+        VerificationResult {
+            verified_claims: verifications.iter().filter(|v| v.1.is_verified).count(),
+            total_claims: claims.len(),
+            details: verifications,
+        }
+    }
+}
+
+/// Create an ensemble of agents for document creation.
+ensemble DocumentWorkflow {
+    agents: [Researcher, Editor, FactChecker],
+
+    /// Workflow for creating verified documents.
+    workflow create_document(topic: String) -> VerifiedDocument {
+        // Step 1: Research
+        let research = Researcher.research(topic)
+
+        // Step 2: Edit (can run in parallel with fact-checking)
+        let edited = Editor.review(research.summary)
+        let verified = FactChecker.verify(research.summary)
+
+        // Step 3: Human approval required
+        let approved = await human_approval(edited, verified)
+
+        if approved {
+            VerifiedDocument {
+                content: edited.revised,
+                verification: verified,
+                research: research,
+                approved_by: current_user(),
+            }
+        } else {
+            // Iterate based on human feedback
+            let feedback = get_human_feedback()
+            create_document_with_feedback(topic, feedback)
+        }
+    }
+}
+
+/// Consensus protocol for agent decisions.
+fn collective_decision(
+    agents: [Agent],
+    question: Query,
+    threshold: f64
+) -> Decision {
+    // Each agent votes
+    let votes = agents.par_map(|agent| agent.vote(question))
+
+    // Attempt consensus
+    let consensus = reach_consensus(votes, threshold)
+
+    match consensus {
+        Consensus::Agreed(decision) => {
+            Decision {
+                outcome: decision,
+                confidence: consensus.confidence,
+                reasoning: merge_reasoning(votes),
+            }
+        }
+        Consensus::Disagreement(positions) => {
+            // Escalate to human when agents disagree
+            escalate_to_human(question, positions)
+        }
+    }
+}
+
+/// Demonstrate agent communication.
+fn agent_communication_example() {
+    let researcher = Researcher::spawn()
+    let editor = Editor::spawn()
+
+    // Agents communicate via channels
+    let (tx, rx) = channel()
+
+    // Researcher produces, Editor consumes
+    researcher.send(tx, ResearchRequest { topic: "AI Safety" })
+
+    let research = rx.recv()
+    let edited = editor.process(research)
+
+    io::println("Collaborative result: ", edited.summary)
+}
+
+/// Distributed agent execution.
+fn distributed_example() {
+    ensemble DistributedSearch {
+        agents: [SearchAgent; 10],  // 10 search agents
+        distribution: "round_robin",
+
+        workflow parallel_search(queries: Vec<String>) -> Vec<SearchResult> {
+            queries.par_map(|query| {
+                let agent = next_available_agent()
+                agent.search(query)
+            })
+        }
+    }
+}

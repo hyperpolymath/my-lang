@@ -1,0 +1,562 @@
+(*
+  Solo Language Grammar (EBNF)
+
+  Solo is the core systems programming language in the My Language family.
+  It features affine types, comptime execution, contracts, and M:N threading.
+
+  Version: 1.0.0
+  Last Updated: 2025-11-22
+*)
+
+(* ========== Program Structure ========== *)
+
+program = { top_level_item } ;
+
+top_level_item =
+    | function_def
+    | struct_def
+    | enum_def
+    | trait_def
+    | impl_block
+    | type_alias
+    | const_def
+    | module_def
+    | import_stmt
+    | comptime_block
+    ;
+
+(* ========== Modules and Imports ========== *)
+
+module_def = "mod" identifier "{" { top_level_item } "}" ;
+
+import_stmt =
+    | "import" module_path
+    | "import" module_path "as" identifier
+    | "import" module_path "{" import_list "}"
+    ;
+
+module_path = identifier { "::" identifier } ;
+import_list = identifier { "," identifier } [ "," ] ;
+
+(* ========== Functions ========== *)
+
+function_def =
+    [ attributes ]
+    [ visibility ]
+    [ "async" ]
+    [ "comptime" ]
+    "fn" identifier
+    [ generic_params ]
+    "(" [ param_list ] ")"
+    [ "->" type_expr ]
+    [ where_clause ]
+    [ contract_clause ]
+    ( block | ";" )
+    ;
+
+param_list = param { "," param } [ "," ] ;
+param = [ "mut" ] identifier ":" type_expr [ "=" expression ] ;
+
+contract_clause = "where" contract_list ;
+contract_list = contract { "," contract } ;
+
+contract =
+    | "pre" expression          (* precondition *)
+    | "post" expression         (* postcondition *)
+    | "invariant" expression    (* invariant *)
+    | "ensures" identifier expression   (* named postcondition *)
+    | "requires" expression     (* requirement *)
+    ;
+
+(* ========== Types ========== *)
+
+type_expr =
+    | primitive_type
+    | identifier [ generic_args ]
+    | tuple_type
+    | array_type
+    | slice_type
+    | reference_type
+    | function_type
+    | affine_type
+    | "(" type_expr ")"
+    ;
+
+primitive_type =
+    | "i8" | "i16" | "i32" | "i64" | "i128" | "isize"
+    | "u8" | "u16" | "u32" | "u64" | "u128" | "usize"
+    | "f32" | "f64"
+    | "bool"
+    | "char"
+    | "str"
+    | "unit"  (* () *)
+    | "never" (* ! *)
+    ;
+
+tuple_type = "(" [ type_expr { "," type_expr } [ "," ] ] ")" ;
+array_type = "[" type_expr ";" expression "]" ;
+slice_type = "[" type_expr "]" ;
+
+reference_type =
+    | "&" [ "mut" ] [ lifetime ] type_expr
+    ;
+
+function_type =
+    "fn" "(" [ type_expr { "," type_expr } ] ")" [ "->" type_expr ]
+    ;
+
+affine_type = "affine" type_expr ;
+
+lifetime = "'" identifier ;
+
+(* ========== Structs ========== *)
+
+struct_def =
+    [ attributes ]
+    [ visibility ]
+    "struct" identifier
+    [ generic_params ]
+    [ where_clause ]
+    ( struct_body | ";" )
+    ;
+
+struct_body =
+    | "{" [ field_list ] "}"        (* named fields *)
+    | "(" [ tuple_field_list ] ")"  (* tuple struct *)
+    ;
+
+field_list = field { "," field } [ "," ] ;
+field = [ visibility ] identifier ":" type_expr ;
+
+tuple_field_list = tuple_field { "," tuple_field } [ "," ] ;
+tuple_field = [ visibility ] type_expr ;
+
+(* ========== Enums ========== *)
+
+enum_def =
+    [ attributes ]
+    [ visibility ]
+    "enum" identifier
+    [ generic_params ]
+    [ where_clause ]
+    "{" [ variant_list ] "}"
+    ;
+
+variant_list = variant { "," variant } [ "," ] ;
+
+variant =
+    [ attributes ]
+    identifier
+    [ variant_body ]
+    [ "=" expression ]  (* discriminant *)
+    ;
+
+variant_body =
+    | "{" [ field_list ] "}"
+    | "(" [ type_expr { "," type_expr } ] ")"
+    ;
+
+(* ========== Traits ========== *)
+
+trait_def =
+    [ attributes ]
+    [ visibility ]
+    "trait" identifier
+    [ generic_params ]
+    [ ":" trait_bounds ]
+    [ where_clause ]
+    "{" { trait_item } "}"
+    ;
+
+trait_item =
+    | function_def
+    | type_alias
+    | const_def
+    ;
+
+trait_bounds = type_expr { "+" type_expr } ;
+
+impl_block =
+    [ attributes ]
+    "impl" [ generic_params ]
+    [ type_expr "for" ]
+    type_expr
+    [ where_clause ]
+    "{" { impl_item } "}"
+    ;
+
+impl_item =
+    | function_def
+    | type_alias
+    | const_def
+    ;
+
+(* ========== Type Aliases and Constants ========== *)
+
+type_alias =
+    [ visibility ]
+    "type" identifier [ generic_params ] "=" type_expr ";"
+    ;
+
+const_def =
+    [ visibility ]
+    "const" identifier ":" type_expr "=" expression ";"
+    ;
+
+(* ========== Generics ========== *)
+
+generic_params = "<" generic_param_list ">" ;
+generic_param_list = generic_param { "," generic_param } [ "," ] ;
+
+generic_param =
+    | lifetime
+    | identifier [ ":" trait_bounds ]
+    | "const" identifier ":" type_expr
+    ;
+
+generic_args = "<" generic_arg_list ">" ;
+generic_arg_list = generic_arg { "," generic_arg } [ "," ] ;
+
+generic_arg =
+    | lifetime
+    | type_expr
+    | expression  (* const generics *)
+    ;
+
+where_clause = "where" where_predicate_list ;
+where_predicate_list = where_predicate { "," where_predicate } [ "," ] ;
+
+where_predicate =
+    | type_expr ":" trait_bounds
+    | lifetime ":" lifetime { "+" lifetime }
+    ;
+
+(* ========== Statements ========== *)
+
+statement =
+    | let_stmt
+    | expression_stmt
+    | item_stmt
+    ;
+
+let_stmt =
+    "let" [ "mut" ] pattern [ ":" type_expr ] [ "=" expression ] ";"
+    ;
+
+expression_stmt =
+    | expression ";"
+    | expression  (* must be block-like or loop *)
+    ;
+
+item_stmt =
+    | function_def
+    | struct_def
+    | enum_def
+    | trait_def
+    | impl_block
+    ;
+
+(* ========== Expressions ========== *)
+
+expression =
+    | literal
+    | path_expr
+    | block
+    | if_expr
+    | match_expr
+    | loop_expr
+    | while_expr
+    | for_expr
+    | return_expr
+    | break_expr
+    | continue_expr
+    | async_expr
+    | await_expr
+    | comptime_expr
+    | unsafe_expr
+    | closure_expr
+    | tuple_expr
+    | array_expr
+    | struct_expr
+    | call_expr
+    | method_call_expr
+    | field_expr
+    | index_expr
+    | unary_expr
+    | binary_expr
+    | cast_expr
+    | reference_expr
+    | dereference_expr
+    | range_expr
+    | "(" expression ")"
+    ;
+
+(* Literals *)
+
+literal =
+    | integer_literal
+    | float_literal
+    | string_literal
+    | char_literal
+    | bool_literal
+    | "unit"  (* () *)
+    ;
+
+integer_literal = [ "-" ] digit { digit } [ integer_suffix ] ;
+integer_suffix = "i8" | "i16" | "i32" | "i64" | "i128" | "isize"
+               | "u8" | "u16" | "u32" | "u64" | "u128" | "usize" ;
+
+float_literal = [ "-" ] digit { digit } "." { digit } [ exponent ] [ float_suffix ] ;
+exponent = ( "e" | "E" ) [ "+" | "-" ] digit { digit } ;
+float_suffix = "f32" | "f64" ;
+
+string_literal = '"' { string_char } '"' ;
+char_literal = "'" char "'" ;
+bool_literal = "true" | "false" ;
+
+(* Path expressions *)
+
+path_expr = identifier { "::" identifier } [ generic_args ] ;
+
+(* Control flow *)
+
+block = "{" { statement } [ expression ] "}" ;
+
+if_expr =
+    "if" expression block
+    [ "else" ( if_expr | block ) ]
+    ;
+
+match_expr =
+    "match" expression "{"
+        [ match_arm { "," match_arm } [ "," ] ]
+    "}"
+    ;
+
+match_arm =
+    [ attributes ]
+    pattern [ "if" expression ] "=>" ( expression | block )
+    ;
+
+loop_expr = "loop" block ;
+
+while_expr = "while" expression block ;
+
+for_expr = "for" pattern "in" expression block ;
+
+return_expr = "return" [ expression ] ;
+break_expr = "break" [ expression ] ;
+continue_expr = "continue" ;
+
+(* Async/await *)
+
+async_expr = "async" block ;
+await_expr = expression ".await" ;
+
+(* Comptime *)
+
+comptime_expr = "comptime" block ;
+comptime_block = "comptime" "{" { top_level_item } "}" ;
+
+(* Unsafe *)
+
+unsafe_expr = "unsafe" block ;
+
+(* Closures *)
+
+closure_expr =
+    [ "move" ]
+    [ "async" ]
+    "|" [ closure_param_list ] "|"
+    [ "->" type_expr ]
+    ( expression | block )
+    ;
+
+closure_param_list = closure_param { "," closure_param } [ "," ] ;
+closure_param = [ "mut" ] identifier [ ":" type_expr ] ;
+
+(* Compound expressions *)
+
+tuple_expr = "(" [ expression { "," expression } [ "," ] ] ")" ;
+
+array_expr =
+    | "[" [ expression { "," expression } [ "," ] ] "]"
+    | "[" expression ";" expression "]"  (* repeat *)
+    ;
+
+struct_expr =
+    path_expr "{"
+        [ field_init { "," field_init } [ "," ] ]
+        [ ".." expression ]  (* struct update *)
+    "}"
+    ;
+
+field_init = identifier [ ":" expression ] ;
+
+(* Operators *)
+
+call_expr = expression "(" [ expression { "," expression } [ "," ] ] ")" ;
+
+method_call_expr =
+    expression "." identifier
+    [ generic_args ]
+    "(" [ expression { "," expression } [ "," ] ] ")"
+    ;
+
+field_expr = expression "." ( identifier | integer_literal ) ;
+
+index_expr = expression "[" expression "]" ;
+
+unary_expr = unary_op expression ;
+unary_op = "-" | "!" | "*" | "&" | "&mut" ;
+
+binary_expr = expression binary_op expression ;
+binary_op =
+    | "+" | "-" | "*" | "/" | "%"           (* arithmetic *)
+    | "==" | "!=" | "<" | ">" | "<=" | ">=" (* comparison *)
+    | "&&" | "||"                            (* logical *)
+    | "&" | "|" | "^" | "<<" | ">>"         (* bitwise *)
+    | "=" | "+=" | "-=" | "*=" | "/=" | "%=" (* assignment *)
+    | ".."  | "..="                         (* range *)
+    ;
+
+cast_expr = expression "as" type_expr ;
+
+reference_expr = "&" [ "mut" ] expression ;
+dereference_expr = "*" expression ;
+
+range_expr =
+    | expression ".." expression
+    | expression "..=" expression
+    | ".." expression
+    | expression ".."
+    | ".."
+    ;
+
+(* ========== Patterns ========== *)
+
+pattern =
+    | literal_pattern
+    | identifier_pattern
+    | wildcard_pattern
+    | tuple_pattern
+    | struct_pattern
+    | enum_pattern
+    | reference_pattern
+    | or_pattern
+    | "(" pattern ")"
+    ;
+
+literal_pattern = literal ;
+
+identifier_pattern =
+    [ "ref" ] [ "mut" ] identifier [ "@" pattern ]
+    ;
+
+wildcard_pattern = "_" ;
+
+tuple_pattern = "(" [ pattern { "," pattern } [ "," ] ] ")" ;
+
+struct_pattern =
+    path_expr "{"
+        [ field_pattern { "," field_pattern } [ "," ] ]
+        [ ".." ]
+    "}"
+    ;
+
+field_pattern =
+    | identifier
+    | identifier ":" pattern
+    ;
+
+enum_pattern =
+    path_expr [ "(" [ pattern { "," pattern } ] ")" ]
+    ;
+
+reference_pattern = "&" [ "mut" ] pattern ;
+
+or_pattern = pattern { "|" pattern } ;
+
+(* ========== Attributes ========== *)
+
+attributes = { attribute } ;
+
+attribute =
+    | "#" "[" attr_content "]"
+    | "#" "!" "[" attr_content "]"  (* inner attribute *)
+    ;
+
+attr_content =
+    | identifier
+    | identifier "=" literal
+    | identifier "(" [ attr_args ] ")"
+    ;
+
+attr_args = attr_arg { "," attr_arg } [ "," ] ;
+attr_arg = identifier [ "=" expression ] ;
+
+(* ========== Visibility ========== *)
+
+visibility =
+    | "pub"
+    | "pub" "(" "crate" ")"
+    | "pub" "(" "super" ")"
+    | "pub" "(" "in" module_path ")"
+    ;
+
+(* ========== Lexical Elements ========== *)
+
+identifier = ( letter | "_" ) { letter | digit | "_" } ;
+
+letter = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j"
+       | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t"
+       | "u" | "v" | "w" | "x" | "y" | "z"
+       | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J"
+       | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T"
+       | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+string_char = ? any Unicode character except " and \ ? | escape_sequence ;
+char = ? any Unicode character except ' and \ ? | escape_sequence ;
+
+escape_sequence =
+    | "\\" ( "n" | "r" | "t" | "\\" | "'" | '"' | "0" )
+    | "\\x" hex_digit hex_digit
+    | "\\u{" hex_digit { hex_digit } "}"
+    ;
+
+hex_digit = digit | "a" | "b" | "c" | "d" | "e" | "f"
+                  | "A" | "B" | "C" | "D" | "E" | "F" ;
+
+(* ========== Comments ========== *)
+
+comment =
+    | line_comment
+    | block_comment
+    ;
+
+line_comment = "//" { ? any character except newline ? } newline ;
+
+block_comment = "/*" { ? any character ? } "*/" ;
+
+(* ========== Reserved Keywords ========== *)
+
+(*
+    Keywords:
+    as, async, await, break, const, continue, comptime, else, enum,
+    false, fn, for, if, impl, import, in, let, loop, match, mod, move,
+    mut, pub, ref, return, Self, self, static, struct, super, trait,
+    true, type, unsafe, use, where, while,
+
+    Affine-specific:
+    affine, consume, move (has dual meaning)
+
+    Contract-specific:
+    pre, post, invariant, requires, ensures
+
+    Type keywords:
+    i8, i16, i32, i64, i128, isize,
+    u8, u16, u32, u64, u128, usize,
+    f32, f64, bool, char, str, unit, never
+*)

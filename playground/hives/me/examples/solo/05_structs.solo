@@ -1,0 +1,80 @@
+// Structs and Methods
+
+// Named struct
+struct Point {
+    x: i32,
+    y: i32
+}
+
+// Tuple struct
+struct Color(u8, u8, u8);
+
+// Unit struct
+struct Marker;
+
+// Struct with generic types
+struct Container<T> {
+    value: T
+}
+
+// Implementation block
+impl Point {
+    // Associated function (constructor)
+    fn new(x: i32, y: i32) -> Point {
+        Point { x, y }  // Field shorthand
+    }
+
+    // Method (takes self)
+    fn distance_from_origin(&self) -> f64 {
+        ((self.x * self.x + self.y * self.y) as f64).sqrt()
+    }
+
+    // Mutable method
+    fn translate(&mut self, dx: i32, dy: i32) {
+        self.x = self.x + dx;
+        self.y = self.y + dy;
+    }
+
+    // Consuming method (takes ownership)
+    fn into_tuple(self) -> (i32, i32) {
+        (self.x, self.y)
+    }
+}
+
+impl<T> Container<T> {
+    fn new(value: T) -> Container<T> {
+        Container { value }
+    }
+
+    fn get(&self) -> &T {
+        &self.value
+    }
+
+    fn set(&mut self, value: T) {
+        self.value = value;
+    }
+}
+
+fn main() {
+    // Create struct instance
+    let p1 = Point { x: 10, y: 20 };
+    let p2 = Point::new(30, 40);
+
+    // Access fields
+    let x = p1.x;
+
+    // Mutable struct
+    let mut p3 = Point::new(0, 0);
+    p3.translate(5, 10);
+
+    // Tuple struct
+    let red = Color(255, 0, 0);
+    let r = red.0;
+
+    // Struct update syntax
+    let p4 = Point { x: 100, ..p1 };  // y from p1
+
+    // Generic struct
+    let int_container = Container::new(42);
+    let str_container = Container::new("hello");
+}

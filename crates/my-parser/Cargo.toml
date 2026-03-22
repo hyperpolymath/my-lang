@@ -1,0 +1,16 @@
+[package]
+name = "my-parser"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
+license = "PMPL-1.0-or-later"
+description = "Parser scaffolding for My Language Solo/Duet/Ensemble"
+
+[dependencies]
+my-lang = { path = "../my-lang" }
+my-hir = { path = "../my-hir" }
+anyhow = "1.0"
+thiserror = "1.0"
+
+[dev-dependencies]
+pretty_assertions = { version = "1.4" }

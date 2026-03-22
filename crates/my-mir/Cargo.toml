@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+[package]
+name = "my-mir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Mid-level Intermediate Representation (SSA form) for My Language"
+
+[lib]
+name = "my_mir"
+path = "src/lib.rs"
+
+[dependencies]
+my-lang.workspace = true
+my-hir.workspace = true
+my-ai = { path = "../my-ai" }
+thiserror.workspace = true
+anyhow.workspace = true
+serde = { workspace = true }
+petgraph.workspace = true
+tokio.workspace = true

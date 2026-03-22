@@ -1,0 +1,219 @@
+// AI-Human Collaboration Patterns
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates how Duet facilitates productive collaboration
+// between human developers and AI assistants.
+
+module Main
+
+import std::io
+import std::duet::{ai_suggest, ai_review, ai_explain, ai_pair}
+
+/// AI-assisted code review.
+/// AI analyzes code and provides suggestions.
+@ai_review(
+    aspects: ["performance", "security", "readability"],
+    severity_threshold: "medium"
+)
+fn process_user_data(users: &[User]) -> ProcessedData {
+    // AI will analyze this function and suggest improvements
+    let mut result = Vec::new()
+
+    for user in users {
+        // @ai_suggestion: "Consider using filter_map for cleaner code"
+        if user.is_valid() {
+            let processed = transform(user)
+            result.push(processed)
+        }
+    }
+
+    // @ai_warning(security): "Ensure user data is sanitized"
+    ProcessedData { records: result }
+}
+
+/// AI suggests optimizations with human approval.
+@ai_suggest(
+    mode: "optimize",
+    require_approval: true,
+    show_diff: true
+)
+fn compute_statistics(data: &[f64]) -> Statistics {
+    // Original implementation
+    let sum: f64 = data.iter().sum()
+    let mean = sum / data.len() as f64
+
+    let variance: f64 = data.iter()
+        .map(|x| (x - mean).powi(2))
+        .sum::<f64>() / data.len() as f64
+
+    let std_dev = variance.sqrt()
+
+    // AI might suggest: "Use Welford's algorithm for numerical stability"
+    // Human reviews and approves/rejects
+
+    Statistics { mean, std_dev, variance }
+}
+
+/// AI explains complex code.
+@ai_explain(
+    depth: "detailed",
+    audience: "intermediate",
+    include_examples: true
+)
+fn quicksort<T: Ord>(arr: &mut [T]) {
+    // AI generates explanation:
+    // "Quicksort is a divide-and-conquer algorithm...
+    //  1. Choose a pivot element
+    //  2. Partition around pivot
+    //  3. Recursively sort partitions
+    //  Time: O(n log n) average, O(n^2) worst case
+    //  Space: O(log n) for recursion stack"
+
+    if arr.len() <= 1 {
+        return
+    }
+
+    let pivot_idx = partition(arr)
+    quicksort(&mut arr[..pivot_idx])
+    quicksort(&mut arr[pivot_idx + 1..])
+}
+
+/// Pair programming mode with AI.
+@ai_pair(
+    role: "navigator",
+    verbosity: "conversational"
+)
+fn implement_feature() {
+    // AI acts as pair programming partner
+
+    // Human: "I need to implement a caching layer"
+    // AI: "Let's start by defining the cache interface.
+    //      What eviction policy do you prefer - LRU, LFU, or TTL-based?"
+
+    // Human writes code, AI provides real-time feedback
+    struct Cache<K, V> {
+        // AI: "Good structure. Consider adding capacity limit."
+        data: HashMap<K, CacheEntry<V>>,
+        capacity: usize,  // Added based on AI suggestion
+    }
+
+    // AI: "For LRU, we'll need to track access order.
+    //      Should I suggest a data structure?"
+
+    // Human: "Yes"
+    // AI suggests LinkedHashMap or custom doubly-linked list
+}
+
+/// AI helps with test generation.
+@ai_suggest(mode: "generate_tests")
+fn calculate_discount(price: f64, customer_type: CustomerType) -> f64 {
+    match customer_type {
+        CustomerType::Regular => price * 0.95,      // 5% discount
+        CustomerType::Premium => price * 0.85,      // 15% discount
+        CustomerType::VIP => price * 0.75,          // 25% discount
+    }
+}
+
+// AI generates tests:
+// @ai_generated_tests
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_regular_discount() {
+        assert_eq!(calculate_discount(100.0, CustomerType::Regular), 95.0)
+    }
+
+    #[test]
+    fn test_premium_discount() {
+        assert_eq!(calculate_discount(100.0, CustomerType::Premium), 85.0)
+    }
+
+    #[test]
+    fn test_vip_discount() {
+        assert_eq!(calculate_discount(100.0, CustomerType::VIP), 75.0)
+    }
+
+    #[test]
+    fn test_zero_price() {
+        assert_eq!(calculate_discount(0.0, CustomerType::Regular), 0.0)
+    }
+}
+
+/// Interactive debugging with AI assistance.
+fn debug_with_ai() {
+    // When an error occurs, AI helps diagnose
+
+    let result = risky_operation()
+
+    @ai_debug(on_error: true)
+    match result {
+        Ok(value) => process(value),
+        Err(e) => {
+            // AI analyzes error and suggests fixes:
+            // "Error: NullPointerException at line 142
+            //  Likely cause: 'user.profile' is None
+            //  Suggestion: Add null check before accessing profile"
+
+            io::eprintln("Error: ", e)
+        }
+    }
+}
+
+/// AI-assisted refactoring.
+@ai_suggest(
+    mode: "refactor",
+    patterns: ["extract_method", "simplify_conditional", "remove_duplication"]
+)
+fn legacy_function(data: &Data) -> Result {
+    // AI identifies refactoring opportunities:
+
+    // @ai_refactor(extract_method): "Lines 5-15 could be extracted to 'validate_input'"
+    if data.field1.is_empty() || data.field2.is_none() {
+        return Err(Error::InvalidInput)
+    }
+
+    // @ai_refactor(simplify_conditional): "Consider using match or if-let"
+    let value = if data.field2.is_some() {
+        data.field2.unwrap()
+    } else {
+        default_value()
+    }
+
+    // @ai_refactor(remove_duplication): "Similar logic at lines 25 and 35"
+    let result1 = process_step(value, "option_a")
+    let result2 = process_step(value, "option_b")
+
+    Ok(Result { result1, result2 })
+}
+
+fn main() {
+    io::println("AI-Human Collaboration Demo")
+    io::println("===========================")
+    io::println("")
+
+    io::println("Features demonstrated:")
+    io::println("  - @ai_review: Automated code review")
+    io::println("  - @ai_suggest: AI suggestions with human approval")
+    io::println("  - @ai_explain: Code explanation generation")
+    io::println("  - @ai_pair: Pair programming mode")
+    io::println("  - @ai_debug: Assisted debugging")
+    io::println("")
+    io::println("Run examples to see AI collaboration in action!")
+}
+
+// Type definitions
+struct User { valid: bool }
+impl User { fn is_valid(&self) -> bool { self.valid } }
+fn transform(u: &User) -> ProcessedRecord { ProcessedRecord {} }
+struct ProcessedData { records: Vec<ProcessedRecord> }
+struct ProcessedRecord {}
+struct Statistics { mean: f64, std_dev: f64, variance: f64 }
+enum CustomerType { Regular, Premium, VIP }
+struct Data { field1: String, field2: Option<i32> }
+fn partition<T: Ord>(arr: &mut [T]) -> usize { 0 }
+fn risky_operation() -> Result<(), Error> { Ok(()) }
+fn process(v: ()) {}
+fn default_value() -> i32 { 0 }
+fn process_step(v: i32, opt: &str) -> i32 { 0 }
+struct Result { result1: i32, result2: i32 }
+struct Error;

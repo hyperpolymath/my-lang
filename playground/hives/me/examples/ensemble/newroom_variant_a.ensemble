@@ -1,0 +1,205 @@
+// Newroom Journalism Automation (Variant A - Agent as Construct)
+
+agent ReporterAgent {
+    state {
+        persistent topic: str;
+        ephemeral sources: Vec<Source>;
+        shared confidence: f64 where sync: eventual;
+    }
+
+    capabilities {
+        research_topic(topic: str) -> Article: action;
+        verify_facts(article: &Article) -> bool: reasoning;
+        cite_sources() -> Vec<Citation>: action;
+    }
+
+    goals {
+        high investigate: find_newsworthy_stories();
+        medium verify_accuracy: all_facts_verified();
+    }
+
+    communication {
+        publish to "articles" with { format: "json" };
+        subscribe to "story_tips";
+
+        on ArticleRequest from EditorAgent {
+            let article = research_topic(topic);
+            send article to sender;
+        }
+    }
+}
+
+agent EditorAgent {
+    state {
+        persistent style_guide: StyleGuide;
+        ephemeral queue: Vec<Article>;
+    }
+
+    capabilities {
+        edit_article(article: &mut Article): action;
+        check_grammar(text: &str) -> Vec<Issue>: reasoning;
+        improve_clarity(text: str) -> str: action;
+    }
+
+    goals {
+        high maintain_quality: all_articles_meet_standards();
+    }
+
+    communication {
+        on Article from ReporterAgent {
+            let mut article = article;
+            edit_article(&mut article);
+            send article to FactCheckerAgent;
+        }
+    }
+}
+
+agent FactCheckerAgent {
+    state {
+        persistent fact_database: FactDB;
+        shared source_credibility: HashMap<Source, f64>;
+    }
+
+    capabilities {
+        verify_claim(claim: &Claim, sources: &[Source]) -> BeliefMass: reasoning;
+        check_contradiction(claims: &[Claim]) -> Vec<Conflict>: reasoning;
+        aggregate_beliefs(beliefs: &[BeliefMass]) -> f64: reasoning;
+    }
+
+    communication {
+        on Article from EditorAgent {
+            let verification = verify_all_claims(&article);
+
+            // Dempster-Shafer belief fusion
+            let beliefs = article.claims.map(|claim| {
+                verify_claim(claim, &article.sources)
+            });
+
+            let confidence = aggregate_beliefs(&beliefs);
+
+            if confidence >= 0.85 {
+                send (article, confidence) to PublisherAgent;
+            } else {
+                send RejectionNotice to ReporterAgent;
+            }
+        }
+    }
+}
+
+agent PublisherAgent {
+    state {
+        persistent published: Vec<Article>;
+    }
+
+    capabilities {
+        format_for_web(article: &Article) -> Html: action;
+        generate_social_posts(article: &Article) -> Vec<SocialPost>: action;
+        distribute(content: &Content, channels: &[Channel]): action;
+    }
+
+    communication {
+        on (Article, f64) from FactCheckerAgent {
+            let (article, confidence) = message;
+
+            let html = format_for_web(&article);
+            let social = generate_social_posts(&article);
+
+            distribute(&html, &[Channel::Web]);
+            distribute(&social, &[Channel::Twitter, Channel::Facebook]);
+
+            broadcast PublicationNotice {
+                article_id: article.id,
+                confidence: confidence
+            };
+        }
+    }
+}
+
+workflow Newroom {
+    stages {
+        ReporterAgent -> EditorAgent -> FactCheckerAgent -> PublisherAgent
+    }
+
+    coordination {
+        consensus(threshold: 0.85) on fact_verification {
+            // Multiple fact checkers must agree
+        };
+
+        vote on publication_decision
+        with majority {
+            // Editors vote on whether to publish
+        };
+    }
+
+    data_flow {
+        aggregate [reporter_sources, editor_sources, factchecker_sources]
+        as all_sources
+        using belief_fusion(dempster_shafer(
+            confidence_threshold: 0.85,
+            conflict_resolution: "skeptical"
+        ));
+
+        distribute article
+        to [EditorAgent, FactCheckerAgent]
+        strategy: broadcast;
+    }
+
+    error_handling {
+        on VerificationFailure from FactCheckerAgent
+        retry { max_attempts: 3, backoff: exponential(2) };
+
+        on SourceUnavailable
+        fallback to alternative_sources;
+
+        on ContradictoryFacts
+        compensate {
+            notify_human_editor();
+            request_additional_verification();
+        };
+    }
+
+    monitoring {
+        metric article_quality: calculate_quality_score(article)
+        with { window: "1hour", aggregation: "avg" };
+
+        alarm low_confidence
+        when article.confidence < 0.70
+        severity: high {
+            notify_editor();
+            flag_for_review();
+        };
+
+        trace all with { level: "debug" };
+    }
+}
+
+fn main() {
+    // Spawn agents
+    let reporter = spawn ReporterAgent {
+        topic: "technology",
+        priority: high
+    };
+
+    let editor = spawn EditorAgent {
+        style_guide: StyleGuide::load("ap_style.toml")
+    };
+
+    let fact_checker = spawn FactCheckerAgent {
+        fact_database: FactDB::connect("facts.db")
+    };
+
+    let publisher = spawn PublisherAgent;
+
+    // Start workflow
+    let workflow = Newroom::start();
+
+    // Submit story tip
+    send StoryTip {
+        headline: "Major Tech Breakthrough",
+        lead: "..."
+    } to reporter;
+
+    // Wait for publication
+    let article = receive::<PublicationNotice>();
+    println("Published article: " + article.article_id);
+}

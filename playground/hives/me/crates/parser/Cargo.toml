@@ -1,0 +1,9 @@
+[package]
+name = "my-lang-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+my-lang-lexer = { path = "../lexer" }
+my-lang-ast = { path = "../ast" }
+thiserror = "1.0"

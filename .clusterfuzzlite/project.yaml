@@ -1,0 +1,6 @@
+homepage: "https://github.com/hyperpolymath/my-lang"
+language: rust
+main_repo: "https://github.com/hyperpolymath/my-lang"
+sanitizers:
+  - address
+  - undefined

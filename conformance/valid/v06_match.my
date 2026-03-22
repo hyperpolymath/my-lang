@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Conformance: match expression
+
+fn classify(n: Int) -> String {
+    match n {
+        0 => "zero",
+        1 => "one",
+        _ => "other",
+    }
+}
+
+fn main() -> Int {
+    return 0;
+}

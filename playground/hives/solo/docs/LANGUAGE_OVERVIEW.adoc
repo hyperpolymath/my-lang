@@ -1,0 +1,309 @@
+= Solo Language Overview
+:toc: macro
+:icons: font
+:source-highlighter: rouge
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+*Systems Programming Foundation for the My-Lang Family*
+
+toc::[]
+
+== Introduction
+
+Solo is the systems programming foundation of the My-Lang progressive language family. It sits between *Me* (the core language) and *Duet* (the AI-assisted variant), providing low-level control with high-level safety guarantees.
+
+=== Design Philosophy
+
+Solo embraces several key principles:
+
+1. **Memory Safety Without GC**: Linear and affine types provide compile-time memory safety
+2. **Zero-Cost Abstractions**: Safety features have no runtime overhead
+3. **Explicit is Better**: Resources, allocation, and effects are explicit
+4. **Bare Metal Capable**: Direct hardware access when needed
+5. **Verifiable**: Integration with formal verification tools
+
+== Type System
+
+=== Linear Types
+
+Linear types must be used *exactly once*. This ensures resources are never leaked or double-freed.
+
+[source,solo]
+----
+struct File {
+    handle: linear FileHandle,
+}
+
+impl File {
+    // Consuming method - takes ownership
+    fn close(self) {
+        sys::close(self.handle)
+        // handle is consumed here
+    }
+}
+
+fn example() {
+    let f = File::open("data.txt")
+    f.close()  // File consumed
+
+    // f.close()  // COMPILE ERROR: f already consumed
+}
+----
+
+=== Affine Types
+
+Affine types can be used *at most once*. They're more permissive than linear types.
+
+[source,solo]
+----
+struct TempBuffer {
+    data: affine [u8; 1024],
+}
+
+fn example() {
+    let buf = TempBuffer::new()
+
+    if need_buffer {
+        process(buf.take())  // Use the buffer
+    }
+    // OK to drop buf without using - affine allows this
+}
+----
+
+=== Region Types
+
+Region types enable scoped memory management:
+
+[source,solo]
+----
+fn process_data() {
+    region stack {
+        let buffer = [u8; 4096]@stack
+        let result = parse(buffer)@stack
+        // All stack allocations freed when region exits
+    }
+}
+----
+
+== Memory Model
+
+=== Stack Allocation
+
+[source,solo]
+----
+fn stack_example() {
+    let x: i32 = 42           // Stack allocated
+    let arr: [u8; 100] = [0]  // Stack array
+}
+----
+
+=== Heap Allocation
+
+[source,solo]
+----
+fn heap_example() {
+    let boxed = Box::new(LargeStruct { ... })  // Heap allocated
+    let vec = Vec::new()                        // Dynamic heap
+}
+----
+
+=== Region Allocation
+
+[source,solo]
+----
+fn region_example() {
+    let arena = Arena::new(1024 * 1024)  // 1MB arena
+
+    region arena {
+        let a = allocate()@arena
+        let b = allocate()@arena
+        // All arena allocations freed together
+    }
+}
+----
+
+== Compile-Time Execution
+
+Solo supports `comptime` for compile-time function execution:
+
+[source,solo]
+----
+// Computed at compile time
+comptime fn factorial(n: u64) -> u64 {
+    if n <= 1 { 1 } else { n * factorial(n - 1) }
+}
+
+const FACT_10: u64 = comptime { factorial(10) }
+
+// Type-level computation
+comptime fn make_array_type(size: usize) -> Type {
+    [i32; size]
+}
+----
+
+== Contracts
+
+Solo supports design-by-contract programming:
+
+[source,solo]
+----
+fn divide(a: i32, b: i32) -> i32
+    where pre(b != 0),
+          post(result * b == a)
+{
+    a / b
+}
+
+fn binary_search<T: Ord>(arr: &[T], target: &T) -> Option<usize>
+    where pre(is_sorted(arr)),
+          post(result.map(|i| arr[i] == *target).unwrap_or(true))
+{
+    // Implementation
+}
+----
+
+== Systems Programming Features
+
+=== Inline Assembly
+
+[source,solo]
+----
+fn disable_interrupts() {
+    asm!("cli")
+}
+
+fn read_timestamp() -> u64 {
+    let low: u32
+    let high: u32
+    asm!(
+        "rdtsc",
+        out("eax") low,
+        out("edx") high,
+    )
+    ((high as u64) << 32) | (low as u64)
+}
+----
+
+=== Volatile Memory Access
+
+[source,solo]
+----
+fn mmio_write(addr: *mut u32, value: u32) {
+    volatile_store(addr, value)
+}
+
+fn mmio_read(addr: *const u32) -> u32 {
+    volatile_load(addr)
+}
+----
+
+=== FFI
+
+[source,solo]
+----
+extern "C" {
+    fn printf(fmt: *const c_char, ...) -> c_int
+    fn malloc(size: usize) -> *mut c_void
+    fn free(ptr: *mut c_void)
+}
+----
+
+== Module System
+
+[source,solo]
+----
+module Main
+
+// Public imports
+pub use std::io
+pub use std::collections
+
+// Private module
+mod internal {
+    fn helper() { ... }
+}
+
+// Re-export
+pub mod api {
+    pub use super::internal::helper as public_helper
+}
+----
+
+== Error Handling
+
+[source,solo]
+----
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+fn read_file(path: &str) -> Result<String, IoError> {
+    let file = File::open(path)?  // Propagate errors with ?
+    let content = file.read_to_string()?
+    Ok(content)
+}
+
+fn main() {
+    match read_file("data.txt") {
+        Ok(content) => println(content),
+        Err(e) => eprintln("Error: ", e),
+    }
+}
+----
+
+== Concurrency
+
+=== Async/Await
+
+[source,solo]
+----
+async fn fetch_data(url: &str) -> Result<Response, Error> {
+    let conn = TcpStream::connect(url).await?
+    let response = conn.read_response().await?
+    Ok(response)
+}
+
+async fn main() {
+    let result = fetch_data("https://example.com").await
+}
+----
+
+=== Threads
+
+[source,solo]
+----
+fn parallel_compute() {
+    let handle = thread::spawn(|| {
+        expensive_computation()
+    })
+
+    let result = handle.join()
+}
+----
+
+== Relationship to Other My-Lang Dialects
+
+[cols="1,3"]
+|===
+| Dialect | Relationship
+
+| **Me**
+| Core language - Solo inherits basic syntax and type system
+
+| **Solo**
+| Systems programming variant with linear types and low-level control
+
+| **Duet**
+| AI-assisted variant - extends Solo with neural-symbolic constructs
+
+| **Ensemble**
+| Multi-agent variant - extends Duet with agent orchestration
+|===
+
+== Further Reading
+
+* `SOLO_GRAMMAR.ebnf` - Formal grammar specification
+* `examples/` - Working code examples
+* `test/` - Test suite demonstrating language features

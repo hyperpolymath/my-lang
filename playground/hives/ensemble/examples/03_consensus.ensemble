@@ -1,0 +1,336 @@
+// Consensus Protocols
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// Demonstrates how multiple agents reach consensus
+// on decisions with various voting protocols.
+
+module Main
+
+import std::io
+import std::ensemble::{Agent, consensus}
+import std::ensemble::consensus::{majority, weighted, ranked_choice}
+
+/// Expert agent that provides opinions on topics.
+agent Expert {
+    capabilities: [analyze, vote, explain],
+    domain: String,
+    confidence_modifier: f64,
+
+    fn new(domain: String, confidence: f64) -> Expert {
+        Expert {
+            domain,
+            confidence_modifier: confidence,
+        }
+    }
+
+    /// Analyze a question and form an opinion.
+    fn analyze(&self, question: Query) -> Analysis {
+        let relevance = calculate_relevance(question, self.domain)
+        let opinion = form_opinion(question, self.domain)
+
+        Analysis {
+            opinion,
+            confidence: relevance * self.confidence_modifier,
+            reasoning: generate_reasoning(question, opinion),
+        }
+    }
+
+    /// Cast a vote based on analysis.
+    fn vote(&self, question: Query) -> Vote {
+        let analysis = self.analyze(question)
+        Vote {
+            choice: analysis.opinion,
+            confidence: analysis.confidence,
+            reasoning: analysis.reasoning,
+        }
+    }
+}
+
+/// Committee of experts for collective decision-making.
+ensemble ExpertCommittee {
+    agents: Vec<Expert>,
+
+    fn new(domains: Vec<String>) -> ExpertCommittee {
+        let agents = domains.iter().map(|domain| {
+            Expert::new(domain.clone(), 0.8 + random() * 0.2)
+        }).collect()
+
+        ExpertCommittee { agents }
+    }
+
+    /// Simple majority voting.
+    fn decide_majority(&self, question: Query) -> ConsensusResult {
+        io::println("Using majority voting...")
+
+        let votes: Vec<Vote> = self.agents.iter()
+            .map(|expert| expert.vote(question.clone()))
+            .collect()
+
+        let decision = consensus::majority(&votes.iter().map(|v| v.choice.clone()).collect())
+
+        match decision {
+            Some(choice) => {
+                let supporting = votes.iter().filter(|v| v.choice == choice).count()
+                ConsensusResult::Agreed {
+                    decision: choice,
+                    support: supporting as f64 / votes.len() as f64,
+                    votes,
+                }
+            }
+            None => {
+                ConsensusResult::NoMajority { votes }
+            }
+        }
+    }
+
+    /// Weighted voting based on confidence.
+    fn decide_weighted(&self, question: Query, threshold: f64) -> ConsensusResult {
+        io::println("Using weighted voting (threshold: ", threshold, ")...")
+
+        let votes: Vec<Vote> = self.agents.iter()
+            .map(|expert| expert.vote(question.clone()))
+            .collect()
+
+        let weighted_votes: Vec<(Vote, f64)> = votes.iter()
+            .map(|v| (v.clone(), v.confidence))
+            .collect()
+
+        let decision = consensus::weighted(&weighted_votes, threshold)
+
+        match decision {
+            Some(choice) => {
+                let total_weight: f64 = weighted_votes.iter().map(|(_, w)| w).sum()
+                let supporting_weight: f64 = weighted_votes.iter()
+                    .filter(|(v, _)| v.choice == choice)
+                    .map(|(_, w)| w)
+                    .sum()
+
+                ConsensusResult::Agreed {
+                    decision: choice,
+                    support: supporting_weight / total_weight,
+                    votes,
+                }
+            }
+            None => {
+                ConsensusResult::BelowThreshold { votes, threshold }
+            }
+        }
+    }
+
+    /// Ranked choice voting for multiple options.
+    fn decide_ranked(&self, question: Query, options: Vec<Choice>) -> ConsensusResult {
+        io::println("Using ranked choice voting...")
+
+        let ballots: Vec<Vec<Choice>> = self.agents.iter()
+            .map(|expert| expert.rank_choices(question.clone(), &options))
+            .collect()
+
+        let decision = consensus::ranked_choice(&ballots)
+
+        match decision {
+            Some(winner) => {
+                ConsensusResult::RankedWinner {
+                    decision: winner,
+                    rounds: count_rounds(&ballots),
+                    ballots,
+                }
+            }
+            None => {
+                ConsensusResult::NoWinner { ballots }
+            }
+        }
+    }
+
+    /// Unanimous consent required.
+    fn decide_unanimous(&self, question: Query) -> ConsensusResult {
+        io::println("Requiring unanimous consent...")
+
+        let votes: Vec<Vote> = self.agents.iter()
+            .map(|expert| expert.vote(question.clone()))
+            .collect()
+
+        let first_choice = &votes[0].choice
+        let unanimous = votes.iter().all(|v| &v.choice == first_choice)
+
+        if unanimous {
+            ConsensusResult::Unanimous {
+                decision: first_choice.clone(),
+                votes,
+            }
+        } else {
+            ConsensusResult::Dissent {
+                positions: votes.iter()
+                    .map(|v| (v.choice.clone(), v.reasoning.clone()))
+                    .collect(),
+            }
+        }
+    }
+
+    /// Consensus with human tie-breaker.
+    fn decide_with_human_tiebreak(&self, question: Query) -> ConsensusResult {
+        io::println("Attempting consensus with human tie-breaker...")
+
+        let result = self.decide_majority(question.clone())
+
+        match result {
+            ConsensusResult::NoMajority { votes } => {
+                io::println("No majority reached. Escalating to human...")
+
+                let human_choice = await human_tiebreak(
+                    question,
+                    votes.iter().map(|v| (v.choice.clone(), v.reasoning.clone())).collect()
+                )
+
+                ConsensusResult::HumanDecided {
+                    decision: human_choice,
+                    agent_votes: votes,
+                }
+            }
+            agreed => agreed
+        }
+    }
+}
+
+/// Demonstrate consensus with disagreement handling.
+fn handle_disagreement() {
+    let committee = ExpertCommittee::new(vec![
+        "Economics".to_string(),
+        "Technology".to_string(),
+        "Ethics".to_string(),
+        "Law".to_string(),
+    ])
+
+    let controversial_question = Query {
+        text: "Should AI systems be required to have kill switches?".to_string(),
+        options: vec![
+            Choice::StronglyAgree,
+            Choice::Agree,
+            Choice::Neutral,
+            Choice::Disagree,
+            Choice::StronglyDisagree,
+        ],
+    }
+
+    // Try different consensus methods
+    let majority_result = committee.decide_majority(controversial_question.clone())
+    let weighted_result = committee.decide_weighted(controversial_question.clone(), 0.6)
+    let unanimous_result = committee.decide_unanimous(controversial_question.clone())
+
+    io::println("")
+    io::println("Results for controversial question:")
+
+    match majority_result {
+        ConsensusResult::Agreed { decision, support, .. } => {
+            io::println("  Majority: ", decision, " (", support * 100.0, "% support)")
+        }
+        ConsensusResult::NoMajority { .. } => {
+            io::println("  Majority: No consensus reached")
+        }
+        _ => {}
+    }
+
+    match unanimous_result {
+        ConsensusResult::Unanimous { decision, .. } => {
+            io::println("  Unanimous: ", decision)
+        }
+        ConsensusResult::Dissent { positions } => {
+            io::println("  Unanimous: Dissent - ", positions.len(), " different positions")
+        }
+        _ => {}
+    }
+}
+
+fn main() {
+    io::println("Consensus Protocols Demo")
+    io::println("========================")
+    io::println("")
+
+    // Create expert committee
+    let committee = ExpertCommittee::new(vec![
+        "Machine Learning".to_string(),
+        "Security".to_string(),
+        "Ethics".to_string(),
+        "Product".to_string(),
+        "Legal".to_string(),
+    ])
+
+    // Simple question with likely consensus
+    let simple_question = Query {
+        text: "Should we implement input validation?".to_string(),
+        options: vec![Choice::Yes, Choice::No],
+    }
+
+    io::println("Question: ", simple_question.text)
+    io::println("")
+
+    // Try different methods
+    let result1 = committee.decide_majority(simple_question.clone())
+    print_result("Majority", &result1)
+
+    let result2 = committee.decide_weighted(simple_question.clone(), 0.7)
+    print_result("Weighted (70%)", &result2)
+
+    let result3 = committee.decide_unanimous(simple_question.clone())
+    print_result("Unanimous", &result3)
+
+    io::println("")
+
+    // Complex question requiring human tie-break
+    handle_disagreement()
+
+    committee.shutdown()
+}
+
+fn print_result(method: &str, result: &ConsensusResult) {
+    io::print(method, " voting: ")
+    match result {
+        ConsensusResult::Agreed { decision, support, .. } => {
+            io::println(decision, " (", (support * 100.0) as i32, "% support)")
+        }
+        ConsensusResult::Unanimous { decision, .. } => {
+            io::println(decision, " (unanimous)")
+        }
+        ConsensusResult::NoMajority { .. } => {
+            io::println("No consensus")
+        }
+        ConsensusResult::BelowThreshold { threshold, .. } => {
+            io::println("Below ", (threshold * 100.0) as i32, "% threshold")
+        }
+        ConsensusResult::Dissent { positions } => {
+            io::println("Dissent (", positions.len(), " positions)")
+        }
+        _ => io::println("Other result")
+    }
+}
+
+// Type definitions
+struct Query { text: String, options: Vec<Choice> }
+#[derive(Clone, PartialEq)]
+enum Choice { Yes, No, StronglyAgree, Agree, Neutral, Disagree, StronglyDisagree }
+struct Vote { choice: Choice, confidence: f64, reasoning: String }
+struct Analysis { opinion: Choice, confidence: f64, reasoning: String }
+
+enum ConsensusResult {
+    Agreed { decision: Choice, support: f64, votes: Vec<Vote> },
+    Unanimous { decision: Choice, votes: Vec<Vote> },
+    NoMajority { votes: Vec<Vote> },
+    BelowThreshold { votes: Vec<Vote>, threshold: f64 },
+    RankedWinner { decision: Choice, rounds: u32, ballots: Vec<Vec<Choice>> },
+    NoWinner { ballots: Vec<Vec<Choice>> },
+    Dissent { positions: Vec<(Choice, String)> },
+    HumanDecided { decision: Choice, agent_votes: Vec<Vote> },
+}
+
+impl Expert {
+    fn rank_choices(&self, q: Query, opts: &[Choice]) -> Vec<Choice> {
+        // Return ranked preferences
+        opts.to_vec()
+    }
+}
+
+fn calculate_relevance(q: Query, domain: String) -> f64 { 0.8 }
+fn form_opinion(q: Query, domain: String) -> Choice { Choice::Yes }
+fn generate_reasoning(q: Query, opinion: Choice) -> String { "Reasoning...".to_string() }
+fn count_rounds(ballots: &[Vec<Choice>]) -> u32 { 3 }
+fn human_tiebreak(q: Query, positions: Vec<(Choice, String)>) -> Choice { Choice::Yes }
+fn random() -> f64 { 0.5 }

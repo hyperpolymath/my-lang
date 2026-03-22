@@ -1,0 +1,8 @@
+[package]
+name = "my-lang-typechecker"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+my-lang-ast = { path = "../ast" }
+thiserror = "1.0"

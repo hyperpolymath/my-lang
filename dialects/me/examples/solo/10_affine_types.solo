@@ -1,0 +1,153 @@
+// Affine Types - Use-at-most-once semantics
+
+import std::io::{File, Connection};
+
+// Affine type - can only be used once
+struct FileHandle {
+    path: str,
+    handle: affine File
+}
+
+struct NetworkConnection {
+    socket: affine Connection
+}
+
+// Affine types must be consumed or explicitly dropped
+impl FileHandle {
+    fn new(path: str) -> FileHandle {
+        FileHandle {
+            path,
+            handle: File::open(path)
+        }
+    }
+
+    // Consuming method - takes ownership and uses affine resource
+    fn read_all(self) -> str {
+        // handle is consumed here
+        self.handle.read_to_string()
+        // FileHandle and handle are automatically cleaned up
+    }
+
+    // This would be an error - can't have two methods that consume handle
+    // fn read_lines(self) -> [str] {
+    //     self.handle.read_lines()  // ERROR: handle already consumed
+    // }
+}
+
+// Correct approach: return handle after use
+impl NetworkConnection {
+    fn send(self, data: str) -> NetworkConnection {
+        self.socket.write(data);
+        self  // Return self to allow further use
+    }
+
+    fn close(self) {
+        // Explicitly consume and close
+        self.socket.close();
+        // socket is now consumed - no resource leak
+    }
+}
+
+// Affine resource that MUST be consumed
+struct Transaction {
+    db: affine Database,
+    committed: bool
+}
+
+impl Transaction {
+    fn new(db: Database) -> Transaction {
+        Transaction {
+            db,
+            committed: false
+        }
+    }
+
+    fn commit(mut self) {
+        self.db.commit();
+        self.committed = true;
+        // Transaction consumed, ensuring commit or rollback
+    }
+
+    fn rollback(self) {
+        self.db.rollback();
+        // Transaction consumed
+    }
+}
+
+// The compiler ensures:
+// 1. Affine types are used at most once
+// 2. No implicit copies
+// 3. Resources are cleaned up properly
+
+fn example_file_usage() {
+    let file = FileHandle::new("data.txt");
+    let contents = file.read_all();
+    // file is consumed, cannot be used again
+
+    // This would be an error:
+    // let more_contents = file.read_all();  // ERROR: file already consumed
+}
+
+fn example_network_usage() {
+    let conn = NetworkConnection::connect("localhost:8080");
+
+    // Chaining is OK because we return self
+    let conn = conn.send("Hello");
+    let conn = conn.send("World");
+
+    // Must explicitly close (consume the resource)
+    conn.close();
+
+    // This would be an error:
+    // conn.send("More data");  // ERROR: conn was consumed by close()
+}
+
+fn example_transaction_usage() {
+    let tx = Transaction::new(Database::connect());
+
+    // Do some work...
+    tx.db.execute("INSERT INTO users...");
+
+    // MUST commit or rollback - compiler enforces this
+    tx.commit();  // Or: tx.rollback();
+
+    // Forgetting to commit/rollback would be a compile error
+}
+
+// Affine types with optional consumption
+struct MaybeAffine<T> {
+    value: affine T,
+    consumed: bool
+}
+
+impl<T> MaybeAffine<T> {
+    fn take(mut self) -> T {
+        if self.consumed {
+            panic("Already consumed!");
+        }
+        self.consumed = true;
+        self.value  // Move out the affine value
+    }
+
+    fn is_consumed(&self) -> bool {
+        self.consumed
+    }
+}
+
+fn main() {
+    // Simple affine type usage
+    let file = FileHandle::new("input.txt");
+    let data = file.read_all();  // file consumed
+
+    // Network connection with proper cleanup
+    let connection = NetworkConnection::connect("api.example.com");
+    let connection = connection.send("GET /data");
+    connection.close();  // Explicit cleanup required
+
+    // Transaction safety
+    let transaction = Transaction::new(Database::connect());
+    // ... do work ...
+    transaction.commit();  // Must consume the transaction
+
+    // Affine types prevent resource leaks at compile time!
+}

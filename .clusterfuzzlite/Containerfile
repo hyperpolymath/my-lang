@@ -1,0 +1,10 @@
+FROM gcr.io/oss-fuzz-base/base-builder-rust
+RUN apt-get update && apt-get install -y make autoconf automake libtool
+<<<<<<< HEAD
+COPY . $SRC/project
+WORKDIR $SRC/project
+=======
+COPY . $SRC/my-lang
+WORKDIR $SRC/my-lang
+>>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
+COPY .clusterfuzzlite/build.sh $SRC/

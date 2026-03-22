@@ -1,0 +1,413 @@
+(*
+  Duet Language Grammar (EBNF)
+
+  Duet extends Solo with neurosymbolic AI integration capabilities.
+  It includes @synth, @verify, intent(), and #[ai_optimize] constructs
+  for hybrid symbolic-neural programming.
+
+  Version: 1.0.0
+  Last Updated: 2025-11-22
+
+  Base: SOLO_GRAMMAR.ebnf (all Solo constructs are inherited)
+*)
+
+(* ========== Duet Extensions to Solo ========== *)
+
+(*
+  Duet is a superset of Solo. All Solo constructs are valid in Duet.
+  The following are ADDITIONAL constructs specific to Duet.
+*)
+
+(* ========== AI Attributes ========== *)
+
+duet_attribute =
+    | ai_optimize_attr
+    | ai_model_attr
+    | ai_confidence_attr
+    | ai_fallback_attr
+    ;
+
+ai_optimize_attr =
+    "#" "[" "ai_optimize"
+        [ "(" ai_optimize_params ")" ]
+    "]"
+    ;
+
+ai_optimize_params = ai_optimize_param { "," ai_optimize_param } [ "," ] ;
+
+ai_optimize_param =
+    | "strategy" "=" string_literal
+    | "max_iterations" "=" integer_literal
+    | "timeout" "=" integer_literal
+    | "confidence_threshold" "=" float_literal
+    | "preserve_semantics" "=" bool_literal
+    ;
+
+ai_model_attr =
+    "#" "[" "ai_model"
+        "(" string_literal [ "," model_params ] ")"
+    "]"
+    ;
+
+model_params = model_param { "," model_param } [ "," ] ;
+model_param = identifier "=" expression ;
+
+ai_confidence_attr =
+    "#" "[" "ai_confidence"
+        "(" confidence_level ")"
+    "]"
+    ;
+
+confidence_level = float_literal | "low" | "medium" | "high" | "critical" ;
+
+ai_fallback_attr =
+    "#" "[" "ai_fallback"
+        "(" fallback_strategy ")"
+    "]"
+    ;
+
+fallback_strategy = identifier | closure_expr ;
+
+(* ========== Synthesis Annotation ========== *)
+
+synth_annotation = "@synth" [ synth_config ] ;
+
+synth_config =
+    "(" synth_param { "," synth_param } [ "," ] ")"
+    ;
+
+synth_param =
+    | "spec" "=" expression           (* formal specification *)
+    | "examples" "=" array_expr       (* input/output examples *)
+    | "model" "=" string_literal      (* AI model to use *)
+    | "confidence" "=" float_literal  (* minimum confidence *)
+    | "timeout" "=" integer_literal   (* synthesis timeout *)
+    | "fallback" "=" expression       (* fallback implementation *)
+    | "constraints" "=" array_expr    (* additional constraints *)
+    ;
+
+synth_expression =
+    synth_annotation expression
+    ;
+
+synth_statement =
+    synth_annotation statement
+    ;
+
+synth_function =
+    [ attributes ]
+    synth_annotation
+    [ visibility ]
+    "fn" identifier
+    [ generic_params ]
+    "(" [ param_list ] ")"
+    [ "->" type_expr ]
+    [ where_clause ]
+    [ contract_clause ]
+    ( block | ";" )
+    ;
+
+(* ========== Verification Annotation ========== *)
+
+verify_annotation = "@verify" [ verify_config ] ;
+
+verify_config =
+    "(" verify_param { "," verify_param } [ "," ] ")"
+    ;
+
+verify_param =
+    | "property" "=" expression       (* property to verify *)
+    | "method" "=" string_literal     (* verification method *)
+    | "model" "=" string_literal      (* AI model for verification *)
+    | "confidence" "=" float_literal  (* minimum confidence *)
+    | "timeout" "=" integer_literal   (* verification timeout *)
+    | "strict" "=" bool_literal       (* strict mode *)
+    | "report" "=" bool_literal       (* generate verification report *)
+    ;
+
+verify_expression =
+    verify_annotation expression
+    ;
+
+verify_statement =
+    verify_annotation statement
+    ;
+
+verify_function =
+    [ attributes ]
+    verify_annotation
+    [ visibility ]
+    "fn" identifier
+    [ generic_params ]
+    "(" [ param_list ] ")"
+    [ "->" type_expr ]
+    [ where_clause ]
+    [ contract_clause ]
+    ( block | ";" )
+    ;
+
+(* ========== Intent Function ========== *)
+
+intent_expression =
+    "intent" "(" intent_args ")"
+    ;
+
+intent_args =
+    | string_literal                          (* simple intent *)
+    | string_literal "," intent_options      (* intent with options *)
+    ;
+
+intent_options =
+    "{" [ intent_option { "," intent_option } [ "," ] ] "}"
+    ;
+
+intent_option =
+    | "inputs" ":" array_expr
+    | "outputs" ":" type_expr
+    | "examples" ":" array_expr
+    | "constraints" ":" array_expr
+    | "model" ":" string_literal
+    | "confidence" ":" float_literal
+    | "interactive" ":" bool_literal
+    | "explain" ":" bool_literal
+    | "fallback" ":" expression
+    ;
+
+(* ========== Neural-Symbolic Hybrid Constructs ========== *)
+
+hybrid_block =
+    "hybrid" "{" hybrid_mode_spec "}" block
+    ;
+
+hybrid_mode_spec =
+    "symbolic" ":" expression ","
+    "neural" ":" expression
+    [ "," "fusion" ":" fusion_strategy ]
+    ;
+
+fusion_strategy =
+    | "weighted" "(" expression ")"   (* weighted combination *)
+    | "voting"                        (* majority voting *)
+    | "cascade"                       (* symbolic first, then neural *)
+    | "parallel"                      (* run in parallel, choose best *)
+    | custom_fusion                   (* user-defined *)
+    ;
+
+custom_fusion = expression ;  (* function with signature: (symbolic_result, neural_result) -> result *)
+
+(* ========== AI-Assisted Pattern Matching ========== *)
+
+ai_match_expr =
+    "ai_match" expression "{"
+        [ ai_match_arm { "," ai_match_arm } [ "," ] ]
+    "}"
+    ;
+
+ai_match_arm =
+    [ attributes ]
+    ai_pattern [ "if" expression ] "=>" ( expression | block )
+    ;
+
+ai_pattern =
+    | pattern                         (* standard pattern *)
+    | semantic_pattern                (* AI-based semantic matching *)
+    | learned_pattern                 (* learned from examples *)
+    ;
+
+semantic_pattern =
+    "~" string_literal                (* semantic similarity *)
+    [ "(" "threshold" ":" float_literal ")" ]
+    ;
+
+learned_pattern =
+    "learn" "(" array_expr ")"        (* examples to learn from *)
+    ;
+
+(* ========== Gradual Typing for AI Integration ========== *)
+
+ai_type =
+    | "inferred"                      (* AI infers the type *)
+    | "learned" "(" array_expr ")"    (* learn type from examples *)
+    | "fuzzy" type_expr               (* fuzzy/probabilistic type *)
+    ;
+
+(* ========== Neural Function Approximation ========== *)
+
+neural_fn_def =
+    [ attributes ]
+    "#" "[" "neural" [ "(" neural_params ")" ] "]"
+    [ visibility ]
+    "fn" identifier
+    [ generic_params ]
+    "(" [ param_list ] ")"
+    [ "->" type_expr ]
+    [ where_clause ]
+    "{" neural_spec "}"
+    ;
+
+neural_params = neural_param { "," neural_param } [ "," ] ;
+
+neural_param =
+    | "architecture" "=" string_literal
+    | "training_data" "=" expression
+    | "epochs" "=" integer_literal
+    | "loss" "=" string_literal
+    | "optimizer" "=" string_literal
+    ;
+
+neural_spec =
+    | "approximate" expression        (* function to approximate *)
+    | "learn_from" array_expr         (* training examples *)
+    | "architecture" "{" layer_spec { "," layer_spec } "}"
+    ;
+
+layer_spec = identifier "(" [ layer_params ] ")" ;
+layer_params = expression { "," expression } [ "," ] ;
+
+(* ========== Symbolic Reasoning Constructs ========== *)
+
+symbolic_assert =
+    "symbolic_assert" expression [ "," string_literal ]
+    ;
+
+symbolic_assume =
+    "symbolic_assume" expression
+    ;
+
+symbolic_prove =
+    "symbolic_prove" "{" proof_goal "}" "using" "{" proof_tactics "}"
+    ;
+
+proof_goal = expression ;
+
+proof_tactics = tactic { "," tactic } [ "," ] ;
+
+tactic =
+    | "induction" "(" identifier ")"
+    | "cases" "(" expression ")"
+    | "rewrite" "(" expression ")"
+    | "simplify"
+    | "smt"                           (* use SMT solver *)
+    | "ai_suggest"                    (* AI suggests tactics *)
+    | custom_tactic
+    ;
+
+custom_tactic = identifier [ "(" [ expression { "," expression } ] ")" ] ;
+
+(* ========== Confidence and Uncertainty ========== *)
+
+confidence_expr =
+    expression "with_confidence" float_literal
+    ;
+
+uncertain_type =
+    "uncertain" "<" type_expr "," distribution_spec ">"
+    ;
+
+distribution_spec =
+    | "normal" "(" expression "," expression ")"     (* mean, stddev *)
+    | "uniform" "(" expression "," expression ")"    (* min, max *)
+    | "categorical" "(" array_expr ")"               (* probabilities *)
+    | identifier                                      (* custom distribution *)
+    ;
+
+(* ========== AI Model Integration ========== *)
+
+model_load_expr =
+    "load_model" "(" string_literal [ "," model_config ] ")"
+    ;
+
+model_config =
+    "{" [ model_config_item { "," model_config_item } [ "," ] ] "}"
+    ;
+
+model_config_item = identifier ":" expression ;
+
+model_call_expr =
+    expression ".predict" "(" [ expression { "," expression } [ "," ] ] ")"
+    ;
+
+(* ========== Differentiable Programming ========== *)
+
+differentiable_fn =
+    [ attributes ]
+    "#" "[" "differentiable" "]"
+    [ visibility ]
+    "fn" identifier
+    [ generic_params ]
+    "(" [ param_list ] ")"
+    [ "->" type_expr ]
+    [ where_clause ]
+    block
+    ;
+
+grad_expr =
+    "grad" "(" expression "," "wrt" ":" identifier ")"
+    ;
+
+(* ========== Extended Expressions (Duet-specific) ========== *)
+
+duet_expression =
+    | intent_expression
+    | synth_expression
+    | verify_expression
+    | hybrid_block
+    | ai_match_expr
+    | confidence_expr
+    | model_load_expr
+    | model_call_expr
+    | grad_expr
+    | symbolic_assert
+    | symbolic_assume
+    | symbolic_prove
+    ;
+
+(* ========== Extended Top-Level Items (Duet-specific) ========== *)
+
+duet_top_level_item =
+    | synth_function
+    | verify_function
+    | neural_fn_def
+    | differentiable_fn
+    ;
+
+(* ========== Integration with Solo ========== *)
+
+(*
+  In Duet mode, the following rules from Solo are extended:
+
+  expression ::= solo_expression | duet_expression
+  top_level_item ::= solo_top_level_item | duet_top_level_item
+  attribute ::= solo_attribute | duet_attribute
+
+  All Solo constructs remain valid and unchanged.
+*)
+
+(* ========== Reserved Keywords (Duet-specific) ========== *)
+
+(*
+  Additional keywords beyond Solo:
+
+  AI/ML Keywords:
+  intent, synth, verify, ai_match, hybrid, neural, learn, inferred,
+  fuzzy, uncertain, with_confidence, predict, grad, wrt, differentiable,
+  symbolic_assert, symbolic_assume, symbolic_prove
+
+  Annotation markers:
+  @synth, @verify
+
+  Attribute names:
+  ai_optimize, ai_model, ai_confidence, ai_fallback, neural
+*)
+
+(* ========== Semantic Notes ========== *)
+
+(*
+  1. @synth annotations trigger AI-based program synthesis at compile-time
+  2. @verify annotations enable AI-assisted verification with formal methods
+  3. intent() provides natural language programming with type-safe AI translation
+  4. #[ai_optimize] enables ML-based optimization passes
+  5. Hybrid blocks allow seamless integration of symbolic and neural computation
+  6. Confidence tracking enables uncertainty quantification throughout programs
+  7. All AI operations have deterministic fallbacks for safety-critical code
+*)

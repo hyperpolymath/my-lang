@@ -1,0 +1,49 @@
+// Hybrid Symbolic-Neural Reasoning
+
+// Combine symbolic and neural approaches
+fn classify_and_verify(image: Image) -> (Label, f64) {
+    hybrid {
+        symbolic: formal_image_analysis(image),
+        neural: neural_classifier(image),
+        fusion: weighted(0.3, 0.7)  // 30% symbolic, 70% neural
+    }
+}
+
+// Cascade: try symbolic first, fall back to neural
+fn solve_equation(equation: str) -> f64 {
+    hybrid {
+        symbolic: symbolic_solver(equation),
+        neural: neural_solver(equation),
+        fusion: cascade  // Try symbolic first
+    }
+}
+
+// Parallel execution, choose best
+fn translate_code(code: str, target: Lang) -> str {
+    hybrid {
+        symbolic: rule_based_translation(code, target),
+        neural: ml_translation(code, target),
+        fusion: parallel  // Run both, pick best
+    }
+}
+
+// Voting between multiple approaches
+fn detect_anomaly(data: &[f64]) -> bool {
+    hybrid {
+        symbolic: statistical_analysis(data),
+        neural: autoencoder_detection(data),
+        fusion: voting  // Both must agree
+    }
+}
+
+fn main() {
+    let img = Image::load("photo.jpg");
+    let (label, confidence) = classify_and_verify(img);
+
+    let solution = solve_equation("x^2 + 2*x - 3 = 0");
+
+    let rust_code = "fn main() { println!(\"Hello\"); }";
+    let python = translate_code(rust_code, Lang::Python);
+
+    let anomaly = detect_anomaly(&sensor_data);
+}

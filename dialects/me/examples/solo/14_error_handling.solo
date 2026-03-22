@@ -1,0 +1,171 @@
+// Error Handling with Result and Option
+
+enum Option<T> {
+    Some(T),
+    None
+}
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E)
+}
+
+// Function that might fail
+fn parse_int(s: str) -> Result<i32, str> {
+    // Simplified parsing logic
+    if s.is_numeric() {
+        Result::Ok(s.to_int())
+    } else {
+        Result::Err("Not a valid integer: " + s)
+    }
+}
+
+// Function that might return no value
+fn find_user(id: i32, users: &[User]) -> Option<User> {
+    for user in users {
+        if user.id == id {
+            return Option::Some(*user);
+        }
+    }
+    Option::None
+}
+
+struct User {
+    id: i32,
+    name: str
+}
+
+// The ? operator for error propagation
+fn read_and_parse(filename: str) -> Result<i32, str> {
+    let contents = read_file(filename)?;  // Propagate error if any
+    let number = parse_int(contents)?;    // Propagate parse error
+    Result::Ok(number)
+}
+
+fn read_file(path: str) -> Result<str, str> {
+    if file_exists(path) {
+        Result::Ok("42")  // Simplified
+    } else {
+        Result::Err("File not found: " + path)
+    }
+}
+
+fn file_exists(path: str) -> bool {
+    true  // Simplified
+}
+
+// Combining Option and Result
+fn safe_divide(a: i32, b: i32) -> Option<i32> {
+    if b == 0 {
+        Option::None
+    } else {
+        Option::Some(a / b)
+    }
+}
+
+// Pattern matching for error handling
+fn process_result(result: Result<i32, str>) {
+    match result {
+        Result::Ok(value) => {
+            println("Success: " + value);
+        },
+        Result::Err(error) => {
+            println("Error: " + error);
+        }
+    }
+}
+
+// Unwrapping with default
+fn get_value_or_default(opt: Option<i32>) -> i32 {
+    match opt {
+        Option::Some(v) => v,
+        Option::None => 0  // Default value
+    }
+}
+
+// Chaining operations
+fn chained_operations() -> Option<i32> {
+    let opt1 = Option::Some(10);
+
+    let result = opt1.and_then(|x| {
+        if x > 5 {
+            Option::Some(x * 2)
+        } else {
+            Option::None
+        }
+    });
+
+    result
+}
+
+// Custom error type
+enum MyError {
+    IoError(str),
+    ParseError(str),
+    ValidationError(str)
+}
+
+fn complex_operation(input: str) -> Result<i32, MyError> {
+    if input.is_empty() {
+        return Result::Err(MyError::ValidationError("Empty input"));
+    }
+
+    let data = match read_file(input) {
+        Result::Ok(d) => d,
+        Result::Err(e) => return Result::Err(MyError::IoError(e))
+    };
+
+    let number = match parse_int(data) {
+        Result::Ok(n) => n,
+        Result::Err(e) => return Result::Err(MyError::ParseError(e))
+    };
+
+    Result::Ok(number)
+}
+
+fn main() {
+    // Using Result
+    let result1 = parse_int("42");
+    match result1 {
+        Result::Ok(num) => println("Parsed: " + num),
+        Result::Err(err) => println("Error: " + err)
+    };
+
+    let result2 = parse_int("not a number");
+    process_result(result2);
+
+    // Using Option
+    let users = [
+        User { id: 1, name: "Alice" },
+        User { id: 2, name: "Bob" }
+    ];
+
+    let found = find_user(1, &users);
+    match found {
+        Option::Some(user) => println("Found: " + user.name),
+        Option::None => println("User not found")
+    };
+
+    // Using ? operator
+    let parse_result = read_and_parse("numbers.txt");
+    process_result(parse_result);
+
+    // Safe division
+    let div1 = safe_divide(10, 2);
+    let div2 = safe_divide(10, 0);
+
+    let value = get_value_or_default(div1);  // 5
+    let default = get_value_or_default(div2);  // 0
+
+    // Chaining
+    let chained = chained_operations();  // Some(20)
+
+    // Complex error handling
+    let complex = complex_operation("data.txt");
+    match complex {
+        Result::Ok(value) => println("Result: " + value),
+        Result::Err(MyError::IoError(e)) => println("IO Error: " + e),
+        Result::Err(MyError::ParseError(e)) => println("Parse Error: " + e),
+        Result::Err(MyError::ValidationError(e)) => println("Validation Error: " + e)
+    };
+}

@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+[package]
+name = "my-lang"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "My Language: A programming language with first-class AI integration"
+
+[lib]
+name = "my_lang"
+path = "src/lib.rs"
+
+[[bin]]
+name = "my"
+path = "src/main.rs"
+
+[dependencies]
+thiserror.workspace = true
+anyhow.workspace = true
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+tracing.workspace = true
+clap.workspace = true
+my-ai = { path = "../my-ai" }
+tokio.workspace = true
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json"]
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+proptest = "1.4"
+my-hir = { path = "../my-hir" }
+my-mir = { path = "../my-mir" }
+my-ai = { path = "../my-ai" }
+my-pkg = { path = "../my-pkg" }
+toml = "0.8"
+
+[[test]]
+name = "integration_test"
+path = "../../tests/integration_test.rs"

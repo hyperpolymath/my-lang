@@ -1,0 +1,312 @@
+= Duet Language Overview
+:toc: macro
+:icons: font
+:source-highlighter: rouge
+
+// SPDX-License-Identifier: PMPL-1.0-or-later
+
+*AI-Assisted Neuro-Symbolic Development Language*
+
+toc::[]
+
+== Introduction
+
+Duet is the AI-assisted member of the My-Lang progressive language family. It extends *Solo* (the systems programming foundation) with neural-symbolic constructs that enable productive human-AI collaboration in software development.
+
+=== Design Philosophy
+
+Duet embraces these principles:
+
+1. **Human-AI Partnership**: AI assists, human decides
+2. **Verifiable AI**: All AI-generated code can be formally verified
+3. **Explainable**: AI reasoning is transparent and auditable
+4. **Gradual Adoption**: Use as much or as little AI assistance as needed
+5. **Safety First**: AI suggestions require human approval for sensitive operations
+
+== Core Constructs
+
+=== @synth - Code Synthesis
+
+Synthesize function implementations from specifications or examples:
+
+[source,duet]
+----
+// From specification
+@synth(spec: |x| x * 2)
+fn double(x: i32) -> i32;
+
+// From examples
+@synth(examples: [(0, 0), (1, 1), (2, 4), (3, 9)])
+fn square(x: i32) -> i32;
+
+// With constraints
+@synth(
+    spec: |arr| is_sorted(&arr),
+    constraints: ["efficient", "stable"],
+    model: "synthesis-v2"
+)
+fn sort<T: Ord>(arr: &[T]) -> Vec<T>;
+----
+
+=== @verify - Formal Verification
+
+Verify that code satisfies formal properties:
+
+[source,duet]
+----
+@synth(spec: |arr| is_sorted(&arr))
+@verify(
+    property: "sorts_correctly",
+    strategy: "induction",
+    timeout: 5000
+)
+fn verified_sort(arr: &[i32]) -> Vec<i32>;
+
+// Multiple properties
+@verify(properties: [
+    ("commutativity", |a, b| add(a, b) == add(b, a)),
+    ("associativity", |a, b, c| add(add(a, b), c) == add(a, add(b, c))),
+])
+fn add(a: i32, b: i32) -> i32 { a + b }
+----
+
+=== intent - Intent-Driven Programming
+
+Describe what you want, let AI figure out how:
+
+[source,duet]
+----
+let data = [5, 2, 8, 1, 9]
+
+intent "sort this array in ascending order" {
+    given: data
+    ensure: is_sorted(result) && is_permutation(data, result)
+    @ai_implement
+}
+----
+
+=== @ai_assist - AI Collaboration
+
+Various modes of AI assistance:
+
+[source,duet]
+----
+// Code review
+@ai_review(aspects: ["security", "performance"])
+fn process_input(data: &str) -> Output { ... }
+
+// Suggestions
+@ai_suggest(mode: "optimize", require_approval: true)
+fn expensive_computation() { ... }
+
+// Explanations
+@ai_explain(depth: "detailed")
+fn complex_algorithm() { ... }
+
+// Pair programming
+@ai_pair(role: "navigator")
+fn implement_feature() { ... }
+----
+
+== Neural-Symbolic Types
+
+Duet introduces hybrid types that combine neural networks with symbolic reasoning:
+
+[source,duet]
+----
+struct HybridClassifier {
+    neural: Neural<CNN>,
+    rules: Vec<SymbolicRule>,
+}
+
+impl HybridClassifier {
+    fn classify(&self, image: &Image) -> ClassificationResult {
+        // Neural inference
+        let prediction = self.neural.infer(image)
+
+        // Symbolic validation
+        let validated = self.rules.iter()
+            .fold(prediction, |p, rule| rule.apply(p))
+
+        // Generate explanation
+        ClassificationResult {
+            label: validated.label,
+            confidence: validated.confidence,
+            explanation: self.explain(validated),
+        }
+    }
+}
+----
+
+=== Symbolic Rules
+
+[source,duet]
+----
+let rule = SymbolicRule::new("confidence_check")
+    .when(|pred| pred.confidence < 0.7)
+    .then(|pred| pred.mark_uncertain())
+    .explain("Low confidence predictions marked as uncertain")
+----
+
+== AI Model Integration
+
+=== Local Models
+
+[source,duet]
+----
+use std::duet::ai::LocalModel
+
+let model = LocalModel::load("./models/code_synthesis.onnx")
+
+@synth(model: model)
+fn generated_function(x: i32) -> i32;
+----
+
+=== Remote APIs
+
+[source,duet]
+----
+use std::duet::ai::RemoteModel
+
+let model = RemoteModel::new("https://api.example.com/v1")
+    .with_auth(env!("API_KEY"))
+    .with_timeout(5000)
+
+@synth(model: model, fallback: default_impl)
+fn ai_generated(x: i32) -> i32;
+----
+
+== Verification Strategies
+
+=== Induction
+
+[source,duet]
+----
+@verify(strategy: "induction")
+fn factorial(n: u32) -> u64 {
+    if n <= 1 { 1 } else { n as u64 * factorial(n - 1) }
+}
+----
+
+=== Loop Invariants
+
+[source,duet]
+----
+@verify(
+    strategy: "loop_invariant",
+    invariant: "i <= arr.len() && result == arr[..i].iter().sum()"
+)
+fn sum(arr: &[i32]) -> i32 {
+    let mut result = 0
+    for i in 0..arr.len() {
+        result += arr[i]
+    }
+    result
+}
+----
+
+=== SMT Solving
+
+[source,duet]
+----
+@verify(
+    strategy: "smt",
+    solver: "z3",
+    timeout: 10000
+)
+fn complex_constraint_function(x: i32, y: i32) -> i32 {
+    // SMT solver proves properties
+    ...
+}
+----
+
+== Human-in-the-Loop Patterns
+
+=== Approval Required
+
+[source,duet]
+----
+@ai_suggest(require_approval: true)
+fn modify_database() {
+    // AI suggestions must be explicitly approved
+}
+----
+
+=== Sensitive Operations
+
+[source,duet]
+----
+@ai_assist(
+    mode: "suggest",
+    sensitivity: "high",
+    audit_log: true
+)
+fn handle_user_data(data: SensitiveData) {
+    // All AI interactions logged
+    // Human approval required
+}
+----
+
+=== Review Before Deploy
+
+[source,duet]
+----
+@ai_review(
+    before_merge: true,
+    severity_threshold: "medium"
+)
+mod production_code {
+    // AI reviews all changes before merge
+}
+----
+
+== Relationship to Other Dialects
+
+[cols="1,3"]
+|===
+| Dialect | Relationship
+
+| **Me**
+| Core language foundation
+
+| **Solo**
+| Systems programming base that Duet extends
+
+| **Duet**
+| AI-assisted variant with neural-symbolic constructs
+
+| **Ensemble**
+| Multi-agent extension of Duet for agent orchestration
+|===
+
+== Configuration
+
+=== duet.toml
+
+[source,toml]
+----
+[ai]
+default_model = "local"
+confidence_threshold = 0.8
+require_human_approval = true
+
+[ai.local]
+model_path = "./models/"
+max_memory = "4GB"
+
+[ai.remote]
+endpoint = "https://api.example.com"
+timeout_ms = 5000
+
+[verification]
+default_strategy = "smt"
+solver = "z3"
+timeout_ms = 10000
+----
+
+== Further Reading
+
+* `DUET_GRAMMAR.ebnf` - Formal grammar specification
+* `examples/` - Working code examples
+* `test/` - Test suite
+* `../me/docs/specs/DUET_GRAMMAR.ebnf` - Full grammar in Me hive

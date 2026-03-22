@@ -1,0 +1,88 @@
+// Networking: TCP, UDP, HTTP
+
+import std::net::{TcpListener, TcpStream, UdpSocket};
+import std::net::http::{Client, Server};
+
+// TCP Server
+async fn tcp_server() {
+    let listener = TcpListener::bind("127.0.0.1:8080").await?;
+
+    loop {
+        let (stream, addr) = listener.accept().await?;
+        println("Connection from: " + addr);
+
+        spawn(async move {
+            handle_client(stream).await;
+        });
+    }
+}
+
+async fn handle_client(mut stream: TcpStream) {
+    let mut buffer = [0u8; 1024];
+    let n = stream.read(&mut buffer).await?;
+
+    println("Received: " + String::from_utf8(&buffer[..n])?);
+
+    stream.write_all(b"Hello from server").await?;
+}
+
+// TCP Client
+async fn tcp_client() {
+    let mut stream = TcpStream::connect("127.0.0.1:8080").await?;
+
+    stream.write_all(b"Hello server").await?;
+
+    let mut buffer = [0u8; 1024];
+    let n = stream.read(&mut buffer).await?;
+
+    println("Response: " + String::from_utf8(&buffer[..n])?);
+}
+
+// UDP Socket
+fn udp_example() {
+    let socket = UdpSocket::bind("127.0.0.1:8000")?;
+
+    // Send
+    socket.send_to(b"Hello", "127.0.0.1:9000")?;
+
+    // Receive
+    let mut buf = [0u8; 1024];
+    let (n, src) = socket.recv_from(&mut buf)?;
+    println("Received from " + src);
+}
+
+// HTTP Client
+async fn http_client_example() {
+    let client = Client::new();
+
+    // GET request
+    let response = client.get("https://api.example.com/data").await?;
+    println("Status: " + response.status());
+    println("Body: " + response.text().await?);
+
+    // POST request
+    let response = client
+        .post("https://api.example.com/submit")
+        .json(&{"name": "Alice", "age": 30})
+        .send()
+        .await?;
+}
+
+// HTTP Server
+async fn http_server_example() {
+    let server = Server::bind("127.0.0.1:3000");
+
+    server.route("/", || async {
+        "Hello, World!"
+    });
+
+    server.route("/api/data", || async {
+        json!({"message": "API response"})
+    });
+
+    server.run().await?;
+}
+
+fn main() {
+    // Run examples
+}

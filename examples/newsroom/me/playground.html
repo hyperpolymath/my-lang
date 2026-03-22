@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Me Dialect Playground - My Language</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .panel {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #f5f5f5;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.1em;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .panel-content {
+            padding: 15px;
+            min-height: 300px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            border: none;
+            outline: none;
+            padding: 15px;
+            resize: vertical;
+            background: #fafafa;
+            color: #333;
+        }
+
+        .output {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            min-height: 400px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+        }
+
+        .controls {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .examples {
+            padding: 20px;
+            background: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .examples h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .example-btn {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .error {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #51cf66;
+            font-weight: bold;
+        }
+
+        .info {
+            color: #74c0fc;
+        }
+
+        .warning {
+            color: #ffd43b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔤 Me Dialect Playground</h1>
+            <p>Interactive environment for epistemic programming with belief states</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">📝 Me Code</div>
+                <div class="panel-content">
+                    <textarea id="code" placeholder="# Write Me dialect code here...
+
+# Example:
+belief claim_is_true: Float where confidence(0.85);
+claim_is_true ~ Uniform(0, 1);
+
+observe(evidence=&quot;Reuters confirms&quot;, credibility=0.9);
+print(claim_is_true);"></textarea>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">📊 Output</div>
+                <div class="panel-content">
+                    <div id="output" class="output">// Output will appear here...\n\nClick "Run Code" to execute your Me program!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="runCode()">▶️ Run Code</button>
+            <button onclick="clearCode()">🗑️ Clear</button>
+            <button onclick="shareCode()">🔗 Share</button>
+        </div>
+
+        <div class="examples">
+            <h3>📚 Example Programs</h3>
+            <button class="example-btn" onclick="loadExample('basic')">Basic Belief</button>
+            <button class="example-btn" onclick="loadExample('fusion')">Belief Fusion</button>
+            <button class="example-btn" onclick="loadExample('bayesian')">Bayesian Update</button>
+            <button class="example-btn" onclick="loadExample('trust')">Trust Network</button>
+            <button class="example-btn" onclick="loadExample('newsroom')">Newsroom Scenario</button>
+        </div>
+    </div>
+
+    <script>
+        const examples = {
+            basic: `# Basic Belief State
+# Define a belief about a claim's truth value
+
+belief claim_true: Float where confidence(0.75);
+claim_true ~ Uniform(0, 1);
+
+print("Initial belief:", claim_true);
+print("Confidence level:", confidence(claim_true));`,
+
+            fusion: `# Belief Fusion Example
+# Combining evidence from multiple sources
+
+belief source_a: Float where confidence(0.85);
+belief source_b: Float where confidence(0.70);
+
+source_a ~ Bernoulli(0.8);  # 80% likely true
+source_b ~ Bernoulli(0.7);  # 70% likely true
+
+# Fuse beliefs using Dempster-Shafer
+result := fuse(source_a, source_b, rule=Dempster);
+
+print("Source A:", source_a, "confidence:", confidence(source_a));
+print("Source B:", source_b, "confidence:", confidence(source_b));
+print("Fused:", result, "confidence:", confidence(result));`,
+
+            bayesian: `# Bayesian Belief Update
+# Updating beliefs with new evidence
+
+belief hypothesis: Bool where confidence(0.5);  # 50/50 initially
+hypothesis ~ Bernoulli(0.5);
+
+print("Prior belief:", hypothesis);
+
+# Observe strong evidence in favor
+observe(evidence="Scientific study confirms", credibility=0.90);
+
+print("Posterior belief:", hypothesis);
+print("Confidence increased to:", confidence(hypothesis));`,
+
+            trust: `# Trust Network Propagation
+# Modeling trust between sources
+
+trust(Reuters, level=High);
+trust(Twitter, level=Medium);
+trust(Blog, level=Low);
+
+belief claim: Bool;
+
+# Evidence from different sources
+observe_from(Reuters, claim=true, confidence=0.95);
+observe_from(Twitter, claim=true, confidence=0.60);
+observe_from(Blog, claim=false, confidence=0.40);
+
+# Trust-weighted fusion
+result := weighted_fuse(claim);
+
+print("Final belief:", result);
+print("Dominant source:", source_with_highest_trust(result));`,
+
+            newsroom: `# Newsroom Fact-Checking Workflow
+# Multi-source verification with decision threshold
+
+belief climate_claim: Bool where confidence(0.0);
+
+# Gather evidence from multiple sources
+evidence1 := source(IPCC, credibility=0.95, says=true);
+evidence2 := source(NASA, credibility=0.90, says=true);
+evidence3 := source(University, credibility=0.85, says=true);
+evidence4 := source(ThinkTank, credibility=0.60, says=true);
+evidence5 := source(SocialMedia, credibility=0.40, says=true);
+
+# Progressively fuse evidence
+climate_claim = fuse_all([evidence1, evidence2, evidence3, evidence4, evidence5]);
+
+# Editorial decision
+threshold := 0.85;
+if confidence(climate_claim) >= threshold {
+    print("✅ PUBLISH - Confidence:", confidence(climate_claim));
+    print("Headline: Scientific consensus confirms climate data");
+} else {
+    print("⚠️ HOLD - Need more evidence");
+    print("Current confidence:", confidence(climate_claim));
+}`
+        };
+
+        function runCode() {
+            const code = document.getElementById('code').value;
+            const output = document.getElementById('output');
+
+            output.innerHTML = '<span class="info">🚀 Executing Me code...</span>\n\n';
+
+            try {
+                // Simulated interpreter (placeholder)
+                const result = interpretMeCode(code);
+                output.innerHTML += result;
+                output.innerHTML += '\n\n<span class="success">✅ Execution complete!</span>';
+            } catch (error) {
+                output.innerHTML += '<span class="error">❌ Error: ' + error.message + '</span>';
+            }
+        }
+
+        function interpretMeCode(code) {
+            // Simple interpreter simulation
+            // In a real implementation, this would parse and execute Me dialect
+            let result = '';
+            const lines = code.split('\n');
+
+            result += '<span class="info">=== Me Dialect Interpreter (Simulated) ===</span>\n\n';
+
+            // Parse belief declarations
+            const beliefRegex = /belief\s+(\w+):\s*(\w+)\s+where\s+confidence\(([\d.]+)\)/g;
+            let match;
+            const beliefs = {};
+
+            while ((match = beliefRegex.exec(code)) !== null) {
+                const [, name, type, conf] = match;
+                beliefs[name] = { type, confidence: parseFloat(conf), value: Math.random() };
+                result += `<span class="success">✓</span> Declared belief: ${name}: ${type} (confidence: ${conf})\n`;
+            }
+
+            // Parse observations
+            const observeRegex = /observe\(evidence="([^"]+)",\s*credibility=([\d.]+)\)/g;
+            while ((match = observeRegex.exec(code)) !== null) {
+                const [, evidence, credibility] = match;
+                result += `<span class="info">📊</span> Observed: "${evidence}" (credibility: ${credibility})\n`;
+            }
+
+            // Parse print statements
+            const printRegex = /print\(([^)]+)\)/g;
+            while ((match = printRegex.exec(code)) !== null) {
+                const arg = match[1];
+                // Evaluate simple expressions
+                if (arg.includes('"')) {
+                    result += `\n${arg.replace(/"/g, '')}\n`;
+                } else {
+                    const beliefName = arg.trim();
+                    if (beliefs[beliefName]) {
+                        result += `\n${beliefName} = ${beliefs[beliefName].value.toFixed(4)} `;
+                        result += `(confidence: ${beliefs[beliefName].confidence})\n`;
+                    } else {
+                        result += `\n${arg}\n`;
+                    }
+                }
+            }
+
+            if (result === '<span class="info">=== Me Dialect Interpreter (Simulated) ===</span>\n\n') {
+                result += '<span class="warning">⚠️  No executable statements found</span>\n';
+                result += '\nTip: Try adding print() statements or run an example!';
+            }
+
+            return result;
+        }
+
+        function loadExample(name) {
+            document.getElementById('code').value = examples[name];
+            document.getElementById('output').innerHTML = '// Ready to run!\n\nClick "Run Code" to execute this example.';
+        }
+
+        function clearCode() {
+            document.getElementById('code').value = '';
+            document.getElementById('output').innerHTML = '// Output cleared\n\nWrite some Me code and click "Run Code"!';
+        }
+
+        function shareCode() {
+            const code = document.getElementById('code').value;
+            const encoded = btoa(encodeURIComponent(code));
+            const url = window.location.href.split('?')[0] + '?code=' + encoded;
+
+            navigator.clipboard.writeText(url).then(() => {
+                alert('🔗 Shareable URL copied to clipboard!');
+            }).catch(() => {
+                alert('URL: ' + url);
+            });
+        }
+
+        // Load code from URL parameter
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const encodedCode = params.get('code');
+            if (encodedCode) {
+                try {
+                    const code = decodeURIComponent(atob(encodedCode));
+                    document.getElementById('code').value = code;
+                } catch (e) {
+                    console.error('Failed to load code from URL:', e);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

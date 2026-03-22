@@ -1,0 +1,351 @@
+// Ensemble Language - Library Root
+// SPDX-License-Identifier: PMPL-1.0-or-later
+//
+// This is the library entry point for Ensemble projects.
+// Re-exports core modules for multi-agent AI applications.
+
+module Ensemble
+
+// Re-export from Duet (Ensemble is a superset)
+pub use duet::*
+
+// Ensemble-specific modules
+pub use agents::core
+pub use orchestration::workflow
+pub use consensus::protocols
+pub use oversight::human_loop
+
+/// Core agent definitions and traits.
+pub mod agents {
+    /// Base trait for all agents.
+    pub trait Agent {
+        /// Agent's unique identifier.
+        fn id(&self) -> AgentId
+
+        /// Agent's capabilities.
+        fn capabilities(&self) -> Vec<Capability>
+
+        /// Agent's constraints.
+        fn constraints(&self) -> Vec<Constraint>
+
+        /// Process a task.
+        fn process(&self, task: Task) -> TaskResult
+
+        /// Vote on a decision.
+        fn vote(&self, question: Query) -> Vote
+    }
+
+    /// Agent configuration.
+    pub struct AgentConfig {
+        pub name: String,
+        pub model: String,
+        pub capabilities: Vec<Capability>,
+        pub constraints: Vec<Constraint>,
+        pub timeout_ms: u64,
+        pub retry_count: u32,
+    }
+
+    /// Spawn a new agent instance.
+    pub fn spawn<A: Agent>(config: AgentConfig) -> AgentHandle<A> {
+        let agent = A::new(config)
+        let handle = runtime::spawn_agent(agent)
+        handle
+    }
+
+    /// Agent handle for communication.
+    pub struct AgentHandle<A: Agent> {
+        id: AgentId,
+        tx: Sender<Message>,
+        rx: Receiver<Message>,
+    }
+
+    impl<A: Agent> AgentHandle<A> {
+        /// Send a task to the agent.
+        pub async fn send_task(&self, task: Task) -> TaskResult {
+            self.tx.send(Message::Task(task)).await
+            self.rx.recv().await
+        }
+
+        /// Request agent's opinion.
+        pub async fn request_vote(&self, question: Query) -> Vote {
+            self.tx.send(Message::VoteRequest(question)).await
+            self.rx.recv().await
+        }
+    }
+}
+
+/// Workflow orchestration module.
+pub mod orchestration {
+    /// Workflow definition.
+    pub struct Workflow {
+        pub name: String,
+        pub steps: Vec<WorkflowStep>,
+        pub agents: Vec<AgentId>,
+        pub human_checkpoints: Vec<usize>,
+    }
+
+    /// Single step in a workflow.
+    pub enum WorkflowStep {
+        /// Agent performs a task
+        AgentTask {
+            agent: AgentId,
+            task: Task,
+        },
+        /// Parallel execution of multiple tasks
+        Parallel {
+            tasks: Vec<WorkflowStep>,
+        },
+        /// Wait for human approval
+        HumanApproval {
+            description: String,
+            timeout: Option<Duration>,
+        },
+        /// Conditional branching
+        Condition {
+            predicate: Box<dyn Fn(&WorkflowState) -> bool>,
+            if_true: Box<WorkflowStep>,
+            if_false: Box<WorkflowStep>,
+        },
+        /// Agent consensus
+        Consensus {
+            agents: Vec<AgentId>,
+            question: Query,
+            threshold: f64,
+        },
+    }
+
+    /// Execute a workflow.
+    pub async fn execute(workflow: Workflow) -> WorkflowResult {
+        let mut state = WorkflowState::new()
+
+        for step in workflow.steps {
+            match step {
+                WorkflowStep::AgentTask { agent, task } => {
+                    let result = agent.process(task).await
+                    state.record(step, result)
+                }
+                WorkflowStep::Parallel { tasks } => {
+                    let results = futures::join_all(
+                        tasks.iter().map(|t| execute_step(t))
+                    ).await
+                    state.record_all(tasks, results)
+                }
+                WorkflowStep::HumanApproval { description, timeout } => {
+                    let approval = human_loop::request_approval(description, timeout).await
+                    if !approval {
+                        return WorkflowResult::Rejected(state)
+                    }
+                }
+                WorkflowStep::Consensus { agents, question, threshold } => {
+                    let result = consensus::reach(agents, question, threshold).await
+                    state.record(step, result)
+                }
+                _ => {}
+            }
+        }
+
+        WorkflowResult::Completed(state)
+    }
+}
+
+/// Consensus protocols module.
+pub mod consensus {
+    /// Consensus result.
+    pub enum ConsensusResult {
+        Agreed {
+            decision: Decision,
+            confidence: f64,
+            votes: Vec<Vote>,
+        },
+        Disagreement {
+            positions: Vec<(AgentId, Vote)>,
+            closest_option: Option<Decision>,
+        },
+        Timeout,
+    }
+
+    /// Reach consensus among agents.
+    pub async fn reach(
+        agents: Vec<AgentId>,
+        question: Query,
+        threshold: f64,
+    ) -> ConsensusResult {
+        // Collect votes from all agents
+        let votes: Vec<Vote> = futures::join_all(
+            agents.iter().map(|a| a.vote(&question))
+        ).await
+
+        // Tally votes
+        let tally = tally_votes(&votes)
+
+        // Check if threshold met
+        for (decision, count) in tally.iter() {
+            let ratio = *count as f64 / votes.len() as f64
+            if ratio >= threshold {
+                return ConsensusResult::Agreed {
+                    decision: decision.clone(),
+                    confidence: ratio,
+                    votes,
+                }
+            }
+        }
+
+        // No consensus reached
+        ConsensusResult::Disagreement {
+            positions: agents.iter().zip(votes).collect(),
+            closest_option: tally.iter().max_by_key(|(_, c)| c).map(|(d, _)| d.clone()),
+        }
+    }
+
+    /// Voting protocols.
+    pub mod protocols {
+        /// Simple majority voting.
+        pub fn majority<T: Eq + Hash>(votes: &[T]) -> Option<T> {
+            let half = votes.len() / 2
+            let counts = count_votes(votes)
+            counts.into_iter()
+                .find(|(_, count)| *count > half)
+                .map(|(item, _)| item)
+        }
+
+        /// Weighted voting based on agent confidence.
+        pub fn weighted(votes: &[(Vote, f64)]) -> Option<Decision> {
+            let total_weight: f64 = votes.iter().map(|(_, w)| w).sum()
+            let weighted_counts = aggregate_weighted(votes)
+
+            weighted_counts.into_iter()
+                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+                .filter(|(_, w)| *w > total_weight / 2.0)
+                .map(|(d, _)| d)
+        }
+
+        /// Ranked choice voting.
+        pub fn ranked_choice(ballots: &[Vec<Decision>]) -> Option<Decision> {
+            let mut remaining: HashSet<_> = ballots.iter()
+                .flat_map(|b| b.iter())
+                .cloned()
+                .collect()
+
+            loop {
+                let counts = count_first_choices(ballots, &remaining)
+                let total: usize = counts.values().sum()
+
+                // Check for majority
+                if let Some((winner, count)) = counts.iter().max_by_key(|(_, c)| *c) {
+                    if *count > total / 2 {
+                        return Some(winner.clone())
+                    }
+                }
+
+                // Eliminate lowest
+                if let Some((loser, _)) = counts.iter().min_by_key(|(_, c)| *c) {
+                    remaining.remove(loser)
+                } else {
+                    return None
+                }
+            }
+        }
+    }
+}
+
+/// Human oversight module.
+pub mod oversight {
+    /// Request human approval.
+    pub async fn request_approval(
+        description: &str,
+        timeout: Option<Duration>,
+    ) -> bool {
+        let request = ApprovalRequest {
+            description: description.to_string(),
+            timestamp: Instant::now(),
+            timeout,
+        };
+
+        // Send to human oversight interface
+        let response = oversight_channel::send(request).await;
+
+        match response {
+            ApprovalResponse::Approved => true,
+            ApprovalResponse::Rejected => false,
+            ApprovalResponse::Timeout => {
+                // Default to rejection on timeout for safety
+                false
+            }
+        }
+    }
+
+    /// Get human feedback on a decision.
+    pub async fn get_feedback(context: &str) -> Feedback {
+        let request = FeedbackRequest {
+            context: context.to_string(),
+            timestamp: Instant::now(),
+        };
+
+        oversight_channel::request_feedback(request).await
+    }
+
+    /// Escalate to human for manual resolution.
+    pub async fn escalate(
+        issue: &str,
+        agent_positions: Vec<(AgentId, Position)>,
+    ) -> Resolution {
+        let escalation = Escalation {
+            issue: issue.to_string(),
+            positions: agent_positions,
+            timestamp: Instant::now(),
+        };
+
+        oversight_channel::escalate(escalation).await
+    }
+
+    /// Audit trail for all agent decisions.
+    pub struct AuditTrail {
+        entries: Vec<AuditEntry>,
+    }
+
+    impl AuditTrail {
+        /// Record an agent decision.
+        pub fn record(&mut self, agent: AgentId, decision: Decision, reasoning: String) {
+            self.entries.push(AuditEntry {
+                timestamp: Instant::now(),
+                agent,
+                decision,
+                reasoning,
+            })
+        }
+
+        /// Export audit trail for review.
+        pub fn export(&self) -> AuditReport {
+            AuditReport {
+                entries: self.entries.clone(),
+                generated_at: Instant::now(),
+            }
+        }
+    }
+}
+
+/// Agent communication primitives.
+pub mod communication {
+    /// Message types for inter-agent communication.
+    pub enum Message {
+        Task(Task),
+        TaskResult(TaskResult),
+        VoteRequest(Query),
+        Vote(Vote),
+        Broadcast(BroadcastMessage),
+        Shutdown,
+    }
+
+    /// Channel for agent communication.
+    pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
+        let (tx, rx) = mpsc::channel(32);
+        (Sender(tx), Receiver(rx))
+    }
+
+    /// Broadcast to all agents in ensemble.
+    pub async fn broadcast(ensemble: &Ensemble, message: BroadcastMessage) {
+        for agent in ensemble.agents.iter() {
+            agent.send(Message::Broadcast(message.clone())).await
+        }
+    }
+}

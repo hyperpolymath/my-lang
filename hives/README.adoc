@@ -1,0 +1,48 @@
+= Hives Directory
+:toc:
+
+== Overview
+
+This directory contains git submodules for each My-Lang dialect hive.
+
+== Hive Layout Contract
+
+Each hive must conform to the layout contract defined in `.machine_read/SPEC.playground.scm`:
+
+. `README.md` or `README.adoc` - Hive documentation
+. `demo/` directory - Runnable examples
+. `justfile` or `Mustfile` - With 'demo' target
+. `.hive-meta.scm` - Hive metadata
+
+== Available Hives
+
+[cols="1,2,1"]
+|===
+|Dialect |Description |Status
+
+|me-hive
+|Visual block-based dialect for ages 8-12
+|Planned
+
+|solo-hive
+|Text-based human-first dialect
+|Planned
+
+|duet-hive
+|Collaborative co-creation dialect
+|Planned
+
+|ensemble-hive
+|Agentic orchestration dialect
+|Planned
+|===
+
+== Adding a Hive
+
+[source,bash]
+----
+git submodule add https://github.com/hyperpolymath/{dialect}-hive hives/{dialect}-hive
+git commit -m "Add {dialect}-hive submodule"
+----
+
+IMPORTANT: Always pin submodule refs to specific commits. No floating HEAD refs.
