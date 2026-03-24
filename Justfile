@@ -88,3 +88,7 @@ verify:
     @test -f .machine_read/SPEC.playground.scm && echo "[OK] SPEC.playground.scm exists" || echo "[FAIL] SPEC.playground.scm missing"
     @test -d hives && echo "[OK] hives/ exists" || echo "[FAIL] hives/ missing"
     @echo "Verification complete."
+
+# Run panic-attacker pre-commit scan
+assail:
+    @command -v panic-attack >/dev/null 2>&1 && panic-attack assail . || echo "panic-attack not found — install from https://github.com/hyperpolymath/panic-attacker"
