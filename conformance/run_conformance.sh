@@ -10,7 +10,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# my-lang is a Rust workspace at the monorepo level AND at /var/mnt/eclipse/repos/my-lang
+# my-lang is a Rust workspace at the monorepo level AND at /var$REPOS_DIR/my-lang
 MY_LANG_ROOT="${SCRIPT_DIR}/.."
 PARSER="${1:-cargo run --manifest-path "${MY_LANG_ROOT}/Cargo.toml" -p my-cli --quiet -- --parse-only}"
 
