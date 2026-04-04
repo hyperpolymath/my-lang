@@ -15,6 +15,7 @@ members = [
     "crates/my-parser",
     "crates/my-debug",
     "crates/my-dap",
+    "dialects/me/crates/ensemble",
 ]
 
 [workspace.package]

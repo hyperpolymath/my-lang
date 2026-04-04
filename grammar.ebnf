@@ -15,7 +15,12 @@ top_level        = fn_decl
                  | comptime_decl
                  | arena_decl
                  | ai_model_decl
-                 | prompt_decl;
+                 | prompt_decl
+                 | agent_decl              (* Ensemble Variant A *)
+                 | workflow_decl           (* Ensemble Variant A *)
+                 | ensemble_decl           (* Ensemble Variant B *)
+                 | task_decl               (* Ensemble Variant B *)
+                 ;
 
 (* --- AI-First Extensions --- *)
 
@@ -246,11 +251,131 @@ digit            = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 (*    - Embeddings and vector ops              *)
 
 (* ============================================= *)
+(* ENSEMBLE DIALECT                             *)
+(* Multi-agent coordination extension           *)
+(* ============================================= *)
+
+(* --------------------------------------------- *)
+(* Ensemble Variant A: Imperative Agent Model    *)
+(*                                               *)
+(* Agents are first-class objects with named    *)
+(* state, typed capabilities, goal conditions,  *)
+(* and message handlers. Orchestrated via        *)
+(* explicit spawn/send/receive/broadcast.        *)
+(* STATUS: IMPLEMENTED in dialects/me/           *)
+(* --------------------------------------------- *)
+
+agent_decl       = "agent" , ident , "{" ,
+                   [ state_section ]
+                   [ capabilities_section ]
+                   [ goals_section ]
+                   [ communication_section ]
+                   "}" ;
+
+state_section    = "state" , "{" , { state_field } , "}" ;
+state_field      = ident , ":" , type , [ "," ] ;
+
+capabilities_section = "capabilities" , "{" , { capability_def } , "}" ;
+capability_def   = ident , "(" , [ param_list ] , ")" , "->" , type , [ "," ] ;
+
+goals_section    = "goals" , "{" , { goal_def } , "}" ;
+goal_def         = ident , ":" , expr , [ "," ] ;
+
+communication_section = "communication" , "{" , { block } , "}" ;
+
+workflow_decl    = "workflow" , ident , "{" ,
+                   { ident , [ "->" ] }
+                   "}" ;
+
+(* Ensemble expression forms (Variant A) *)
+spawn_expr       = "spawn" , ident , [ "with" , record_lit ] ;
+send_expr        = "send" , expr , "to" , ident ;
+receive_expr     = "receive" , [ receive_filter ] , [ "timeout" , expr ] ;
+receive_filter   = "from" , ident
+                 | "matching" , expr
+                 ;
+broadcast_expr   = "broadcast" , expr ;
+
+(* --------------------------------------------- *)
+(* Ensemble Variant B: Declarative Task Model   *)
+(*                                               *)
+(* Tasks declare input/output types and a        *)
+(* decomposition strategy. Ensembles bind tasks  *)
+(* to topologies and coordination protocols.     *)
+(* The runtime assigns agents automatically.     *)
+(* STATUS: DESIGNED — not yet implemented        *)
+(* --------------------------------------------- *)
+
+task_decl        = "task" , ident , "{" ,
+                   "input" , ":" , type , ","
+                   "output" , ":" , type , ","
+                   [ "decompose" , ":" , task_pipeline , "," ]
+                   [ "agents" , ":" , "[" , ident_list , "]" , "," ]
+                   [ "strategy" , ":" , task_strategy ]
+                   "}" ;
+
+task_pipeline    = task_step , { "|>" , task_step } ;
+task_step        = ident                             (* named function/agent *)
+                 | "map" , "(" , expr , ")"
+                 | "reduce" , "(" , expr , ")"
+                 | "filter" , "(" , expr , ")"
+                 | "partition" , "(" , expr , ")"
+                 ;
+
+task_strategy    = "pipeline"
+                 | "parallel"
+                 | "scatter_gather"
+                 | "chain"
+                 ;
+
+ensemble_decl    = "ensemble" , ident , "{" ,
+                   [ "agents" , ":" , "[" , ident_list , "]" , "," ]
+                   [ "tasks" , ":" , "[" , ident_list , "]" , "," ]
+                   [ "topology" , ":" , topology_kind , "," ]
+                   [ "coordination" , ":" , coordination_kind , "," ]
+                   [ "ai_arbiter" , ":" , string_lit ]
+                   "}" ;
+
+topology_kind    = "ring" | "star" | "mesh" | "pipeline" | "bus" ;
+
+coordination_kind = "consensus"          (* majority vote on decisions *)
+                  | "leader"             (* single elected coordinator *)
+                  | "gossip"             (* epidemic state dissemination *)
+                  | "blackboard"         (* shared write space *)
+                  | "market"             (* auction-based task assignment *)
+                  ;
+
+ident_list       = ident , { "," , ident } ;
+
+(* --------------------------------------------- *)
+(* AI Semantics in Ensemble                      *)
+(*                                               *)
+(* Both variants support AI-enhanced operations: *)
+(* - ai_arbiter: LLM resolves coordination       *)
+(*   conflicts between agents                    *)
+(* - AI<AgentMessage>: agent messages carry      *)
+(*   AI effect type, enabling non-determinism    *)
+(*   annotation at the type level                *)
+(* - Ensemble tasks may carry ai_check contracts *)
+(*   verifying output quality post-execution     *)
+(* --------------------------------------------- *)
+
+(* AI effect type for agent messages *)
+(* AI<AgentMessage> in return types signals:     *)
+(*   - non-determinism (LLM may vary)            *)
+(*   - latency (async network/LLM call)          *)
+(*   - fallibility (model may refuse/error)      *)
+
+(* ============================================= *)
 (* Keywords: fn, struct, effect, where, pre,    *)
 (* post, invariant, comptime, let, mut, if,     *)
 (* else, go, return, await, try, restrict,     *)
 (* and, or, true, false, ai, query, verify,    *)
 (* generate, embed, classify, optimize, test,   *)
 (* infer, constrain, validate, prompt,          *)
-(* ai_model, match                              *)
+(* ai_model, match,                             *)
+(* agent, workflow, spawn, send, receive,       *)
+(* broadcast, state, capabilities, goals,       *)
+(* communication, task, ensemble, topology,     *)
+(* coordination, decompose, strategy            *)
 (* ============================================= *)
