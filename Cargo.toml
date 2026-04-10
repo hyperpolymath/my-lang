@@ -15,8 +15,11 @@ members = [
     "crates/my-parser",
     "crates/my-debug",
     "crates/my-dap",
-    "dialects/me/crates/ensemble",
 ]
+
+# Note: dialects/me/crates/ensemble was previously listed here. The dialects/me/
+# scaffolding has been sidelined to _exploratory/me-scaffolding/ and is no longer
+# part of the active workspace. See _exploratory/me-scaffolding/SIDELINED.adoc.
 
 [workspace.package]
 version = "0.2.0"

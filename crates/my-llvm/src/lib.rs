@@ -303,6 +303,22 @@ impl<'ctx> Codegen<'ctx> {
                         })
                         .collect();
 
+                    // SAFETY: `build_gep` is declared `unsafe` by inkwell because LLVM's
+                    // GetElementPtr instruction assumes the base pointer and index sequence
+                    // together stay within the bounds of the underlying allocation — LLVM
+                    // does not itself check this at codegen time, and an out-of-bounds GEP
+                    // followed by a load/store is undefined behaviour at the LLVM IR level.
+                    //
+                    // We satisfy this invariant here because:
+                    //   1. `ptr` is produced by an earlier `self.get_value(*base)` that
+                    //      only yields pointer values sourced from previous lowered
+                    //      instructions — it is never a raw transmuted integer.
+                    //   2. `indices` come from the MIR `GetElementPtr` instruction, which
+                    //      the MIR builder only emits when the element type and index
+                    //      arity have been type-checked for the pointee type upstream.
+                    //   3. We use `i8_type()` as the element type so the indices are
+                    //      byte-offset indices; the caller is responsible for having
+                    //      scaled them to the intended element width before lowering.
                     unsafe {
                         let gep = self.builder.build_gep(
                             self.context.i8_type(),

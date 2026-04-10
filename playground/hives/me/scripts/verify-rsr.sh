@@ -276,7 +276,7 @@ echo "======================================================================"
 echo ""
 
 TOTAL=$((PASSED + FAILED))
-if [ $TOTAL -gt 0 ]; then
+if [ "$TOTAL" -gt 0 ]; then
     PASS_PERCENT=$((PASSED * 100 / TOTAL))
 else
     PASS_PERCENT=0
@@ -289,13 +289,13 @@ echo ""
 echo "Pass Rate: $PASS_PERCENT%"
 echo ""
 
-if [ $FAILED -eq 0 ]; then
+if [ "$FAILED" -eq 0 ]; then
     echo -e "${GREEN}🎉 RSR Bronze Level Compliance: ACHIEVED${NC}"
     echo ""
     echo "Your project meets all Bronze level requirements!"
     echo ""
     exit 0
-elif [ $PASS_PERCENT -ge 80 ]; then
+elif [ "$PASS_PERCENT" -ge 80 ]; then
     echo -e "${YELLOW}⚠️  RSR Bronze Level Compliance: PARTIAL${NC}"
     echo ""
     echo "Your project is close to compliance."

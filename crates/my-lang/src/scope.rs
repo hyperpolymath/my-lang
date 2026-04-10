@@ -232,9 +232,12 @@ impl TypeEnv {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::error::Error;
+
+    type TestResult = Result<(), Box<dyn Error>>;
 
     #[test]
-    fn test_symbol_table_basic() {
+    fn test_symbol_table_basic() -> TestResult {
         let mut table = SymbolTable::new();
 
         let sym = Symbol {
@@ -245,16 +248,17 @@ mod tests {
             mutable: false,
         };
 
-        table.define(sym).unwrap();
+        table.define(sym)?;
         assert!(table.is_defined("x"));
         assert!(!table.is_defined("y"));
 
-        let found = table.lookup("x").unwrap();
+        let found = table.lookup("x").ok_or("x should be defined after define()")?;
         assert_eq!(found.ty, Ty::Int);
+        Ok(())
     }
 
     #[test]
-    fn test_nested_scopes() {
+    fn test_nested_scopes() -> TestResult {
         let mut table = SymbolTable::new();
 
         // Define in global
@@ -264,7 +268,7 @@ mod tests {
             ty: Ty::Int,
             span: Span::default(),
             mutable: false,
-        }).unwrap();
+        })?;
 
         // Enter new scope
         table.enter_scope();
@@ -276,7 +280,7 @@ mod tests {
             ty: Ty::String,
             span: Span::default(),
             mutable: false,
-        }).unwrap();
+        })?;
 
         // Can see both
         assert!(table.is_defined("global"));
@@ -288,10 +292,11 @@ mod tests {
         // Can only see global
         assert!(table.is_defined("global"));
         assert!(!table.is_defined("local"));
+        Ok(())
     }
 
     #[test]
-    fn test_shadowing() {
+    fn test_shadowing() -> TestResult {
         let mut table = SymbolTable::new();
 
         table.define(Symbol {
@@ -300,7 +305,7 @@ mod tests {
             ty: Ty::Int,
             span: Span::default(),
             mutable: false,
-        }).unwrap();
+        })?;
 
         table.enter_scope();
 
@@ -311,16 +316,17 @@ mod tests {
             ty: Ty::String,
             span: Span::default(),
             mutable: false,
-        }).unwrap();
+        })?;
 
         // Sees shadowed version
-        let found = table.lookup("x").unwrap();
+        let found = table.lookup("x").ok_or("shadowed x should be defined")?;
         assert_eq!(found.ty, Ty::String);
 
         table.exit_scope();
 
         // Sees original
-        let found = table.lookup("x").unwrap();
+        let found = table.lookup("x").ok_or("original x should be defined after exit_scope()")?;
         assert_eq!(found.ty, Ty::Int);
+        Ok(())
     }
 }

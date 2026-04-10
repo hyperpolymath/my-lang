@@ -12,7 +12,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # my-lang is a Rust workspace at the monorepo level AND at /var$REPOS_DIR/my-lang
 MY_LANG_ROOT="${SCRIPT_DIR}/.."
-PARSER="${1:-cargo run --manifest-path "${MY_LANG_ROOT}/Cargo.toml" -p my-cli --quiet -- --parse-only}"
+
+# Build PARSER_CMD as an array so we never need `eval`. If the caller passes
+# a parser command as $1, split it on whitespace into array elements; otherwise
+# use the default cargo invocation.
+if [[ -n "${1:-}" ]]; then
+    # shellcheck disable=SC2206 # deliberate word-splitting of the caller's string
+    PARSER_CMD=(${1})
+else
+    PARSER_CMD=(cargo run --manifest-path "${MY_LANG_ROOT}/Cargo.toml" -p my-cli --quiet -- --parse-only)
+fi
 
 PASS=0
 FAIL=0
@@ -22,7 +31,7 @@ TOTAL=0
 for f in "${SCRIPT_DIR}"/valid/*.my; do
     TOTAL=$((TOTAL + 1))
     name="$(basename "$f")"
-    if eval "${PARSER}" "$f" >/dev/null 2>&1; then
+    if "${PARSER_CMD[@]}" "$f" >/dev/null 2>&1; then
         echo "  PASS  valid/${name}"
         PASS=$((PASS + 1))
     else
@@ -35,7 +44,7 @@ done
 for f in "${SCRIPT_DIR}"/invalid/*.my; do
     TOTAL=$((TOTAL + 1))
     name="$(basename "$f")"
-    if eval "${PARSER}" "$f" >/dev/null 2>&1; then
+    if "${PARSER_CMD[@]}" "$f" >/dev/null 2>&1; then
         echo "  FAIL  invalid/${name}  (expected failure, got success)"
         FAIL=$((FAIL + 1))
     else
