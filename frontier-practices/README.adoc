@@ -1,10 +1,51 @@
-= Seven Tentacles
+= My-Lang Frontier Practices — Applied Learner & Teacher Materials
 
 image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
 :toc: left
 :toclevels: 3
 :icons: font
 :source-highlighter: rouge
+
+*My-Lang-specific applied learner and teacher materials — lessons, worked examples,
+tabletop games, and the me-language example programs. The applied layer that consumes
+the broader curriculum living in `tentacles-agentic-syllabus`.*
+
+[IMPORTANT]
+====
+**This directory was previously named `my-lang/7-tentacles/`.** It has been renamed to
+`my-lang/frontier-practices/` to reflect its real role and to resolve a long-standing
+name collision with the separate curriculum source of truth that lived as a submodule of
+`nextgen-languages/`.
+
+**New mental model:**
+
+* **`tentacles-agentic-syllabus`** (top-level repo, ex `hyperpolymath/7-tentacles`) — the
+  curriculum source of truth: syllabus, aspect-agents, kin framework, and the (to be built)
+  Me runtime projector. Applies to every language in the hyperpolymath ecosystem.
+* **This directory** (`my-lang/frontier-practices/`) — the **my-lang-specific applied layer**.
+  Worked examples in me-language, tabletop games tuned to my-lang concepts, teacher guides
+  that show how to deliver the syllabus *in my-lang specifically*, lessons that walk
+  learners through my-lang primitives. It consumes the syllabus; it does not own the
+  syllabus.
+
+This pattern parallels `~/Desktop/Frontier_Programming_Practices_AffineScript/` for
+AffineScript. Every language may eventually have its own `frontier-practices/` applied
+layer that consumes the same common curriculum.
+
+**Also outdated below:**
+
+* The "Ages 8-18" framing is narrower than the real audience (anyone from 8-year-olds to
+  senior professors).
+* "4 language dialects (Me, Solo, Duet, Ensemble)" is wrong. Real My-Lang dialects are
+  **three, nested**: `Solo ⊂ Duet ⊂ Ensemble`. Me is not a fourth dialect — it is an
+  on-the-fly agent-generated projection over the dialect hierarchy, and it is specified in
+  `tentacles-agentic-syllabus/me/README.adoc`.
+* The `7` in "7 cephalopod mascots" is no longer load-bearing. The count of agents may
+  grow or shrink without invalidating the design.
+
+A full rewrite of this README to reflect the evolved architecture is a follow-up task.
+The content below is retained until then.
+====
 
 *Teaching Compiler Architecture to Ages 8-18 Through Progressive Reveal & Playful Mascots*
 

@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+= Me Scaffolding — Sidelined
+:toc: left
+
+[IMPORTANT]
+====
+**This directory is exploratory scaffolding that is no longer the canonical path for "Me".**
+It is kept here for salvage value, not as an active implementation target. Do not extend it.
+Do not audit it as a dialect. Do not treat grade signals from it as meaningful.
+====
+
+== What This Is
+
+This directory contains an earlier exploratory attempt to build **Me** as a standalone static
+dialect of My-Lang, with 12 separate Rust crates (parser, lexer, ast, affine, codegen,
+typechecker, runtime, lsp, repl, duet, ensemble). At the time of sidelining it had roughly:
+
+* **1,388 LOC** parser (the most substantial crate; potentially salvageable)
+* **503 LOC** AST
+* **397 LOC** lexer
+* **155 LOC** ensemble reference
+* 60 LOC parser error module, 102 LOC precedence module
+* Most other crates (codegen, typechecker, runtime, lsp, repl, affine, duet) were 2-LOC stubs
+
+== Why It Was Sidelined
+
+This treated Me as **a separate compiler for a fixed subset of My-Lang**. That mismatches
+the real pedagogical design, which is:
+
+* Me must be **per-task** — the subset depends on what's being taught.
+* Me must be **per-learner** — the same task can have different constraints for different
+  learners.
+* Me must be **mutable mid-exercise** — the learner can scale up (more features) or tighten
+  (more constraints) as they work.
+* Me must be **safe by construction** — it must always be a projection of real My-Lang and
+  never drift into a different language with different semantics.
+
+A static compiler cannot meet those properties. Only an agent-driven runtime projector can.
+
+== Where The Real Me Lives
+
+The canonical Me design lives in:
+
+* `tentacles-agentic-syllabus/me/README.adoc` — design document for the runtime projector
+  built on top of the aspect-agent and kin-framework machinery in that repo.
+* The A2ML task-spec schema (to be defined there) is what drives Me generation, not this
+  static code.
+
+See `memory/me-dialect-architecture.md` for the full design narrative.
+
+== What's Salvageable
+
+The **1,388-LOC parser** in `crates/parser/` is the most mature artefact here. If the future
+Me runtime projector needs to parse a scoped My-Lang subset at runtime, parts of this parser
+may be mined for reuse — particularly:
+
+* The Pratt precedence logic in `crates/parser/src/precedence.rs`.
+* Error production in `crates/parser/src/error.rs`.
+* AST construction patterns in `crates/parser/src/lib.rs`.
+
+The other crates (codegen, typechecker, runtime, lsp, repl, affine, duet, ensemble) were
+essentially stubs at the time of sidelining and have little salvage value.
+
+== Do Not Do The Following
+
+* Do not grade this directory on CRG — it is exploratory, not a release candidate.
+* Do not describe it in any audit as "the Me dialect".
+* Do not start new work inside it.
+* Do not restore it to `dialects/me/` — the sideline is deliberate.
+* Do not conflate it with `languages/me-language/examples/*.me` in `../frontier-practices/`
+  — those are my-lang-specific Me *example programs* for the applied materials layer, which
+  is a different thing.
+
+== Deletion Policy
+
+This directory may be deleted in a future session if:
+
+* The new Me runtime projector is fully implemented and all parser logic that was worth
+  salvaging has been mined and migrated.
+* Six months pass with no reference to it from any active work.
+
+Until then, preserving it is cheap and the salvage value is real.
+
+== Related
+
+* `tentacles-agentic-syllabus/me/README.adoc` — real Me design
+* `../frontier-practices/` — my-lang-specific applied learner materials (ex `my-lang/7-tentacles/`)
+* `memory/me-dialect-architecture.md` — architecture narrative
+* `memory/my-lang-dialect-containment.md` — Solo ⊂ Duet ⊂ Ensemble containment
