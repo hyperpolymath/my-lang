@@ -1,180 +1,56 @@
-;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; STATE.scm - Project state for my-lang
-;; Media-Type: application/vnd.state+scm
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# STATE.a2ml — My Lang project state
+[metadata]
+project = "my-lang"
+version = "0.0.2"
+last-updated = "2026-03-14"
+status = "active"
+session = "converted from scheme — 2026-04-11"
 
-(state
-  (metadata
-    (version "0.0.2")
-    (schema-version "1.0")
-    (created "2026-01-03")
-    (updated "2026-03-14")
-    (project "my-lang")
-    (repo "github.com/hyperpolymath/my-lang"))
+[project-context]
+name = "My Lang"
+purpose = """Merge my-newsroom solo-compiler and mylang-playground dialects into main repo"""
+completion-percentage = 65
 
-  (project-context
-    (name "my-lang")
-    (tagline "AI-native language with neuro-symbolic dialects")
-    (tech-stack (Rust LLVM))
-    (implementation-language Rust)
-    (dialects
-      ((solo "Dependable foundation for systems programming" (status in-progress))
-       (duet "AI-assisted development with verification" (status in-progress))
-       (ensemble "AI as first-class native component" (status in-progress))
-       (me "Personal AI agent dialect" (status in-progress))))
-    (target-domains (ai-native neurosymbolic high-assurance))
-    (related-repos
-      (my-newsroom "Solo dialect compiler (separate, 1.9M) - NEEDS CONSOLIDATION")
-      (mylang-playground "Duet/ME dialect experiments (4.0M) - NEEDS CONSOLIDATION")
-      (my-lang-archive "Old version (534M) - CONSIDER REMOVING")))
+[position]
+phase = "alpha-substantial-implementation"   # design | implementation | testing | maintenance | archived
+maturity = "experimental"  # experimental | alpha | beta | production | lts
 
-  (current-position
-    (phase "alpha-substantial-implementation")
-    (overall-completion 65)
-    (loc 35531)
-    (files 108)
-    (workspace-structure
-      ((crates 13)
-       (my-lang "Core compiler")
-       (my-cli "Command-line interface")
-       (my-hir "High-level IR")
-       (my-mir "Mid-level IR")
-       (my-llvm "LLVM code generation")
-       (my-lsp "Language server protocol")
-       (my-pkg "Package manager")
-       (my-ai "AI integration")
-       (my-fmt "Code formatter")
-       (my-lint "Linter")
-       (my-test "Testing framework")
-       (my-parser "Parser")
-       (my-debug "Debugger")))
-    (components
-      ((lexer (status complete) (file "src/lexer.rs"))
-       (parser (status complete) (file "crates/my-parser/"))
-       (ast (status complete) (file "src/ast.rs"))
-       (typechecker (status mostly-complete) (completion 80) (file "src/types.rs"))
-       (hir (status mostly-complete) (completion 80) (crate "my-hir"))
-       (mir (status mostly-complete) (completion 75) (crate "my-mir"))
-       (llvm-codegen (status incomplete) (completion 70) (crate "my-llvm"))
-       (lsp-server (status mostly-complete) (completion 80) (crate "my-lsp"))
-       (formatter (status mostly-complete) (completion 75) (crate "my-fmt"))
-       (linter (status mostly-complete) (completion 75) (crate "my-lint"))
-       (testing-framework (status mostly-complete) (completion 70) (crate "my-test"))
-       (package-manager (status incomplete) (completion 60) (crate "my-pkg"))
-       (ai-integration (status incomplete) (completion 50) (crate "my-ai"))
-       (stdlib (status incomplete) (completion 70)
-         (modules (array io math string types concurrency net fs collections)))
-       (repl (status present) (completion 60))
-       (cli (status mostly-complete) (completion 80) (crate "my-cli"))
-       (debugger (status incomplete) (completion 50) (crate "my-debug"))))
-    (working-features
-      (parsing "Complete parser for My-Lang syntax")
-      (type-checking "Hindley-Milner with AI type extensions - mostly working")
-      (hir-lowering "High-level IR with good coverage")
-      (mir-optimizations "Mid-level IR with basic optimizations")
-      (llvm-backend "Partial native code generation - 70% complete")
-      (lsp "LSP implementation - diagnostics, completion, hover, goto-def")
-      (formatting "AST pretty-printing with AI-aware formatting")
-      (linting "Code quality checks")
-      (stdlib "Standard library with array, io, math, string, types")))
+[route-to-mvp]
+milestones = [
+  # No milestones recorded
+]
 
-  (route-to-mvp
-    (milestones
-      ((consolidate-dialects
-        (priority critical)
-        (effort "10-15 hours")
-        (description "Merge my-newsroom solo-compiler and mylang-playground dialects into main repo")
-        (approach "Create dialects/ directory with solo/, duet/, ensemble/, me/ subdirectories"))
-       (complete-llvm-backend
-        (priority critical)
-        (effort "15-20 hours")
-        (description "Finish LLVM code generation - native binary output"))
-       (unify-ai-integration
-        (priority high)
-        (effort "10-15 hours")
-        (description "Consolidate AI integration across dialects"))
-       (complete-debugger
-        (priority high)
-        (effort "15-20 hours")
-        (description "Interactive debugger with AI state inspection"))
-       (complete-stdlib
-        (priority medium)
-        (effort "10-15 hours")
-        (description "Expand stdlib to 95% - add concurrency, networking"))
-       (documentation
-        (priority high)
-        (effort "15-20 hours")
-        (description "Comprehensive docs for all dialects")))))
+[blockers-and-issues]
+issues = [
+  # No blockers recorded
+]
 
-  (blockers-and-issues
-    (critical
-      (dialect-fragmentation
-        (severity critical)
-        (impact "Dialects scattered across 3 repos, impossible to develop coherently")
-        (description "Solo compiler in my-newsroom, Duet/ME in mylang-playground")
-        (affected-repos
-          "my-newsroom/solo-compiler/"
-          "my-newsroom/examples/duet/"
-          "my-newsroom/examples/solo/"
-          "mylang-playground/hives/me/"))
-      (llvm-backend-incomplete
-        (severity high)
-        (impact "Cannot compile to native binaries")
-        (description "LLVM codegen at 70% - missing advanced features")))
-    (high
-      (ai-integration-fragmented
-        (severity medium)
-        (impact "AI features inconsistent across dialects")
-        (description "AI integration scattered and incomplete"))
-      (97-todo-fixme-markers
-        (severity medium)
-        (impact "Significant outstanding work flagged in code")
-        (description "97 TODO/FIXME markers across codebase")))
-    (medium
-      (stdlib-incomplete
-        (severity low)
-        (impact "Missing concurrency and networking primitives")
-        (description "Stdlib at 70%, needs expansion")))
-    (low))
-
-  (critical-next-actions
-    (immediate
-      (consolidate-dialects
-        (description "Create dialects/ directory structure, merge scattered repos")
-        (effort "10-15 hours"))
-      (complete-llvm-codegen
-        (description "Finish LLVM backend for native binary output")
-        (files ("crates/my-llvm/"))
-        (effort "15-20 hours")))
-    (this-week
-      (unify-ai-integration
-        (description "Consolidate AI features across dialects")
-        (crate "my-ai")
-        (effort "10-15 hours")))
+[critical-next-actions]
+actions = [
+  "Create dialects/ directory structure, merge scattered repos",
+  "10-15 hours",
+  "Finish LLVM backend for native binary output",
+  "crates/my-llvm/",
+  "15-20 hours",
+  "Consolidate AI features across dialects",
+  ")
+        (effort ",
+  ")))
     (this-month
       (expand-stdlib
-        (description "Add concurrency and networking modules")
-        (effort "10-15 hours"))
+        (description ",
+  ")
+        (effort ",
+  "))
       (write-documentation
-        (description "Comprehensive dialect documentation")
-        (effort "15-20 hours"))))
+        (description ",
+  ")
+        (effort ",
+]
 
-  (session-history
-    ((2026-02-07
-      (focus "Verified actual implementation status")
-      (discoveries
-        "Massive implementation but dialects scattered across 3 repos"
-        "Solo compiler separate in my-newsroom/"
-        "Duet/ME dialects in mylang-playground/")
-      (actions
-        "Updated STATE.scm to reflect reality"
-        "Identified dialect consolidation plan"))
-     (2026-03-14
-      (focus "Resolved merge conflict in STATE.scm")
-      (discoveries
-        "STATE.scm had unresolved merge conflict between 65% and 100% claims"
-        "Honest assessment: 65% overall, 108 .rs files, 35,531 LOC, 13 crates"
-        "97 TODO/FIXME markers in codebase"
-        "Neither conflicting branch was fully accurate")
-      (actions
-        "Resolved merge conflict with honest completion percentages"
-        "Set overall completion to 65% based on code inspection")))))
+[maintenance-status]
+last-run-utc = "2026-03-14T00:00:00Z"
+last-result = "unknown"  # unknown | pass | warn | fail
