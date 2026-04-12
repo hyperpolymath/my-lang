@@ -1,34 +1,20 @@
-;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; ECOSYSTEM.scm - Duet ecosystem positioning
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# ECOSYSTEM.a2ml — Duet ecosystem position
+[metadata]
+version = "1.0.0"
+last-updated = "2026-04-11"
 
-(ecosystem
-  (version . "1.0.0")
-  (name . "duet")
-  (type . "language-dialect")
-  (purpose . "Human-AI collaborative programming")
+[project]
+name = "Duet"
+purpose = "Human-AI collaborative programming"
+role = "language-dialect"
 
-  (position-in-ecosystem
-    ((parent . "mylang-playground/hives")
-     (grandparent . "language-playgrounds")
-     (category . "mylang-dialects")))
+[position-in-ecosystem]
+category = "mylang-dialects"
 
-  (related-projects
-    ((solo
-       ((relationship . "foundation")
-        (description . "Previous stage in progression")))
-     (ensemble
-       ((relationship . "evolution")
-        (description . "Next stage: multi-agent orchestration")))
-     (phronesis-playground
-       ((relationship . "concept-sharing")
-        (description . "AI ethics and safety")))))
-
-  (what-this-is
-    ("Human-AI duet programming"
-     "Code synthesis from intent"
-     "AI-assisted verification"))
-
-  (what-this-is-not
-    ("Fully autonomous AI"
-     "Multi-agent systems"
-     "No human oversight")))
+[related-projects]
+projects = [
+  { name = "duet", relationship = "foundation" },
+]

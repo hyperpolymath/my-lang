@@ -1,24 +1,27 @@
-;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; META.scm - Duet dialect metadata
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# META.a2ml — Duet meta-level information
+[metadata]
+version = "1.0.0"
+last-updated = "2026-04-11"
 
-(define project-meta
-  `((version . "1.0.0")
-    (name . "duet")
-    (architecture-decisions
-      ((adr-001
-         ((status . "accepted")
-          (date . "2025-12-30")
-          (context . "Duet enables human-AI collaborative programming")
-          (decision . "Add synthesis, verification, and intent features")
-          (consequences . "AI assists in code generation and verification")))))
-    (development-practices
-      ((code-style . "mylang-standard")
-       (security . "openssf-scorecard")
-       (testing . "property-based")
-       (versioning . "semver")
-       (documentation . "asciidoc")
-       (branching . "trunk-based")))
-    (design-rationale
-      ((why-duet . "Human and AI working together")
-       (why-synthesis . "AI generates code from intent")
-       (why-verification . "AI verifies correctness")))))
+[project-info]
+license = "PMPL-1.0-or-later"
+author = "Jonathan D.A. Jewell (hyperpolymath)"
+
+[architecture-decisions]
+decisions = [
+  # No ADRs recorded
+]
+
+[development-practices]
+versioning = "SemVer"
+documentation = "AsciiDoc"
+build-tool = "just"
+
+[maintenance-axes]
+scoping-first = true
+axis-1 = "must > intend > like"
+axis-2 = "corrective > adaptive > perfective"
+axis-3 = "systems > compliance > effects"

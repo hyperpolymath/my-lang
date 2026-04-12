@@ -1,34 +1,20 @@
-;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; ECOSYSTEM.scm - Ensemble ecosystem positioning
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# ECOSYSTEM.a2ml — Ensemble ecosystem position
+[metadata]
+version = "1.0.0"
+last-updated = "2026-04-11"
 
-(ecosystem
-  (version . "1.0.0")
-  (name . "ensemble")
-  (type . "language-dialect")
-  (purpose . "Multi-agent AI orchestration")
+[project]
+name = "Ensemble"
+purpose = "Multi-agent AI orchestration"
+role = "language-dialect"
 
-  (position-in-ecosystem
-    ((parent . "mylang-playground/hives")
-     (grandparent . "language-playgrounds")
-     (category . "mylang-dialects")))
+[position-in-ecosystem]
+category = "mylang-dialects"
 
-  (related-projects
-    ((duet
-       ((relationship . "foundation")
-        (description . "Previous stage: human-AI collaboration")))
-     (solo
-       ((relationship . "origin")
-        (description . "Base single-agent foundation")))
-     (phronesis-playground
-       ((relationship . "critical-integration")
-        (description . "Ethics for multi-agent systems")))))
-
-  (what-this-is
-    ("Multi-agent orchestration"
-     "AI swarm coordination"
-     "Emergent intelligence patterns"))
-
-  (what-this-is-not
-    ("Single agent"
-     "Human-only programming"
-     "Uncoordinated chaos")))
+[related-projects]
+projects = [
+  { name = "ensemble", relationship = "foundation" },
+]

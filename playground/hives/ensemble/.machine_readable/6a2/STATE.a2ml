@@ -1,38 +1,38 @@
-;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; STATE.scm - Ensemble dialect state
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# STATE.a2ml — Ensemble project state
+[metadata]
+project = "ensemble"
+version = "1.0.0"
+last-updated = "2025-12-30T18:00:00Z"
+status = "active"
+session = "converted from scheme — 2026-04-11"
 
-(state
-  (version . "1.0.0")
-  (phase . "framework")
-  (updated . "2025-12-30T18:00:00Z")
+[project-context]
+name = "Ensemble"
+purpose = """"""
+completion-percentage = 10
 
-  (project
-    (name . "ensemble")
-    (tier . "hive")
-    (license . "PMPL-1.0-or-later")
-    (language . "rust"))
+[position]
+phase = "framework"   # design | implementation | testing | maintenance | archived
+maturity = "experimental"  # experimental | alpha | beta | production | lts
 
-  (compliance
-    (rsr . #t)
-    (security-hardened . #t)
-    (ci-cd . #f)
-    (guix-primary . #f)
-    (nix-fallback . #f))
+[route-to-mvp]
+milestones = [
+  # No milestones recorded
+]
 
-  (current-position
-    ((overall-completion . 10)
-     (components
-       ((specification . 30)
-        (examples . 0)
-        (coordination . 0)
-        (swarm . 0)))
-     (working-features
-       ("README documentation"))))
+[blockers-and-issues]
+issues = [
+  # No blockers recorded
+]
 
-  (milestones
-    (v0.1.0
-      (status . "planned")
-      (features
-        "Multi-agent examples"
-        "Coordination patterns"
-        "Swarm primitives"))))
+[critical-next-actions]
+actions = [
+  # No actions recorded
+]
+
+[maintenance-status]
+last-run-utc = "2025-12-30T18:00:00ZT00:00:00Z"
+last-result = "unknown"  # unknown | pass | warn | fail

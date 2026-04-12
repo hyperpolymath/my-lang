@@ -1,34 +1,20 @@
-;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; ECOSYSTEM.scm - Solo ecosystem positioning
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# ECOSYSTEM.a2ml — Solo ecosystem position
+[metadata]
+version = "1.0.0"
+last-updated = "2026-04-11"
 
-(ecosystem
-  (version . "1.0.0")
-  (name . "solo")
-  (type . "language-dialect")
-  (purpose . "Single-agent programming with linear/affine types")
+[project]
+name = "Solo"
+purpose = "Single-agent programming with linear/affine types"
+role = "language-dialect"
 
-  (position-in-ecosystem
-    ((parent . "mylang-playground/hives")
-     (grandparent . "language-playgrounds")
-     (category . "mylang-dialects")))
+[position-in-ecosystem]
+category = "mylang-dialects"
 
-  (related-projects
-    ((me
-       ((relationship . "foundation")
-        (description . "Base Me dialect this extends")))
-     (duet
-       ((relationship . "evolution")
-        (description . "Next stage: AI-assisted programming")))
-     (affinescript-playground
-       ((relationship . "concept-sharing")
-        (description . "Similar affine type concepts")))))
-
-  (what-this-is
-    ("Single-agent programming dialect"
-     "Linear and affine type system"
-     "Region-based memory management"))
-
-  (what-this-is-not
-    ("Multi-agent programming"
-     "AI-assisted features"
-     "Distributed computing")))
+[related-projects]
+projects = [
+  { name = "solo", relationship = "foundation" },
+]
