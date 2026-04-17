@@ -221,9 +221,9 @@ Proof.
   - apply T_If; [apply IHHtype1 | apply IHHtype2 | apply IHHtype3]; assumption.
   - apply T_BinOp_Int;
     [assumption | apply IHHtype1; assumption | apply IHHtype2; assumption].
-  - eapply T_BinOp_Cmp; try assumption;
+  - apply T_BinOp_Cmp with (t := t); try assumption;
     [apply IHHtype1; assumption | apply IHHtype2; assumption].
-  - eapply T_BinOp_Eq; try assumption;
+  - apply T_BinOp_Eq with (t := t); try assumption;
     [apply IHHtype1; assumption | apply IHHtype2; assumption].
   - apply T_BinOp_Logic;
     [assumption | apply IHHtype1; assumption | apply IHHtype2; assumption].
@@ -390,13 +390,13 @@ Proof.
     + apply IHHtype2. intros H0. apply Hfresh.
       apply in_or_app. right. assumption.
   - (* T_BinOp_Cmp *)
-    eapply T_BinOp_Cmp; try assumption.
+    apply T_BinOp_Cmp with (t := t); try assumption.
     + apply IHHtype1. intros H1. apply Hfresh.
       apply in_or_app. left. assumption.
     + apply IHHtype2. intros H1. apply Hfresh.
       apply in_or_app. right. assumption.
   - (* T_BinOp_Eq *)
-    eapply T_BinOp_Eq; try assumption.
+    apply T_BinOp_Eq with (t := t); try assumption.
     + apply IHHtype1. intros H0. apply Hfresh.
       apply in_or_app. left. assumption.
     + apply IHHtype2. intros H0. apply Hfresh.
@@ -549,9 +549,9 @@ Proof.
     + apply IHHtype2 with (s := s'); assumption.
     + apply IHHtype3 with (s := s'); assumption.
   - apply T_BinOp_Int; [assumption | apply IHHtype1 with (s := s') | apply IHHtype2 with (s := s')]; assumption.
-  - eapply T_BinOp_Cmp; try assumption;
+  - apply T_BinOp_Cmp with (t := t); try assumption;
     [apply IHHtype1 with (s := s') | apply IHHtype2 with (s := s')]; assumption.
-  - eapply T_BinOp_Eq; try assumption;
+  - apply T_BinOp_Eq with (t := t); try assumption;
     [apply IHHtype1 with (s := s') | apply IHHtype2 with (s := s')]; assumption.
   - apply T_BinOp_Logic; [assumption | apply IHHtype1 with (s := s') | apply IHHtype2 with (s := s')]; assumption.
   - apply T_UnOp_Neg; [assumption | apply IHHtype with (s := s')]; assumption.

@@ -5,6 +5,8 @@
 
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
+Require Import Coq.ZArith.ZArith.
+Require Import Coq.QArith.QArith.
 Import ListNotations.
 
 (** * Type Syntax *)
