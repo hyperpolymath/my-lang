@@ -182,6 +182,157 @@ Inductive type_equiv : ty -> ty -> Prop :=
       type_equiv t1 t2 -> type_equiv (TAI t1) (TAI t2).
 
 (* ================================================================== *)
+(** * Custom Induction Principle for has_type with Nested Forall IH   *)
+(* ================================================================== *)
+
+(** Coq's auto-generated has_type_ind does NOT supply a nested induction
+    hypothesis for the [Forall (fun e => has_type env e t) es] premise
+    of [T_Array]. Without it, any lemma proved by [induction Htype]
+    cannot discharge the [T_Array] case because the individual
+    sub-derivations in [es] have no inductive hypothesis.
+
+    This scheme threads a nested Forall IH through [T_Array] using an
+    inner fixpoint over the Forall proof, which Coq's termination
+    checker accepts as structurally decreasing (the element-wise
+    sub-proof [Hx] is a sub-term of the outer [Htype] via [Hes]). *)
+
+Section has_type_strong_ind.
+  Variable P : type_env -> expr -> ty -> Prop.
+
+  Hypothesis PT_Int : forall env n, P env (ELit (LInt n)) (TPrim TInt).
+  Hypothesis PT_Float : forall env f, P env (ELit (LFloat f)) (TPrim TFloat).
+  Hypothesis PT_String : forall env s, P env (ELit (LString s)) (TPrim TString).
+  Hypothesis PT_Bool : forall env b, P env (ELit (LBool b)) (TPrim TBool).
+  Hypothesis PT_Var : forall env x t,
+    lookup env x = Some t -> P env (EVar x) t.
+  Hypothesis PT_Lam : forall env x t1 t2 e,
+    has_type (extend env x t1) e t2 ->
+    P (extend env x t1) e t2 ->
+    P env (ELam x t1 e) (TFun t1 t2).
+  Hypothesis PT_App : forall env e1 e2 t1 t2,
+    has_type env e1 (TFun t1 t2) -> P env e1 (TFun t1 t2) ->
+    has_type env e2 t1 -> P env e2 t1 ->
+    P env (EApp e1 e2) t2.
+  Hypothesis PT_Let : forall env x t1 t2 e1 e2,
+    has_type env e1 t1 -> P env e1 t1 ->
+    has_type (extend env x t1) e2 t2 -> P (extend env x t1) e2 t2 ->
+    P env (ELet x (Some t1) e1 e2) t2.
+  Hypothesis PT_If : forall env e1 e2 e3 t,
+    has_type env e1 (TPrim TBool) -> P env e1 (TPrim TBool) ->
+    has_type env e2 t -> P env e2 t ->
+    has_type env e3 t -> P env e3 t ->
+    P env (EIf e1 e2 e3) t.
+  Hypothesis PT_BinOp_Int : forall env e1 e2 op,
+    op = OpAdd \/ op = OpSub \/ op = OpMul \/ op = OpDiv ->
+    has_type env e1 (TPrim TInt) -> P env e1 (TPrim TInt) ->
+    has_type env e2 (TPrim TInt) -> P env e2 (TPrim TInt) ->
+    P env (EBinOp e1 op e2) (TPrim TInt).
+  Hypothesis PT_BinOp_Cmp : forall env e1 e2 op t,
+    op = OpLt \/ op = OpGt \/ op = OpLe \/ op = OpGe ->
+    (t = TPrim TInt \/ t = TPrim TFloat) ->
+    has_type env e1 t -> P env e1 t ->
+    has_type env e2 t -> P env e2 t ->
+    P env (EBinOp e1 op e2) (TPrim TBool).
+  Hypothesis PT_BinOp_Eq : forall env e1 e2 op t,
+    op = OpEq \/ op = OpNe ->
+    has_type env e1 t -> P env e1 t ->
+    has_type env e2 t -> P env e2 t ->
+    P env (EBinOp e1 op e2) (TPrim TBool).
+  Hypothesis PT_BinOp_Logic : forall env e1 e2 op,
+    op = OpAnd \/ op = OpOr ->
+    has_type env e1 (TPrim TBool) -> P env e1 (TPrim TBool) ->
+    has_type env e2 (TPrim TBool) -> P env e2 (TPrim TBool) ->
+    P env (EBinOp e1 op e2) (TPrim TBool).
+  Hypothesis PT_UnOp_Neg : forall env e t,
+    (t = TPrim TInt \/ t = TPrim TFloat) ->
+    has_type env e t -> P env e t ->
+    P env (EUnOp OpNeg e) t.
+  Hypothesis PT_UnOp_Not : forall env e,
+    has_type env e (TPrim TBool) -> P env e (TPrim TBool) ->
+    P env (EUnOp OpNot e) (TPrim TBool).
+  Hypothesis PT_Array : forall env es t,
+    Forall (fun e => has_type env e t) es ->
+    Forall (fun e => P env e t) es ->
+    P env (EArray es) (TArray t).
+  Hypothesis PT_AI_Query : forall env fields,
+    P env (EAI AIQuery fields) (TAI (TPrim TString)).
+  Hypothesis PT_AI_Verify : forall env fields,
+    P env (EAI AIVerify fields) (TAI (TPrim TBool)).
+  Hypothesis PT_AI_Embed : forall env fields,
+    P env (EAI AIEmbed fields) (TAI (TArray (TPrim TFloat))).
+  Hypothesis PT_Sub : forall env e t1 t2,
+    has_type env e t1 -> P env e t1 ->
+    subtype t1 t2 ->
+    P env e t2.
+
+  Fixpoint has_type_ind_strong (env : type_env) (e : expr) (t : ty)
+    (Htype : has_type env e t) {struct Htype} : P env e t :=
+    match Htype in has_type env' e' t' return P env' e' t' with
+    | T_Int env n => PT_Int env n
+    | T_Float env f => PT_Float env f
+    | T_String env s => PT_String env s
+    | T_Bool env b => PT_Bool env b
+    | T_Var env x t Hlook => PT_Var env x t Hlook
+    | T_Lam env x t1 t2 e H =>
+        PT_Lam env x t1 t2 e H
+          (has_type_ind_strong (extend env x t1) e t2 H)
+    | T_App env e1 e2 t1 t2 H1 H2 =>
+        PT_App env e1 e2 t1 t2
+          H1 (has_type_ind_strong env e1 (TFun t1 t2) H1)
+          H2 (has_type_ind_strong env e2 t1 H2)
+    | T_Let env x t1 t2 e1 e2 H1 H2 =>
+        PT_Let env x t1 t2 e1 e2
+          H1 (has_type_ind_strong env e1 t1 H1)
+          H2 (has_type_ind_strong (extend env x t1) e2 t2 H2)
+    | T_If env e1 e2 e3 t H1 H2 H3 =>
+        PT_If env e1 e2 e3 t
+          H1 (has_type_ind_strong env e1 (TPrim TBool) H1)
+          H2 (has_type_ind_strong env e2 t H2)
+          H3 (has_type_ind_strong env e3 t H3)
+    | T_BinOp_Int env e1 e2 op Hop H1 H2 =>
+        PT_BinOp_Int env e1 e2 op Hop
+          H1 (has_type_ind_strong env e1 (TPrim TInt) H1)
+          H2 (has_type_ind_strong env e2 (TPrim TInt) H2)
+    | T_BinOp_Cmp env e1 e2 op t Hop Ht H1 H2 =>
+        PT_BinOp_Cmp env e1 e2 op t Hop Ht
+          H1 (has_type_ind_strong env e1 t H1)
+          H2 (has_type_ind_strong env e2 t H2)
+    | T_BinOp_Eq env e1 e2 op t Hop H1 H2 =>
+        PT_BinOp_Eq env e1 e2 op t Hop
+          H1 (has_type_ind_strong env e1 t H1)
+          H2 (has_type_ind_strong env e2 t H2)
+    | T_BinOp_Logic env e1 e2 op Hop H1 H2 =>
+        PT_BinOp_Logic env e1 e2 op Hop
+          H1 (has_type_ind_strong env e1 (TPrim TBool) H1)
+          H2 (has_type_ind_strong env e2 (TPrim TBool) H2)
+    | T_UnOp_Neg env e t Ht H =>
+        PT_UnOp_Neg env e t Ht
+          H (has_type_ind_strong env e t H)
+    | T_UnOp_Not env e H =>
+        PT_UnOp_Not env e
+          H (has_type_ind_strong env e (TPrim TBool) H)
+    | T_Array env es t Hes =>
+        PT_Array env es t Hes
+          ((fix forall_ih (l : list expr)
+              (Hl : Forall (fun e => has_type env e t) l)
+              {struct Hl} : Forall (fun e => P env e t) l :=
+              match Hl in Forall _ l' return Forall (fun e => P env e t) l' with
+              | Forall_nil _ => Forall_nil _
+              | Forall_cons x Hx Hxs =>
+                  Forall_cons x
+                    (has_type_ind_strong env x t Hx)
+                    (forall_ih _ Hxs)
+              end) es Hes)
+    | T_AI_Query env fields => PT_AI_Query env fields
+    | T_AI_Verify env fields => PT_AI_Verify env fields
+    | T_AI_Embed env fields => PT_AI_Embed env fields
+    | T_Sub env e t1 t2 H Hsub =>
+        PT_Sub env e t1 t2 H (has_type_ind_strong env e t1 H) Hsub
+    end.
+
+End has_type_strong_ind.
+
+(* ================================================================== *)
 (** * Infrastructure Lemmas                                            *)
 (* ================================================================== *)
 
@@ -201,7 +352,7 @@ Lemma has_type_env_weaken : forall env1 env2 e t,
 Proof.
   intros env1 env2 e t Hincl Htype.
   revert env2 Hincl.
-  induction Htype; intros env2 Hincl.
+  induction Htype using has_type_ind_strong; intros env2 Hincl.
   - constructor.
   - constructor.
   - constructor.
@@ -230,7 +381,8 @@ Proof.
   - apply T_UnOp_Neg; [assumption | apply IHHtype; assumption].
   - apply T_UnOp_Not. apply IHHtype. assumption.
   - apply T_Array.
-    induction H; constructor; [apply H0; assumption | apply IHForall; assumption].
+    eapply Forall_impl; [| exact H0].
+    simpl. intros e He. apply He. exact Hincl.
   - constructor.
   - constructor.
   - constructor.
@@ -331,7 +483,7 @@ Proof.
      where the freshness condition lets us handle each case precisely. *)
   intros env e t x s Htype.
   revert x s.
-  induction Htype; intros y s' Hfresh; simpl in Hfresh.
+  induction Htype using has_type_ind_strong; intros y s' Hfresh; simpl in Hfresh.
   - constructor.
   - constructor.
   - constructor.
@@ -411,11 +563,16 @@ Proof.
     apply T_UnOp_Neg; [assumption | apply IHHtype; assumption].
   - (* T_UnOp_Not *)
     apply T_UnOp_Not. apply IHHtype. assumption.
-  - (* T_Array: free_vars (EArray es) falls through to [] in free_vars *)
+  - (* T_Array: free_vars (EArray es) unfolds to the concatenation of
+       free_vars for each element, so y fresh for the array implies y
+       fresh for each element. The nested Forall IH H0 (from
+       has_type_ind_strong) provides the per-element weakening. *)
     apply T_Array.
-    induction H; constructor.
-    + apply H0. simpl in Hfresh. assumption.
-    + apply IHForall. simpl in Hfresh. assumption.
+    clear H. revert Hfresh. induction H0 as [| x xs Hx Hxs IH]; intros Hfresh.
+    + apply Forall_nil.
+    + apply Forall_cons.
+      * apply Hx. intros Hin. apply Hfresh. apply in_or_app. left. exact Hin.
+      * apply IH. intros Hin. apply Hfresh. apply in_or_app. right. exact Hin.
   - constructor.
   - constructor.
   - constructor.
@@ -468,7 +625,7 @@ Lemma substitution_gen : forall env1 env2 x v e t s,
 Proof.
   intros env1 env2 x v e t s Hv Htype.
   revert env2 x v s Hv.
-  induction Htype; intros env2 y v s' Hv Hincl; simpl.
+  induction Htype using has_type_ind_strong; intros env2 y v s' Hv Hincl; simpl.
   - constructor.
   - constructor.
   - constructor.
@@ -479,70 +636,71 @@ Proof.
       apply String.eqb_eq in Heq. subst.
       specialize (Hincl x t H). rewrite String.eqb_refl in Hincl.
       subst. apply closed_typing_any_env. assumption.
-    + (* y <> x *)
-      apply T_Var. specialize (Hincl x t H). rewrite Heq in Hincl. assumption.
-  - (* T_Lam *)
-    destruct (String.eqb y x0) eqn:Heq.
-    + (* y = x0: bound variable shadows substitution variable *)
+    + (* y <> x.  Hincl was stated with `String.eqb z y` (z := x after
+         specialize), giving `String.eqb x y`; Heq discriminates on
+         `String.eqb y x`. Flip one orientation to match. *)
+      apply T_Var. specialize (Hincl x t H).
+      rewrite (String.eqb_sym x y) in Hincl. rewrite Heq in Hincl. assumption.
+  - (* T_Lam.  Pattern var is named `x` (not `x0` — earlier drafts of
+       this proof assumed Coq would auto-rename, but current Rocq keeps
+       the constructor's own name since it doesn't collide here). *)
+    destruct (String.eqb y x) eqn:Heq.
+    + (* y = x: bound variable shadows substitution variable *)
       apply String.eqb_eq in Heq. subst.
       apply T_Lam.
-      apply has_type_env_weaken with (env1 := extend env x0 t1).
+      apply has_type_env_weaken with (env1 := extend env x t1).
       * intros z tz Hlook. unfold extend in *. simpl in *.
-        destruct (String.eqb z x0) eqn:Hzx0.
+        destruct (String.eqb z x) eqn:Hzx.
         -- assumption.
-        -- specialize (Hincl z tz). simpl in Hincl.
-           destruct (String.eqb z x0) eqn:Hzx0'.
-           ++ rewrite Hzx0 in Hzx0'. discriminate.
-           ++ apply Hincl. assumption.
+        -- specialize (Hincl z tz). rewrite Hzx in Hincl.
+           apply Hincl. assumption.
       * assumption.
-    + (* y <> x0: recurse *)
+    + (* y <> x: recurse *)
       apply T_Lam.
       apply IHHtype with (s := s').
       * assumption.
       * intros z tz Hlook.
         unfold extend in Hlook. simpl in Hlook.
-        destruct (String.eqb z x0) eqn:Hzx0.
-        -- (* z = x0: the lambda's binding *)
+        destruct (String.eqb z x) eqn:Hzx.
+        -- (* z = x: the lambda's binding *)
            destruct (String.eqb z y) eqn:Hzy.
-           ++ (* z = y and z = x0, so y = x0, contradiction *)
-              apply String.eqb_eq in Hzy. apply String.eqb_eq in Hzx0.
+           ++ (* z = y and z = x, so y = x, contradiction *)
+              apply String.eqb_eq in Hzy. apply String.eqb_eq in Hzx.
               subst. rewrite String.eqb_refl in Heq. discriminate.
-           ++ unfold extend. simpl. rewrite Hzx0. assumption.
-        -- (* z <> x0 *)
+           ++ unfold extend. simpl. rewrite Hzx. assumption.
+        -- (* z <> x *)
            specialize (Hincl z tz Hlook).
            destruct (String.eqb z y) eqn:Hzy.
            ++ assumption.
-           ++ unfold extend. simpl. rewrite Hzx0. assumption.
+           ++ unfold extend. simpl. rewrite Hzx. assumption.
   - (* T_App *)
     eapply T_App.
     + apply IHHtype1 with (s := s'); assumption.
     + apply IHHtype2 with (s := s'); assumption.
-  - (* T_Let *)
+  - (* T_Let.  Pattern var is `x` (same x0→x rename as T_Lam). *)
     eapply T_Let.
     + apply IHHtype1 with (s := s'); assumption.
-    + destruct (String.eqb y x0) eqn:Heq.
-      * (* y = x0: bound variable shadows *)
+    + destruct (String.eqb y x) eqn:Heq.
+      * (* y = x: bound variable shadows *)
         apply String.eqb_eq in Heq. subst.
-        apply has_type_env_weaken with (env1 := extend env x0 t1).
+        apply has_type_env_weaken with (env1 := extend env x t1).
         -- intros z tz Hlook. unfold extend in *. simpl in *.
-           destruct (String.eqb z x0) eqn:Hzx0; [assumption |].
-           specialize (Hincl z tz). simpl in Hincl.
-           destruct (String.eqb z x0) eqn:Hzx0'.
-           ++ rewrite Hzx0 in Hzx0'. discriminate.
-           ++ apply Hincl. assumption.
+           destruct (String.eqb z x) eqn:Hzx; [assumption |].
+           specialize (Hincl z tz). rewrite Hzx in Hincl.
+           apply Hincl. assumption.
         -- assumption.
       * apply IHHtype2 with (s := s').
         -- assumption.
         -- intros z tz Hlook.
            unfold extend in Hlook. simpl in Hlook.
-           destruct (String.eqb z x0) eqn:Hzx0.
+           destruct (String.eqb z x) eqn:Hzx.
            ++ destruct (String.eqb z y) eqn:Hzy.
-              ** apply String.eqb_eq in Hzy. apply String.eqb_eq in Hzx0.
+              ** apply String.eqb_eq in Hzy. apply String.eqb_eq in Hzx.
                  subst. rewrite String.eqb_refl in Heq. discriminate.
-              ** unfold extend. simpl. rewrite Hzx0. assumption.
+              ** unfold extend. simpl. rewrite Hzx. assumption.
            ++ specialize (Hincl z tz Hlook).
               destruct (String.eqb z y) eqn:Hzy; [assumption |].
-              unfold extend. simpl. rewrite Hzx0. assumption.
+              unfold extend. simpl. rewrite Hzx. assumption.
   - (* T_If *)
     apply T_If.
     + apply IHHtype1 with (s := s'); assumption.
@@ -556,11 +714,13 @@ Proof.
   - apply T_BinOp_Logic; [assumption | apply IHHtype1 with (s := s') | apply IHHtype2 with (s := s')]; assumption.
   - apply T_UnOp_Neg; [assumption | apply IHHtype with (s := s')]; assumption.
   - apply T_UnOp_Not. apply IHHtype with (s := s'); assumption.
-  - (* T_Array *)
+  - (* T_Array: use the nested Forall IH (H0) from has_type_ind_strong. *)
     simpl. apply T_Array.
-    induction H; constructor.
-    + apply H0 with (s := s'); assumption.
-    + apply IHForall; assumption.
+    clear H. induction H0 as [| x xs Hx Hxs IH].
+    + apply Forall_nil.
+    + simpl. apply Forall_cons.
+      * apply Hx with (s := s'); assumption.
+      * apply IH.
   - constructor.
   - constructor.
   - constructor.
@@ -580,6 +740,6 @@ Proof.
   - intros z tz Hlook.
     unfold extend in Hlook. simpl in Hlook.
     destruct (String.eqb z x) eqn:Hzx.
-    + injection Hlook as Ht. assumption.
+    + injection Hlook as Ht. symmetry. assumption.
     + assumption.
 Qed.

@@ -159,7 +159,6 @@ Fixpoint subst (x : string) (v : expr) (e : expr) : expr :=
 
 (** * Free Variables *)
 
-(* TODO: Implement free variable computation *)
 Fixpoint free_vars (e : expr) : list string :=
   match e with
   | EVar x => [x]
@@ -170,5 +169,11 @@ Fixpoint free_vars (e : expr) : list string :=
   | EBinOp e1 _ e2 => free_vars e1 ++ free_vars e2
   | EUnOp _ e1 => free_vars e1
   | ELit _ => []
-  | _ => []  (* TODO: Complete all cases *)
+  | EArray es =>
+      (fix fv_list (l : list expr) : list string :=
+        match l with
+        | [] => []
+        | e' :: rest => free_vars e' ++ fv_list rest
+        end) es
+  | _ => []  (* ERecord, EField, EMatch, EBlock, EAI: no typing rules cover them *)
   end.
