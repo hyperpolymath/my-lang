@@ -1,12 +1,10 @@
 [package]
-<<<<<<< HEAD
-name = "fuzz"
-=======
 name = "my-lang-fuzz"
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
 version = "0.0.0"
 publish = false
 edition = "2021"
+
+[workspace]
 
 [package.metadata]
 cargo-fuzz = true
@@ -14,12 +12,8 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 
-<<<<<<< HEAD
-[dependencies.my-lang-archive]
-=======
 [dependencies.my-lang]
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
-path = ".."
+path = "../crates/my-lang"
 
 [[bin]]
 name = "fuzz_main"
