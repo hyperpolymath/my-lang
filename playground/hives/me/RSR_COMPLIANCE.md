@@ -24,7 +24,7 @@ The My Language project has achieved **full Bronze Level compliance** with the R
 | **3. Offline-First** | ✅ | No network dependencies, works air-gapped |
 | **4. Documentation** | ✅ | 8 required files present |
 | **5. .well-known/** | ✅ | RFC 9116 security.txt + ai.txt + humans.txt |
-| **6. Build System** | ✅ | justfile (30+ recipes) + flake.nix + CI/CD |
+| **6. Build System** | ✅ | Justfile (30+ recipes) + flake.nix + CI/CD |
 | **7. Testing** | ✅ | Test infrastructure + passing tests |
 | **8. TPCF** | ✅ | Tri-Perimeter Contribution Framework |
 | **9. Dual License** | ✅ | MIT + Palimpsest v0.8 |
@@ -192,7 +192,7 @@ Reproducible, automated build processes.
 
 ### Evidence
 
-#### justfile (30+ Recipes) ✅
+#### Justfile (30+ Recipes) ✅
 - **Location**: `justfile`
 - **Recipes**: 30+ automated tasks
   - Building: `build`, `build-debug`, `build-crate`
@@ -223,7 +223,7 @@ Reproducible, automated build processes.
 
 ### Verification
 ```bash
-# Use justfile
+# Use Justfile
 just build
 just test
 just rsr-check
@@ -372,7 +372,7 @@ Automated compliance checking.
 # Pass Rate: 100%
 ```
 
-#### justfile Integration
+#### Justfile Integration
 ```bash
 just rsr-check
 ```
@@ -389,7 +389,7 @@ nix flake check
 3. ✅ Offline-first (no network dependencies)
 4. ✅ Documentation (all 8 files present)
 5. ✅ .well-known/ (security.txt, ai.txt, humans.txt)
-6. ✅ Build system (justfile, flake.nix, CI/CD)
+6. ✅ Build system (Justfile, flake.nix, CI/CD)
 7. ✅ Testing (infrastructure + passing tests)
 8. ✅ TPCF (governance structure)
 9. ✅ Dual license (MIT + Palimpsest)

@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CODE_OF_CONDUCT.md (CCCP - Community Code of Creative Practice)
   - MAINTAINERS.md (TPCF - Tri-Perimeter Contribution Framework)
   - .well-known/ directory (security.txt, ai.txt, humans.txt)
-  - justfile with 20+ build recipes
+  - Justfile with 20+ build recipes
   - flake.nix for Nix reproducible builds
 
 ### Changed
@@ -178,7 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Offline-first: No network dependencies, works air-gapped
 - Documentation: README, LICENSE.txt, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, MAINTAINERS.md, CHANGELOG.md
 - .well-known/ directory: security.txt (RFC 9116), ai.txt, humans.txt
-- Build system: justfile, flake.nix, CI/CD
+- Build system: Justfile, flake.nix, CI/CD
 - TPCF: Tri-Perimeter Contribution Framework (Perimeter 3 open)
 
 #### Research Value

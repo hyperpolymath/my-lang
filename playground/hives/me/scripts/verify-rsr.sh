@@ -170,7 +170,7 @@ echo "━━━━━━━━━━━━━━━"
 check_file "Cargo.toml"
 check_file "justfile"
 
-# Check justfile recipes
+# Check Justfile recipes
 if [ -f "justfile" ]; then
     RECIPES=$(just --list --unsorted 2>/dev/null | wc -l || echo 0)
     if [ "$RECIPES" -gt 20 ]; then
