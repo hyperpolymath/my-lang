@@ -19,7 +19,12 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Run a My Language file with the interpreter
-    Run { file: PathBuf },
+    Run {
+        file: PathBuf,
+        /// Args passed to the program (visible to env_args()). Use `--` to separate.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
 
     /// Parse a file and show the AST
     Parse {
@@ -61,7 +66,10 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Run { file } => run_file(&file),
+        Commands::Run { file, args } => {
+            my_lang::stdlib::set_program_args(args);
+            run_file(&file)
+        }
         Commands::Parse { file, output } => parse_file(&file, &output),
         Commands::DumpSexpr { file } => parse_file(&file, "sexpr"),
         Commands::Lex { file } => lex_file(&file),
