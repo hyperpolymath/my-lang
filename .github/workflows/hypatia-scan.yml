@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0  # Full history for better pattern analysis
 
       - name: Setup Elixir for Hypatia scanner
-        uses: erlef/setup-beam@2f0cc07b4b9bea248ae098aba9e1a8a1de5ec24c # v1.18.2
+        uses: erlef/setup-beam@8d44588995e53ce789721e96227122a67826542d # v1.24.0
         with:
           elixir-version: '1.19.4'
           otp-version: '28.3'

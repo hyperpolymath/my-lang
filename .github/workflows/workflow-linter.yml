@@ -61,9 +61,10 @@ jobs:
       - name: Check SHA-Pinned Actions
         run: |
           echo "=== Checking Action Pinning ==="
-          # Find any uses: lines that don't have @SHA format
-          # Pattern: uses: owner/repo@<40-char-hex>
-          unpinned=$(grep -rn "uses:" .github/workflows/ | \
+          # Find indented "uses:" directives without an @SHA pin.
+          # Anchor on leading whitespace + the directive form so this
+          # check doesn't match its own explanatory comments.
+          unpinned=$(grep -rnE "^[[:space:]]+uses:[[:space:]]" .github/workflows/ | \
             grep -v "@[a-f0-9]\{40\}" | \
             grep -v "uses: \./\|uses: docker://\|uses: actions/github-script" || true)
 
