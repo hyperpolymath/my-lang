@@ -5,6 +5,19 @@
 
 use crate::interpreter::{NativeFunction, RuntimeError, Value};
 use std::collections::HashMap;
+use std::sync::OnceLock;
+
+/// Program argv forwarded by the host (e.g. my-cli's `Run` command).
+/// When set, `env_args()` returns these instead of `std::env::args().skip(1)`.
+/// This lets `my run script.my -- --flag value` propagate `--flag value` to
+/// the program without my-cli's clap consuming it.
+static PROGRAM_ARGS: OnceLock<Vec<String>> = OnceLock::new();
+
+/// Set the program argv visible to `env_args()`. Idempotent (first call wins).
+/// Hosts (my-cli, embedders) call this before running a program.
+pub fn set_program_args(args: Vec<String>) {
+    let _ = PROGRAM_ARGS.set(args);
+}
 
 /// Register all standard library functions into an environment
 pub fn register_stdlib(define: &mut impl FnMut(String, Value)) {
@@ -25,6 +38,12 @@ pub fn register_stdlib(define: &mut impl FnMut(String, Value)) {
 
     // Utility Functions
     register_utility_functions(define);
+
+    // File System Functions (added 2026-04-30 per idaptik-port stdlib PR)
+    register_fs_functions(define);
+
+    // Environment Extras (env_args; complements existing env(name))
+    register_env_extras(define);
 }
 
 // ============================================================================
@@ -360,6 +379,63 @@ fn register_string_functions(define: &mut impl FnMut(String, Value)) {
                     expected: "string, int".to_string(),
                     got: format!("{:?}, {:?}", args[0], args[1]),
                 }),
+            },
+        }),
+    );
+
+    // format(template, args) - positional {} substitution; {{ and }} escape
+    define(
+        "format".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "format".to_string(),
+            arity: 2,
+            func: |args| {
+                let template = match &args[0] {
+                    Value::String(s) => s.clone(),
+                    _ => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "string".to_string(),
+                            got: format!("{:?}", args[0]),
+                        })
+                    }
+                };
+                let values = match &args[1] {
+                    Value::Array(a) => a.clone(),
+                    _ => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "array".to_string(),
+                            got: format!("{:?}", args[1]),
+                        })
+                    }
+                };
+                let mut result = String::new();
+                let mut chars = template.chars().peekable();
+                let mut idx = 0usize;
+                while let Some(c) = chars.next() {
+                    if c == '{' && chars.peek() == Some(&'{') {
+                        chars.next();
+                        result.push('{');
+                    } else if c == '{' && chars.peek() == Some(&'}') {
+                        chars.next();
+                        if idx >= values.len() {
+                            return Err(RuntimeError::Custom(format!(
+                                "format: not enough args for placeholder #{}",
+                                idx
+                            )));
+                        }
+                        match &values[idx] {
+                            Value::String(s) => result.push_str(s),
+                            v => result.push_str(&format!("{}", v)),
+                        }
+                        idx += 1;
+                    } else if c == '}' && chars.peek() == Some(&'}') {
+                        chars.next();
+                        result.push('}');
+                    } else {
+                        result.push(c);
+                    }
+                }
+                Ok(Value::String(result))
             },
         }),
     );
@@ -1293,6 +1369,125 @@ fn register_utility_functions(define: &mut impl FnMut(String, Value)) {
     );
 }
 
+// ============================================================================
+// FILE SYSTEM FUNCTIONS
+// ============================================================================
+
+fn register_fs_functions(define: &mut impl FnMut(String, Value)) {
+    // fs_write_file(path, content) - write content to path; auto-create parent dirs
+    define(
+        "fs_write_file".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "fs_write_file".to_string(),
+            arity: 2,
+            func: |args| {
+                let (path, content) = match (&args[0], &args[1]) {
+                    (Value::String(p), Value::String(c)) => (p.clone(), c.clone()),
+                    _ => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "string, string".to_string(),
+                            got: format!("{:?}, {:?}", args[0], args[1]),
+                        })
+                    }
+                };
+                if let Some(parent) = std::path::Path::new(&path).parent() {
+                    if !parent.as_os_str().is_empty() && !parent.exists() {
+                        std::fs::create_dir_all(parent).map_err(|e| {
+                            RuntimeError::Custom(format!(
+                                "fs_write_file: create_dir_all({}) failed: {}",
+                                parent.display(),
+                                e
+                            ))
+                        })?;
+                    }
+                }
+                std::fs::write(&path, content).map_err(|e| {
+                    RuntimeError::Custom(format!("fs_write_file({}) failed: {}", path, e))
+                })?;
+                Ok(Value::Unit)
+            },
+        }),
+    );
+
+    // fs_read_file(path) -> String
+    define(
+        "fs_read_file".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "fs_read_file".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::String(path) => std::fs::read_to_string(path).map(Value::String).map_err(
+                    |e| RuntimeError::Custom(format!("fs_read_file({}) failed: {}", path, e)),
+                ),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+
+    // fs_create_dir_all(path) -> Unit
+    define(
+        "fs_create_dir_all".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "fs_create_dir_all".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::String(path) => std::fs::create_dir_all(path)
+                    .map(|_| Value::Unit)
+                    .map_err(|e| {
+                        RuntimeError::Custom(format!("fs_create_dir_all({}) failed: {}", path, e))
+                    }),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+
+    // fs_exists(path) -> Bool
+    define(
+        "fs_exists".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "fs_exists".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::String(path) => Ok(Value::Bool(std::path::Path::new(path).exists())),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+}
+
+// ============================================================================
+// ENV EXTRAS
+// ============================================================================
+
+fn register_env_extras(define: &mut impl FnMut(String, Value)) {
+    // env_args() -> Array<String> - argv visible to the My program.
+    // Prefers host-supplied args (my-cli forwards trailing args after `--`);
+    // falls back to OS argv.skip(1) for backwards compat.
+    define(
+        "env_args".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "env_args".to_string(),
+            arity: 0,
+            func: |_| {
+                let args: Vec<Value> = match PROGRAM_ARGS.get() {
+                    Some(host_args) => host_args.iter().cloned().map(Value::String).collect(),
+                    None => std::env::args().skip(1).map(Value::String).collect(),
+                };
+                Ok(Value::Array(args))
+            },
+        }),
+    );
+}
+
 /// Get a list of all stdlib function names
 pub fn stdlib_functions() -> Vec<&'static str> {
     vec![
@@ -1316,6 +1511,7 @@ pub fn stdlib_functions() -> Vec<&'static str> {
         "str_ends_with",
         "str_substring",
         "char_at",
+        "format",
         // Math
         "abs",
         "min",
@@ -1374,5 +1570,12 @@ pub fn stdlib_functions() -> Vec<&'static str> {
         "random",
         "random_int",
         "env",
+        // FS
+        "fs_write_file",
+        "fs_read_file",
+        "fs_create_dir_all",
+        "fs_exists",
+        // Env extras
+        "env_args",
     ]
 }
