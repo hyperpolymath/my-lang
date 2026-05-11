@@ -1,0 +1,126 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+//
+// my-lang VS Code extension — port of extension.ts to AffineScript.
+// Closes the TS exemption row in .claude/CLAUDE.md.
+//
+// Companion to affinescript#64: the unblock condition was affinescript#35
+// (Node-target codegen + vscode-API bindings via stdlib/Vscode.affine and
+// stdlib/VscodeLanguageClient.affine).
+//
+// Source of truth for vscode-extension/out/extension.cjs, produced by
+//   affinescript compile src/extension.affine -o out/extension.cjs
+// The runtime entry the host loads is src/index.cjs (vendored adapter +
+// wrapper); package.json `main` points there.
+
+use Vscode::{
+  registerCommand,
+  getConfiguration,
+  workspaceConfigGetString,
+  showErrorMessage,
+  createTerminal,
+  terminalShow,
+  terminalSendText,
+  pushSubscription,
+  editorActiveFilePath,
+  editorActiveLanguageId,
+  consoleLog,
+  stringConcat,
+  stringEndsWith,
+  stringReplaceSuffix
+};
+use VscodeLanguageClient::{
+  newLanguageClient,
+  languageClientStart
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────
+
+/// Run a shell command in a fresh named terminal.
+fn run_in_terminal(name: String, cmd: String) -> Int {
+  let t = createTerminal(name);
+  let _ = terminalShow(t);
+  let _ = terminalSendText(t, cmd);
+  return 0;
+}
+
+/// Returns the active editor's file path iff its languageId is "my".
+/// Otherwise pops up an error and returns the empty string (handlers
+/// treat empty as "skip").
+fn require_my_file() -> String {
+  let lang = editorActiveLanguageId();
+  if stringEndsWith(lang, "my") == 1 {
+    return editorActiveFilePath();
+  } else {
+    let _ = showErrorMessage("No active editor");
+    return "";
+  }
+}
+
+// ── Command handlers ──────────────────────────────────────────────────
+
+pub fn handler_run() -> Int {
+  let path = require_my_file();
+  if stringEndsWith(path, ".my") == 0 { return 0; }
+  let cmd = stringConcat(stringConcat("my run \"", path), "\"");
+  return run_in_terminal("My Language", cmd);
+}
+
+pub fn handler_build() -> Int {
+  let path = require_my_file();
+  if stringEndsWith(path, ".my") == 0 { return 0; }
+  let out = stringReplaceSuffix(path, ".my", "");
+  let cmd = stringConcat(
+    stringConcat(stringConcat("my build \"", path), "\" -o \""),
+    stringConcat(out, "\""));
+  return run_in_terminal("My Language", cmd);
+}
+
+pub fn handler_test() -> Int {
+  // The original TS extension cd'd into workspaceFolders[0] first. We rely
+  // on VS Code's default terminal cwd being the first workspace folder,
+  // so `my-test` invoked there has the same effect. A dedicated
+  // workspaceFolders binding can be added later if a multi-root case needs
+  // explicit targeting.
+  return run_in_terminal("My Language Tests", "my-test");
+}
+
+// ── LSP startup ───────────────────────────────────────────────────────
+
+fn start_lsp() -> Int {
+  let cfg = getConfiguration("my-lang");
+  let server_path = workspaceConfigGetString(cfg, "lsp.path", "my-lsp");
+  let client = newLanguageClient(
+    "my-lang",
+    "My Language Server",
+    server_path,
+    "",         // empty args (newline-separated list)
+    0           // 0 = stdio transport
+  );
+  let _ = languageClientStart(client);
+  return 0;
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────────
+
+pub fn activate(ctx: ExtensionContext) -> Int {
+  let _ = consoleLog("My Language extension activated");
+
+  // Register commands. The integer second argument to registerCommand is
+  // the wasm-table index of the handler — populated by the JS-side adapter
+  // from the `__indirect_function_table` export. Order must match the
+  // order handlers appear in this file.
+  let _ = pushSubscription(ctx, registerCommand("my-lang.run", 0));
+  let _ = pushSubscription(ctx, registerCommand("my-lang.build", 1));
+  let _ = pushSubscription(ctx, registerCommand("my-lang.test", 2));
+
+  let _ = start_lsp();
+  return 0;
+}
+
+pub fn deactivate() -> Int {
+  // Stopping the language client is intentionally best-effort: the client
+  // handle isn't held across activations. Host process exit closes the
+  // server pipe.
+  return 0;
+}
