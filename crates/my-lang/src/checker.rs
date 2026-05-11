@@ -97,7 +97,24 @@ pub enum CheckError {
         line: usize,
         column: usize,
     },
+
+    #[error("expression nesting depth exceeds limit ({limit}) at line {line}, column {column}; refactor deeply nested calls (e.g. chained str_concat/format) into intermediate `let` bindings")]
+    ExpressionTooDeep {
+        limit: usize,
+        line: usize,
+        column: usize,
+    },
 }
+
+/// Maximum AST nesting depth the type checker will recurse through before
+/// emitting [`CheckError::ExpressionTooDeep`] and bailing out of the
+/// subexpression.
+///
+/// This is a defence against pathological inputs (deeply chained
+/// `str_concat`/`format`, parser-generated unbalanced trees) that could
+/// otherwise drive the checker into runaway memory allocation. See
+/// hyperpolymath/my-lang#1.
+pub const MAX_EXPR_DEPTH: usize = 256;
 
 pub type CheckResult<T> = Result<T, CheckError>;
 
@@ -108,6 +125,13 @@ pub struct Checker {
     errors: Vec<CheckError>,
     /// Current function's return type (for checking return statements)
     current_return_type: Option<Ty>,
+    /// Current expression-recursion depth (guards against OOM on pathological
+    /// nesting, see [`MAX_EXPR_DEPTH`]).
+    expr_depth: usize,
+    /// Set once an [`CheckError::ExpressionTooDeep`] has been reported, to
+    /// avoid spamming a duplicate error for every parent expression on the
+    /// way out of the recursion.
+    too_deep_reported: bool,
 }
 
 impl Default for Checker {
@@ -123,6 +147,8 @@ impl Checker {
             types: TypeEnv::new(),
             errors: Vec::new(),
             current_return_type: None,
+            expr_depth: 0,
+            too_deep_reported: false,
         };
         checker.register_stdlib();
         checker
@@ -689,6 +715,31 @@ impl Checker {
     }
 
     fn check_expr(&mut self, expr: &Expr) -> Ty {
+        // Depth guard: stops pathological inputs (e.g. deeply chained
+        // str_concat/format) from driving the checker into runaway memory
+        // allocation or stack overflow. Reports a single ExpressionTooDeep
+        // error for the whole offending subtree and returns Ty::Error so the
+        // surrounding code keeps type-checking in error-recovery mode.
+        if self.expr_depth >= MAX_EXPR_DEPTH {
+            if !self.too_deep_reported {
+                let span = expr_span(expr);
+                self.errors.push(CheckError::ExpressionTooDeep {
+                    limit: MAX_EXPR_DEPTH,
+                    line: span.line,
+                    column: span.column,
+                });
+                self.too_deep_reported = true;
+            }
+            return Ty::Error;
+        }
+
+        self.expr_depth += 1;
+        let ty = self.check_expr_inner(expr);
+        self.expr_depth -= 1;
+        ty
+    }
+
+    fn check_expr_inner(&mut self, expr: &Expr) -> Ty {
         match expr {
             Expr::Literal(lit) => self.check_literal(lit),
 
@@ -1224,6 +1275,33 @@ impl Checker {
     }
 }
 
+/// Best-effort span lookup for any [`Expr`] variant. Used by error reporting
+/// when we don't have the surrounding context's span available (e.g. from the
+/// expression-depth guard).
+fn expr_span(expr: &Expr) -> Span {
+    match expr {
+        Expr::Literal(lit) => lit.span(),
+        Expr::Ident(i) => i.span,
+        Expr::Call { span, .. }
+        | Expr::Field { span, .. }
+        | Expr::Binary { span, .. }
+        | Expr::Unary { span, .. }
+        | Expr::Try { span, .. }
+        | Expr::Restrict { span, .. }
+        | Expr::Lambda { span, .. }
+        | Expr::Match { span, .. }
+        | Expr::Array { span, .. }
+        | Expr::Record { span, .. } => *span,
+        Expr::Block(b) => b.span,
+        Expr::Ai(ai) => match ai {
+            AiExpr::Block { span, .. }
+            | AiExpr::Call { span, .. }
+            | AiExpr::Quick { span, .. }
+            | AiExpr::PromptInvocation { span, .. } => *span,
+        },
+    }
+}
+
 /// Public function to check a program
 pub fn check(program: &Program) -> Result<(), Vec<CheckError>> {
     let mut checker = Checker::new();
@@ -1238,6 +1316,41 @@ mod tests {
     fn check_source(source: &str) -> Result<(), Vec<CheckError>> {
         let program = parse(source).expect("Parse failed");
         check(&program)
+    }
+
+    /// Iteratively flattens any `str_concat(_, inner)`-style right-recursive
+    /// AST chains inside `program` so that the auto-derived recursive `Drop`
+    /// for `Box<Expr>` does not overflow the test thread's stack. Only the
+    /// shapes we construct in the deep-nesting tests are handled.
+    fn drop_program_iteratively(mut program: Program) {
+        use std::mem;
+        for item in program.items.iter_mut() {
+            if let TopLevel::Function(f) = item {
+                for stmt in f.body.stmts.iter_mut() {
+                    if let Stmt::Let { value, .. } = stmt {
+                        flatten_call_chain(value);
+                    }
+                }
+            }
+        }
+
+        fn flatten_call_chain(expr: &mut Expr) {
+            // Repeatedly peel the deepest argument out of a Call and let it
+            // be dropped on its own once we've broken the chain.
+            loop {
+                let next = match expr {
+                    Expr::Call { args, .. } if args.len() == 2 => {
+                        // Replace the recursive arg with a tiny placeholder
+                        // and take ownership of the giant subtree.
+                        let placeholder =
+                            Expr::Literal(Literal::Bool(false, crate::token::Span::default()));
+                        mem::replace(&mut args[1], placeholder)
+                    }
+                    _ => return,
+                };
+                *expr = next;
+            }
+        }
     }
 
     #[test]
@@ -1331,6 +1444,90 @@ mod tests {
         assert!(result.is_err());
         let errors = result.unwrap_err();
         assert!(errors.iter().any(|e| matches!(e, CheckError::WrongArgCount { .. })));
+    }
+
+    #[test]
+    fn test_deeply_nested_str_concat_reports_too_deep_instead_of_oom() {
+        // Regression for hyperpolymath/my-lang#1: deeply nested str_concat /
+        // format chains used to drive the type checker into runaway memory
+        // allocation. Now we should get a clean ExpressionTooDeep error.
+        //
+        // We build the AST programmatically rather than from source: the
+        // recursive-descent parser would itself overflow the stack on inputs
+        // this deep before the checker ever ran.
+        use crate::token::Span;
+
+        let span = Span::default();
+        let leaf = Expr::Literal(Literal::String("end".to_string(), span));
+        let mut expr = leaf;
+        for _ in 0..(MAX_EXPR_DEPTH + 16) {
+            expr = Expr::Call {
+                callee: Box::new(Expr::Ident(Ident::new("str_concat", span))),
+                args: vec![Expr::Literal(Literal::String("a".to_string(), span)), expr],
+                span,
+            };
+        }
+
+        let program = Program {
+            items: vec![TopLevel::Function(FnDecl {
+                modifiers: vec![],
+                name: Ident::new("main", span),
+                params: vec![],
+                return_type: None,
+                contract: None,
+                body: Block {
+                    stmts: vec![Stmt::Let {
+                        mutable: false,
+                        name: Ident::new("s", span),
+                        ty: None,
+                        value: expr,
+                        span,
+                    }],
+                    span,
+                },
+                span,
+            })],
+        };
+
+        let errors = check(&program).expect_err("expected ExpressionTooDeep error");
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, CheckError::ExpressionTooDeep { .. })),
+            "expected ExpressionTooDeep, got: {:?}",
+            errors
+        );
+        // And only one — we don't spam the user with N copies of the same
+        // diagnostic on the way back out of the recursion.
+        let count = errors
+            .iter()
+            .filter(|e| matches!(e, CheckError::ExpressionTooDeep { .. }))
+            .count();
+        assert_eq!(count, 1, "expected exactly one ExpressionTooDeep error");
+
+        // Drop the deep AST iteratively: the auto-generated recursive Drop on
+        // the chain of Box<Expr> would itself overflow the test thread's
+        // stack. (That's a separate, drop-side instance of the same nesting
+        // problem; not what this test is about.)
+        drop_program_iteratively(program);
+    }
+
+    #[test]
+    fn test_moderately_nested_str_concat_still_checks() {
+        // Sanity: well below the limit, deeply chained str_concat must still
+        // type-check successfully via the normal source path.
+        let depth = 32;
+        let mut src = String::from("fn main() { let s = ");
+        for _ in 0..depth {
+            src.push_str("str_concat(\"a\", ");
+        }
+        src.push_str("\"end\"");
+        for _ in 0..depth {
+            src.push(')');
+        }
+        src.push_str("; }");
+
+        assert!(check_source(&src).is_ok());
     }
 
     #[test]
