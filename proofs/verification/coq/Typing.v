@@ -444,8 +444,9 @@ Qed.
 (* ================================================================== *)
 
 (** With T_Sub in has_type, subsumption is a direct constructor application.
-    Previously Admitted because has_type lacked a subsumption rule and
-    subtype allowed Int <: Float with no corresponding typing coercion. *)
+    This lemma was historically left as a proof gap because has_type lacked
+    a subsumption rule and subtype allowed Int <: Float with no corresponding
+    typing coercion; it is now fully proved (see Qed below). *)
 
 Lemma subsumption : forall env e t1 t2,
   has_type env e t1 ->
