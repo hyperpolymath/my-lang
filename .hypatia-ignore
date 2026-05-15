@@ -1,0 +1,35 @@
+# Hypatia scanner exemptions for hyperpolymath/my-lang
+#
+# Format (per hyperpolymath/hypatia .hypatia-ignore spec):
+#   <rule_module>/<rule_type>:<path-fragment>   scoped rule exemption
+#   <rule_module>/*:<path-fragment>             whole-module exemption
+#   <path-fragment>                             unscoped (any rule)
+# Path-fragments are SUBSTRING-matched against repo-relative paths.
+# Lines beginning with '#' are comments.
+#
+# Rationale is recorded inline so future maintainers can re-evaluate each
+# exemption. See docs/wiki/internals/checker-allocation-investigation.md for
+# how the standing Hypatia backlog was triaged. Burn-down: issue #34.
+
+# --- Non-shipping trees: separate packages, NOT in the root Cargo workspace
+# (see Cargo.toml `members`). They are scratch/playground and alternate
+# dialect code, intentionally rougher than shipped crates; scanning them on
+# every PR produced repeated noise unrelated to any PR's diff.
+playground/
+dialects/
+
+# --- Scanner false positive: this Nickel file is a POLICY that *bans*
+# Dockerfile (`banned_files = ["Makefile", "Dockerfile"]`). The rule fires on
+# the substring "Dockerfile" even though the config enforces the very policy
+# the rule wants. Correct behaviour, not a defect.
+code_safety/ncl_docker_not_podman:.machine_readable/svc/k9/my-lang-metadata.k9.ncl
+
+# --- Property-test scaffolding: deliberate unwrap()/panic! is idiomatic in
+# proptest generators and shrink paths (a panic IS the test signal there).
+code_safety/unwrap_without_check:src/proptest.rs
+code_safety/panic_macro:src/proptest.rs
+
+# --- Safe-by-construction: char::from_digit(d, radix) where d < radix is an
+# invariant established immediately above the call site; the unwrap cannot
+# fire. Tracked in the backlog issue for an eventual expect()-with-proof.
+code_safety/unwrap_without_check:lib/common/string.rs

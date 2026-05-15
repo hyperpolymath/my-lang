@@ -153,3 +153,36 @@ independent perf improvement, not as the #14 fix).
 | dhat profiling example | `crates/my-lang/examples/dhat_checker_profile.rs` |
 | `dhat-heap` feature | `crates/my-lang/Cargo.toml` |
 | Windows + Linux CI | `.github/workflows/checker-scaling.yml` |
+
+## 11. Appendix — Hypatia scan triage
+
+While iterating on the #14 PRs, every PR (including docs-only ones) got an
+identical "🔍 Hypatia Security Scan — 44 issues" comment. Traced to
+`.github/workflows/hypatia-scan.yml`:
+
+- It runs an **external** scanner (cloned/built from
+  `github.com/hyperpolymath/hypatia`) over the **whole working tree**
+  (`scan .`), with **no diff awareness**.
+- The "Comment on PR with findings" step fired on *any* PR whenever the
+  repo-wide `findings_count > 0` and posted `findings.slice(0, 10)` — so the
+  same standing backlog re-appeared on every unrelated PR.
+- It is non-blocking (`--exit-zero`, the `exit 1` is commented out) and the
+  downstream Phase 2/3 (gitbot-fleet submit, robot-repo-automaton autofix)
+  are unimplemented, so nothing ever cleared the backlog.
+
+Remediation (companion PR):
+
+1. **Diff-scoped + baseline-aware comment.** The step now lists only
+   findings in files the PR changed and not in the baseline, and stays
+   *silent* when there is nothing actionable. Full set still uploaded as the
+   `hypatia-findings` artifact and written to the step summary.
+2. **`.hypatia-ignore`** exempts non-shipping trees (`playground/`,
+   `dialects/`), a scanner false positive (a Nickel policy that itself bans
+   `Dockerfile`), proptest scaffolding, and a safe-by-construction unwrap —
+   each with inline rationale.
+3. **`.hypatia-baseline.json`** (workflow-owned format) freezes known
+   pre-existing findings; marked `_partial` until regenerated from a real
+   scan artifact.
+4. **`lib/common/concurrency.rs`** lock/poison unwraps fixed
+   (`unwrap_or_else(|e| e.into_inner())`); remaining genuine items
+   (notably a Coq `Admitted` proof hole) tracked in issue #34.

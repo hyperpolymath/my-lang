@@ -167,29 +167,80 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           script: |
+            // Diff-scoped + baseline-aware PR comment.
+            //
+            // The scanner reports the WHOLE repo on every run, so a raw
+            // comment nagged every PR with ~44 pre-existing findings it did
+            // not introduce. We instead surface only findings that are BOTH
+            // (a) in a file this PR changed and (b) not in the committed
+            // baseline. If there is nothing actionable for this PR we post
+            // no comment at all (the full set stays in the uploaded
+            // artifact + step summary). See
+            // docs/wiki/internals/checker-allocation-investigation.md.
             const fs = require('fs');
             const findings = JSON.parse(fs.readFileSync('hypatia-findings.json', 'utf8'));
 
-            const critical = findings.filter(f => f.severity === 'critical').length;
-            const high = findings.filter(f => f.severity === 'high').length;
+            const ws = (process.env.GITHUB_WORKSPACE || '').replace(/\/+$/, '');
+            const relPath = (p) => {
+              let r = String(p || '');
+              if (ws && r.startsWith(ws + '/')) r = r.slice(ws.length + 1);
+              return r;
+            };
+            const fp = (f) => `${f.rule_module}/${f.type}:${relPath(f.file)}`;
 
-            let comment = `## 🔍 Hypatia Security Scan\n\n`;
-            comment += `**Findings:** ${findings.length} issues detected\n\n`;
+            let baseline = new Set();
+            try {
+              const b = JSON.parse(fs.readFileSync('.hypatia-baseline.json', 'utf8'));
+              baseline = new Set(b.fingerprints || []);
+            } catch (e) { /* no baseline yet */ }
+
+            // Files changed by this PR (paginated).
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            const changed = new Set(files.map(f => f.filename));
+
+            const baselined = findings.filter(f => baseline.has(fp(f)));
+            const relevant = findings.filter(
+              f => changed.has(relPath(f.file)) && !baseline.has(fp(f))
+            );
+
+            const summary =
+              `Hypatia: ${findings.length} repo-wide finding(s); ` +
+              `${relevant.length} in files this PR changed; ` +
+              `${baselined.length} baselined; ` +
+              `full list in the hypatia-findings artifact.`;
+            core.notice(summary);
+
+            // Nothing this PR can act on -> stay silent.
+            if (relevant.length === 0) return;
+
+            const critical = relevant.filter(f => f.severity === 'critical').length;
+            const high = relevant.filter(f => f.severity === 'high').length;
+
+            let comment = `## 🔍 Hypatia Security Scan — findings in this PR's changed files\n\n`;
+            comment += `**${relevant.length}** finding(s) in files this PR modifies `;
+            comment += `(of ${findings.length} repo-wide; ${baselined.length} baselined, not shown).\n\n`;
             comment += `| Severity | Count |\n|----------|-------|\n`;
             comment += `| 🔴 Critical | ${critical} |\n`;
             comment += `| 🟠 High | ${high} |\n`;
-            comment += `| 🟡 Medium | ${findings.length - critical - high} |\n\n`;
+            comment += `| 🟡 Medium | ${relevant.length - critical - high} |\n\n`;
 
             if (critical > 0) {
-              comment += `⚠️ **Action Required:** Critical security issues found!\n\n`;
+              comment += `⚠️ **Action Required:** critical finding(s) in code this PR touches.\n\n`;
             }
 
-            comment += `<details><summary>View findings</summary>\n\n`;
-            comment += `\`\`\`json\n${JSON.stringify(findings.slice(0, 10), null, 2)}\n\`\`\`\n`;
+            comment += `<details><summary>View findings (this PR's files only)</summary>\n\n`;
+            comment += `\`\`\`json\n${JSON.stringify(relevant.slice(0, 10), null, 2)}\n\`\`\`\n`;
             comment += `</details>\n\n`;
+            comment += `_Pre-existing repo-wide findings are triaged via the Hypatia backlog `;
+            comment += `issue and suppressed here by \`.hypatia-baseline.json\` / \`.hypatia-ignore\`._\n\n`;
             comment += `*Powered by Hypatia Neurosymbolic CI/CD Intelligence*`;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
