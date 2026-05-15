@@ -91,7 +91,7 @@ pub fn int_to_str(n: i64) -> String {
 
 /// Convert integer to string with radix
 pub fn int_to_str_radix(n: i64, radix: u32) -> Option<String> {
-    if radix < 2 || radix > 36 {
+    if !(2..=36).contains(&radix) {
         return None;
     }
 
@@ -331,8 +331,8 @@ mod tests {
         assert_eq!(str_to_bool("false"), Some(false));
         assert_eq!(str_to_bool("yes"), Some(true));
         assert_eq!(str_to_bool("no"), Some(false));
-        assert_eq!(int_to_bool(0), false);
-        assert_eq!(int_to_bool(1), true);
+        assert!(!int_to_bool(0));
+        assert!(int_to_bool(1));
     }
 
     #[test]

@@ -23,6 +23,11 @@ pub enum AiModelType {
 }
 
 impl AiModelType {
+    // Deliberately not implementing `std::str::FromStr`: this classifier is
+    // infallible (every string maps to *some* variant -- unknown names fall
+    // through to `Local`), so the trait's `Result<Self, Self::Err>` shape
+    // would just force callers to `.unwrap()` an `Infallible` everywhere.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         if s.starts_with("gpt-") || s.starts_with("o1") {
             AiModelType::OpenAI(s.to_string())
