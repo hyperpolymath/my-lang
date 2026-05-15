@@ -297,7 +297,7 @@ mod tests {
     #[test]
     fn test_parse() {
         assert_eq!(parse_int("42"), Some(42));
-        assert_eq!(parse_float("3.14"), Some(3.14));
+        assert_eq!(parse_float("2.5"), Some(2.5));
     }
 
     #[test]

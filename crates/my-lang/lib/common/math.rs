@@ -265,7 +265,7 @@ mod tests {
     fn test_abs() {
         assert_eq!(abs_int(-5), 5);
         assert_eq!(abs_int(5), 5);
-        assert!((abs_float(-3.14) - 3.14).abs() < f64::EPSILON);
+        assert!((abs_float(-2.5) - 2.5).abs() < f64::EPSILON);
     }
 
     #[test]
