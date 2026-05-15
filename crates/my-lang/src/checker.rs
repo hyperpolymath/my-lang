@@ -416,7 +416,7 @@ impl Checker {
                     span: e.span,
                 };
 
-                if let Err(_) = self.types.define_effect(def) {
+                if self.types.define_effect(def).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: e.name.name.clone(),
                         line: e.span.line,
@@ -445,7 +445,7 @@ impl Checker {
                     span: m.span,
                 };
 
-                if let Err(_) = self.types.define_ai_model(def) {
+                if self.types.define_ai_model(def).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: m.name.name.clone(),
                         line: m.span.line,
@@ -469,7 +469,7 @@ impl Checker {
                     span: p.span,
                 };
 
-                if let Err(_) = self.types.define_prompt(def) {
+                if self.types.define_prompt(def).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: p.name.name.clone(),
                         line: p.span.line,
@@ -506,13 +506,13 @@ impl Checker {
                     result: Box::new(return_type),
                 };
 
-                if let Err(_) = self.symbols.define(Symbol {
+                if self.symbols.define(Symbol {
                     name: f.name.name.clone(),
                     kind: SymbolKind::Function,
                     ty: fn_type,
                     span: f.span,
                     mutable: false,
-                }) {
+                }).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: f.name.name.clone(),
                         line: f.span.line,
@@ -541,13 +541,13 @@ impl Checker {
         // Add parameters to scope
         for param in &f.params {
             let ty = ast_type_to_ty(&param.ty);
-            if let Err(_) = self.symbols.define(Symbol {
+            if self.symbols.define(Symbol {
                 name: param.name.name.clone(),
                 kind: SymbolKind::Parameter,
                 ty,
                 span: param.span,
                 mutable: false,
-            }) {
+            }).is_err() {
                 self.errors.push(CheckError::DuplicateDefinition {
                     name: param.name.name.clone(),
                     line: param.span.line,
@@ -610,13 +610,13 @@ impl Checker {
                     value_ty
                 };
 
-                if let Err(_) = self.symbols.define(Symbol {
+                if self.symbols.define(Symbol {
                     name: name.name.clone(),
                     kind: SymbolKind::Variable,
                     ty: final_ty,
                     span: *span,
                     mutable: *mutable,
-                }) {
+                }).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: name.name.clone(),
                         line: span.line,
@@ -770,7 +770,7 @@ impl Checker {
                                 column: span.column,
                             });
                         } else {
-                            for (_i, (param, arg)) in params.iter().zip(arg_types.iter()).enumerate() {
+                            for (param, arg) in params.iter().zip(arg_types.iter()) {
                                 if !param.is_assignable_from(arg) && !arg.is_error_or_unknown() {
                                     self.errors.push(CheckError::TypeMismatch {
                                         expected: param.to_string(),

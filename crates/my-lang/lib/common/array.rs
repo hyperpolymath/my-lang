@@ -310,7 +310,7 @@ mod tests {
         let a = vec![1, 2];
         let b = vec![3, 4];
         assert_eq!(concat(&a, &b), vec![1, 2, 3, 4]);
-        assert_eq!(slice(&vec![1, 2, 3, 4, 5], 1, 4), vec![2, 3, 4]);
+        assert_eq!(slice(&[1, 2, 3, 4, 5], 1, 4), vec![2, 3, 4]);
     }
 
     #[test]

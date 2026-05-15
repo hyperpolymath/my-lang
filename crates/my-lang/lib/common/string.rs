@@ -135,7 +135,7 @@ pub fn pad_start(s: &str, len: usize, pad: char) -> String {
     if s.len() >= len {
         s.to_string()
     } else {
-        let padding: String = std::iter::repeat(pad).take(len - s.len()).collect();
+        let padding: String = std::iter::repeat_n(pad, len - s.len()).collect();
         format!("{}{}", padding, s)
     }
 }
@@ -145,7 +145,7 @@ pub fn pad_end(s: &str, len: usize, pad: char) -> String {
     if s.len() >= len {
         s.to_string()
     } else {
-        let padding: String = std::iter::repeat(pad).take(len - s.len()).collect();
+        let padding: String = std::iter::repeat_n(pad, len - s.len()).collect();
         format!("{}{}", s, padding)
     }
 }
@@ -197,7 +197,7 @@ pub fn parse_float(s: &str) -> Option<f64> {
 
 /// Format integer to string with radix
 pub fn int_to_string_radix(n: i64, radix: u32) -> Option<String> {
-    if radix < 2 || radix > 36 {
+    if !(2..=36).contains(&radix) {
         return None;
     }
 
