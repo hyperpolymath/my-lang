@@ -819,18 +819,6 @@ impl Parser {
     }
 
     // ============================================
-    // Comptime Declaration
-    // ============================================
-
-    fn parse_comptime_decl(&mut self) -> ParseResult<ComptimeDecl> {
-        let start = self.current_span();
-        self.expect(TokenKind::Comptime)?;
-        let block = self.parse_block()?;
-        let span = self.span_from(start);
-        Ok(ComptimeDecl { block, span })
-    }
-
-    // ============================================
     // Contract
     // ============================================
 
