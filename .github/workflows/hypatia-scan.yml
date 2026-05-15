@@ -93,15 +93,25 @@ jobs:
 
           # Clone gitbot-fleet to temp directory
           FLEET_DIR="/tmp/gitbot-fleet-$$"
-          git clone https://github.com/hyperpolymath/gitbot-fleet.git "$FLEET_DIR"
+          git clone --depth 1 https://github.com/hyperpolymath/gitbot-fleet.git "$FLEET_DIR"
 
-          # Run submission script
-          bash "$FLEET_DIR/scripts/submit-finding.sh" hypatia-findings.json
+          # Run submission script if it exists. The fleet repository is the
+          # planned destination for Phase 2 -- the script is not authored
+          # yet (`scripts/` is empty in hyperpolymath/gitbot-fleet), so guard
+          # the call instead of hard-failing. When the script lands this
+          # step starts submitting automatically; until then the Phase 1
+          # artifact (`hypatia-findings.json`) is still uploaded above and
+          # the PR comment below still posts.
+          SUBMIT_SCRIPT="$FLEET_DIR/scripts/submit-finding.sh"
+          if [ -f "$SUBMIT_SCRIPT" ]; then
+            bash "$SUBMIT_SCRIPT" hypatia-findings.json
+            echo "✅ Finding submission complete"
+          else
+            echo "::warning::gitbot-fleet/scripts/submit-finding.sh is not yet authored; skipping Phase 2 submission. Findings remain available as the hypatia-findings artifact."
+          fi
 
           # Cleanup
           rm -rf "$FLEET_DIR"
-
-          echo "✅ Finding submission complete"
 
       - name: Check for critical issues
         if: steps.scan.outputs.critical > 0
