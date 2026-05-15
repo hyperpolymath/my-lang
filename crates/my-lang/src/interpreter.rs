@@ -129,6 +129,7 @@ pub struct AiResultValue {
 
 /// Environment for variable bindings
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct Environment {
     values: HashMap<String, Value>,
     parent: Option<Env>,
@@ -173,15 +174,6 @@ impl Environment {
             parent.borrow_mut().set(name, value)
         } else {
             Err(RuntimeError::UndefinedVariable(name.to_string()))
-        }
-    }
-}
-
-impl Default for Environment {
-    fn default() -> Self {
-        Environment {
-            values: HashMap::new(),
-            parent: None,
         }
     }
 }
