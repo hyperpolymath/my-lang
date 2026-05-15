@@ -25,9 +25,18 @@ clap.workspace = true
 my-ai = { path = "../my-ai" }
 tokio.workspace = true
 
+dhat = { version = "0.3", optional = true }
+
 [features]
 default = []
 serde = ["dep:serde", "dep:serde_json"]
+# Heap-profiling support for the #14 allocation investigation. Enables the
+# `dhat_checker_profile` example, which runs the checker under the dhat
+# allocator and writes a per-call-site `dhat-heap.json` (view at
+# https://nnethercote.github.io/dh_view/dh_view.html). This is the
+# cross-platform stand-in for the heaptrack/dhat localisation the issue
+# asked for; it runs here on Linux and on the Windows CI job alike.
+dhat-heap = ["dep:dhat"]
 
 [dev-dependencies]
 pretty_assertions.workspace = true
@@ -41,3 +50,7 @@ toml = "0.8"
 [[test]]
 name = "integration_test"
 path = "../../tests/integration_test.rs"
+
+[[example]]
+name = "dhat_checker_profile"
+required-features = ["dhat-heap"]

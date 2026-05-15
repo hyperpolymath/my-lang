@@ -4,6 +4,9 @@
 /target/
 Cargo.lock
 **/*.rs.bk
+
+# dhat heap-profile output (#14 checker profiling)
+dhat-heap.json
 *.pdb
 
 # IDE

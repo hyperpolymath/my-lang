@@ -36,10 +36,14 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
 
-use my_lang::checker::MAX_EXPR_DEPTH;
+use my_lang::checker::{CheckError, MAX_EXPR_DEPTH};
 use my_lang::{
     check, parse, Block, Expr, FnDecl, Ident, Literal, Program, Span, Stmt, TopLevel,
 };
+
+/// Faithful reconstruction of the issue's ~330 LOC string-building scaffold
+/// tool (the original was never attached to #14). See the file header.
+const ISSUE_14_SCAFFOLD: &str = include_str!("fixtures/issue_14_scaffold.my");
 
 /// Global allocator that tallies total bytes requested while `RECORDING` is
 /// on. We sum allocation sizes (gross traffic) rather than tracking live heap:
@@ -231,5 +235,46 @@ fn checker_allocation_is_linear_in_chain_depth() {
          guard: per-level cost grew {ratio:.2}x (report: {report:?}). Deep \
          but legal programs under MAX_EXPR_DEPTH would allocate \
          pathologically -- this is exactly the #14 concern."
+    );
+}
+
+/// End-to-end check of the reconstructed ~330 LOC scaffold from #14. This is
+/// the closest we can get to the original repro (which was never attached):
+/// a legal, string-building-heavy program of the size and shape the report
+/// describes. It must (a) type-check without error, (b) NOT trip the #12
+/// depth guard -- proving the report's file is a deep-but-legal program, not
+/// a depth bomb -- and (c) allocate a sane, bounded amount (kilobytes, not
+/// gigabytes). A regression that reintroduces the OOM fails here loudly.
+#[test]
+fn issue_14_scaffold_checks_cheaply_without_oom() {
+    let program = parse(ISSUE_14_SCAFFOLD).expect("reconstructed scaffold must parse");
+
+    let bytes = bytes_to_check(&program);
+    println!("\n=== #14 reconstructed scaffold ({} items) ===", program.items.len());
+    println!("checker allocated {bytes} bytes");
+
+    let errors = match check(&program) {
+        Ok(()) => Vec::new(),
+        Err(e) => e,
+    };
+    assert!(
+        !errors
+            .iter()
+            .any(|e| matches!(e, CheckError::ExpressionTooDeep { .. })),
+        "reconstructed scaffold tripped the depth guard -- it is meant to be \
+         a deep-but-legal program, tune the fixture nesting down"
+    );
+    assert!(
+        errors.is_empty(),
+        "reconstructed scaffold should type-check cleanly, got: {errors:?}"
+    );
+
+    // The original report saw 16-32 GiB. A faithful Linux run of the same
+    // shape stays in the low-MB range; 64 MiB is a wildly generous ceiling
+    // that still catches any regression back toward the pathological regime.
+    assert!(
+        bytes < 64 * 1024 * 1024,
+        "reconstructed #14 scaffold allocated {bytes} bytes (> 64 MiB) -- \
+         the pathological allocation regime may have returned"
     );
 }
