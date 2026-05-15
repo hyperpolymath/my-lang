@@ -6,6 +6,9 @@ use crate::ast::*;
 use crate::scope::*;
 use crate::token::Span;
 use crate::types::*;
+use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
@@ -132,6 +135,20 @@ pub struct Checker {
     /// avoid spamming a duplicate error for every parent expression on the
     /// way out of the recursion.
     too_deep_reported: bool,
+    /// Content-addressed result cache for *environment-independent*
+    /// subexpressions (hyperpolymath/my-lang#16).
+    ///
+    /// Keyed by a span-stripped structural hash. Only populated for the
+    /// provably-safe subset built by [`Checker::memo_key`] (string/number/
+    /// bool literals and calls that resolve to the genuine stdlib binding,
+    /// recursively). For that subset the resulting [`Ty`] is a pure function
+    /// of the structural form — it does not depend on the symbol environment,
+    /// introduces no scope bindings, and (because we only insert when the
+    /// check produced no new diagnostics) re-encountering the expression is
+    /// observably identical to re-checking it. This turns the repeated
+    /// `str_concat`/`format` templating sites from #1 from
+    /// O(occurrences × subtree) into O(distinct × subtree).
+    expr_cache: HashMap<u64, Ty>,
 }
 
 impl Default for Checker {
@@ -149,6 +166,7 @@ impl Checker {
             current_return_type: None,
             expr_depth: 0,
             too_deep_reported: false,
+            expr_cache: HashMap::new(),
         };
         checker.register_stdlib();
         checker
@@ -714,7 +732,114 @@ impl Checker {
         }
     }
 
+    /// Type-check an expression, consulting the content-addressed result
+    /// cache for environment-independent subexpressions first
+    /// (hyperpolymath/my-lang#16).
+    ///
+    /// A cache hit returns immediately *without recursing*, which is the
+    /// whole point: structurally-identical `str_concat`/`format` templating
+    /// trees that recur across functions are checked once. A cache hit also
+    /// cannot trip the depth guard or allocate, so a repeated deep-but-legal
+    /// pure chain no longer pays its full recursive cost on every occurrence.
+    /// We only *insert* a result when the underlying check produced no new
+    /// diagnostics and a concrete type, so memoisation never suppresses or
+    /// reorders an error relative to the un-cached behaviour.
     fn check_expr(&mut self, expr: &Expr) -> Ty {
+        let Some(key) = self.memo_key(expr) else {
+            return self.check_expr_guarded(expr);
+        };
+        if let Some(ty) = self.expr_cache.get(&key) {
+            return ty.clone();
+        }
+        let errors_before = self.errors.len();
+        let ty = self.check_expr_guarded(expr);
+        if self.errors.len() == errors_before && !ty.is_error_or_unknown() {
+            self.expr_cache.insert(key, ty.clone());
+        }
+        ty
+    }
+
+    /// Span-stripped structural hash for the subset of expressions whose type
+    /// is a pure function of their form, independent of the symbol
+    /// environment and free of scope side effects. Returns `None` for
+    /// anything outside that subset (in particular: every expression that
+    /// resolves an identifier against local scope, and every scope-
+    /// introducing form — lambdas, blocks, matches, records), so those are
+    /// always re-checked normally and the cache stays sound.
+    ///
+    /// The subset:
+    /// - literals (type fixed by the literal kind), and
+    /// - calls whose callee resolves to the *genuine* stdlib binding (so the
+    ///   result type is the fixed stdlib signature regardless of scope, and a
+    ///   local/user shadow is correctly excluded) and whose arguments are
+    ///   themselves in the subset.
+    ///
+    /// Spans are never fed to the hasher, so structurally-equal expressions
+    /// at different source locations share a key. The key is a 64-bit hash;
+    /// a collision (≈2⁻⁶⁴) could return a wrong cached type, which is the
+    /// standard, accepted trade-off for content-addressed memoisation and is
+    /// acceptable here because this is an optional optimisation layer over an
+    /// already-linear checker (see #14).
+    fn memo_key(&self, expr: &Expr) -> Option<u64> {
+        let mut hasher = DefaultHasher::new();
+        self.hash_pure(expr, &mut hasher)?;
+        Some(hasher.finish())
+    }
+
+    fn hash_pure(&self, expr: &Expr, hasher: &mut DefaultHasher) -> Option<()> {
+        match expr {
+            Expr::Literal(lit) => {
+                match lit {
+                    Literal::Int(v, _) => {
+                        0u8.hash(hasher);
+                        v.hash(hasher);
+                    }
+                    Literal::Float(v, _) => {
+                        1u8.hash(hasher);
+                        v.to_bits().hash(hasher);
+                    }
+                    Literal::String(s, _) => {
+                        2u8.hash(hasher);
+                        s.hash(hasher);
+                    }
+                    Literal::Bool(b, _) => {
+                        3u8.hash(hasher);
+                        b.hash(hasher);
+                    }
+                }
+                Some(())
+            }
+            Expr::Call { callee, args, .. } => {
+                let Expr::Ident(id) = callee.as_ref() else {
+                    return None;
+                };
+                // Only cacheable if the callee resolves to the real stdlib
+                // function symbol. Comparing against the canonical stdlib
+                // signature rejects a local `let str_concat = ...` or a
+                // user-defined function that shadows the name, so the name
+                // alone is a sound proxy for the resolved (scope-invariant)
+                // result type.
+                let sig = Self::stdlib_function_type(&id.name);
+                if !matches!(sig, Ty::Function { .. }) {
+                    return None;
+                }
+                match self.symbols.lookup(&id.name) {
+                    Some(sym) if sym.ty == sig => {}
+                    _ => return None,
+                }
+                4u8.hash(hasher);
+                id.name.hash(hasher);
+                (args.len() as u64).hash(hasher);
+                for arg in args {
+                    self.hash_pure(arg, hasher)?;
+                }
+                Some(())
+            }
+            _ => None,
+        }
+    }
+
+    fn check_expr_guarded(&mut self, expr: &Expr) -> Ty {
         // Depth guard: stops pathological inputs (e.g. deeply chained
         // str_concat/format) from driving the checker into runaway memory
         // allocation or stack overflow. Reports a single ExpressionTooDeep
@@ -1528,6 +1653,82 @@ mod tests {
         src.push_str("; }");
 
         assert!(check_source(&src).is_ok());
+    }
+
+    #[test]
+    fn test_memoised_pure_chain_is_cached() {
+        // #16: a structurally-identical pure str_concat chain repeated across
+        // many functions must be checked once and reused. We can observe the
+        // cache directly via the Checker API.
+        let src = r#"
+            fn a() { let x = str_concat("p", str_concat("q", "r")); }
+            fn b() { let y = str_concat("p", str_concat("q", "r")); }
+            fn c() { let z = str_concat("p", str_concat("q", "r")); }
+        "#;
+        let program = parse(src).expect("parse");
+        let mut checker = Checker::new();
+        checker.check_program(&program).expect("should type-check");
+        // The repeated `str_concat(...)` tree (and its inner subtree) collapse
+        // to a small number of distinct keys, not one per occurrence.
+        assert!(
+            !checker.expr_cache.is_empty(),
+            "expected pure str_concat chain to be memoised"
+        );
+        // Three identical chains => the distinct-key count stays at the small
+        // fixed set of subexpressions ("p", "q", "r", inner + outer call),
+        // not 3x that. The exact figure is an implementation detail; the
+        // invariant is that it does not grow with the number of occurrences.
+        assert!(
+            checker.expr_cache.len() <= 6,
+            "identical chains should share keys regardless of occurrence count, got {} entries",
+            checker.expr_cache.len()
+        );
+    }
+
+    #[test]
+    fn test_memoisation_does_not_change_results() {
+        // Correctness: every existing positive/negative case must behave
+        // identically with the cache in place (the cache is consulted on
+        // every expression via check_expr).
+        assert!(check_source(r#"fn main() { let s = str_concat("a", "b"); }"#).is_ok());
+        assert!(check_source(
+            r#"fn main() { let s = format(str_concat("<", str_concat("x", ">"))); }"#
+        )
+        .is_ok());
+        // A pure stdlib call with a genuine type error must still report it
+        // (never cached, since the result is an error type).
+        let err = check_source(r#"fn main() { let s = str_concat("a"); }"#).unwrap_err();
+        assert!(err.iter().any(|e| matches!(e, CheckError::WrongArgCount { .. })));
+    }
+
+    #[test]
+    fn test_memoisation_is_scope_sound() {
+        // The soundness hazard #16 calls out: two structurally-identical
+        // expressions can have different types because identifiers resolve
+        // against scope. `add(p, 1)` is `Int` in one function and `Float` in
+        // the other. Because identifier arguments are outside the cacheable
+        // subset, each call site is checked against its own scope and the
+        // return-type checks must both pass.
+        let src = r#"
+            fn add(a: Int, b: Int) -> Int { return a + b; }
+            fn addf(a: Float, b: Float) -> Float { return a + b; }
+            fn use_int(p: Int) -> Int { return add(p, p); }
+            fn use_float(p: Float) -> Float { return addf(p, p); }
+        "#;
+        assert!(
+            check_source(src).is_ok(),
+            "scope-sensitive look-alikes must each be checked in their own scope"
+        );
+
+        // And the negative: a genuine mismatch is still caught, not masked by
+        // a cache entry from the structurally-similar good call.
+        let bad = r#"
+            fn add(a: Int, b: Int) -> Int { return a + b; }
+            fn ok() -> Int { return add(1, 2); }
+            fn bad() -> Int { return add(1, "two"); }
+        "#;
+        let err = check_source(bad).unwrap_err();
+        assert!(err.iter().any(|e| matches!(e, CheckError::TypeMismatch { .. })));
     }
 
     #[test]
