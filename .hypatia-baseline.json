@@ -1,9 +1,6 @@
 {
-  "_comment": "Workflow-owned Hypatia baseline for hyperpolymath/my-lang. Consumed by the 'Comment on PR with findings' step in .github/workflows/hypatia-scan.yml (NOT by the upstream scanner's own --baseline, whose schema is unpublished). A finding is suppressed from the PR comment if its fingerprint 'rule_module/type:repo-relative-path' appears in `fingerprints`. This freezes KNOWN pre-existing findings so only NEW or changed-file findings surface. Entries must be burned down via the tracking issue, not grown. Regenerate the full set from the `hypatia-findings` CI artifact: jq -r '.[] | \"\\(.rule_module)/\\(.type):\\(.file)\"' hypatia-findings.json | sed \"s#.*/my-lang/my-lang/##\".",
-  "_tracking_issue": "hyperpolymath/my-lang#34 is the burn-down list; this baseline is the suppression list.",
-  "_partial": true,
-  "fingerprints": [
-    "code_safety/admitted:proofs/verification/coq/Typing.v",
-    "code_safety/unwrap_without_check:dialects/solo/compiler/src/lexer.rs"
-  ]
+  "_comment": "Workflow-owned Hypatia baseline for hyperpolymath/my-lang. Consumed by the 'Comment on PR with findings' step in .github/workflows/hypatia-scan.yml. A finding is suppressed from the PR comment if its fingerprint 'rule_module/type:repo-relative-path' appears in `fingerprints`. Exhaustive noise control is provided by the diff-scoped comment step + .hypatia-ignore (with per-entry rationale), NOT by enumerating the scanner's output -- which investigation under issue #34 showed to be false-positive / non-shipping / policy dominated, not a security backlog.",
+  "_resolution": "Issue #34 (closed): the only genuine code-safety findings (lib/common/concurrency.rs lock/poison unwraps) were fixed; lib/common/string.rs unwrap was replaced with a proved .expect(); the Coq 'Admitted' Critical was a false positive on a word inside a comment for a Qed-proved lemma and was eliminated by rewording. All remaining scanner output is non-shipping (playground/, dialects/ -- not in the Cargo workspace) or documented false positives, exempted in .hypatia-ignore. Hence the baseline is intentionally empty and complete.",
+  "_partial": false,
+  "fingerprints": []
 }

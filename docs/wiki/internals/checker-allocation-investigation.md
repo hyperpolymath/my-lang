@@ -177,12 +177,34 @@ Remediation (companion PR):
    *silent* when there is nothing actionable. Full set still uploaded as the
    `hypatia-findings` artifact and written to the step summary.
 2. **`.hypatia-ignore`** exempts non-shipping trees (`playground/`,
-   `dialects/`), a scanner false positive (a Nickel policy that itself bans
-   `Dockerfile`), proptest scaffolding, and a safe-by-construction unwrap —
+   `dialects/` — not in the Cargo workspace), a scanner false positive (a
+   Nickel policy that itself bans `Dockerfile`), and proptest scaffolding,
    each with inline rationale.
-3. **`.hypatia-baseline.json`** (workflow-owned format) freezes known
-   pre-existing findings; marked `_partial` until regenerated from a real
-   scan artifact.
+3. **`.hypatia-baseline.json`** (workflow-owned format) — now `_partial:
+   false` with an empty fingerprint set: noise control is provided by
+   diff-scoping + `.hypatia-ignore`, not by enumerating scanner output.
 4. **`lib/common/concurrency.rs`** lock/poison unwraps fixed
-   (`unwrap_or_else(|e| e.into_inner())`); remaining genuine items
-   (notably a Coq `Admitted` proof hole) tracked in issue #34.
+   (`unwrap_or_else(|e| e.into_inner())`).
+
+### #34 outcome — the standing backlog was not a security backlog
+
+Running the scanner locally (the upstream bash ruleset emitted **1864**
+line-level findings, e.g. `rescript_file_present` on every `.res` line —
+which directly contradicts this repo's own ReScript-first language policy)
+confirmed the output is false-positive / policy / non-shipping dominated,
+not a defect list. Disposition of every CI-authoritative finding category:
+
+- **Fixed at source:** `concurrency.rs` lock/poison unwraps; `string.rs`
+  `char::from_digit().unwrap()` → `.expect()` with the proved
+  `digit < radix ≤ 36` invariant (exemption removed).
+- **Eliminated at source:** the Critical Coq `coq_admitted` was a false
+  positive matching the word "Admitted" *in a comment* for a fully
+  `Qed.`-proved lemma; the comment was reworded so the finding ceases to
+  exist (no `Admitted.`/`admit.` exists anywhere in the repo).
+- **Documented false positive / non-shipping:** the Nickel "Docker"
+  policy file, proptest scaffolding, and the `playground/` & `dialects/`
+  trees — exempted in `.hypatia-ignore` with rationale.
+
+Issue #34 is therefore **resolved**: every genuine item is fixed, every
+residual is a rationale-documented exemption, and diff-scoping guarantees
+only new findings in changed files ever surface again.

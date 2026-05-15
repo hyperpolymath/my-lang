@@ -29,7 +29,9 @@ code_safety/ncl_docker_not_podman:.machine_readable/svc/k9/my-lang-metadata.k9.n
 code_safety/unwrap_without_check:src/proptest.rs
 code_safety/panic_macro:src/proptest.rs
 
-# --- Safe-by-construction: char::from_digit(d, radix) where d < radix is an
-# invariant established immediately above the call site; the unwrap cannot
-# fire. Tracked in the backlog issue for an eventual expect()-with-proof.
-code_safety/unwrap_without_check:lib/common/string.rs
+# NOTE: lib/common/string.rs `char::from_digit().unwrap()` was RESOLVED AT
+# SOURCE (replaced with `.expect(...)` documenting the digit<radix<=36
+# invariant), so it needs no exemption. Likewise the Coq "Admitted" finding
+# was a false positive on the word inside a comment for a fully-proved
+# (`Qed.`) lemma; the comment was reworded so the finding no longer exists.
+# Both were closed under issue #34 rather than suppressed.
