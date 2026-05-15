@@ -294,14 +294,14 @@ mod tests {
 
     #[test]
     fn test_float_conversions() {
-        assert_eq!(str_to_float("3.14"), Some(3.14));
+        assert_eq!(str_to_float("2.5"), Some(2.5));
         assert_eq!(int_to_float(42), 42.0);
     }
 
     #[test]
     fn test_str_conversions() {
         assert_eq!(int_to_str(42), "42");
-        assert_eq!(float_to_str(3.14), "3.14");
+        assert_eq!(float_to_str(2.5), "2.5");
         assert_eq!(bool_to_str(true), "true");
     }
 
