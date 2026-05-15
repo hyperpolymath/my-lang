@@ -113,10 +113,16 @@ pub enum CheckError {
 /// emitting [`CheckError::ExpressionTooDeep`] and bailing out of the
 /// subexpression.
 ///
-/// This is a defence against pathological inputs (deeply chained
-/// `str_concat`/`format`, parser-generated unbalanced trees) that could
-/// otherwise drive the checker into runaway memory allocation. See
-/// hyperpolymath/my-lang#1.
+/// This bounds **stack recursion**, not heap growth. The #14 investigation
+/// (see `docs/wiki/internals/checker-allocation-investigation.md`) measured
+/// `check_expr` / `is_assignable_from` to be *linear* in AST size on Linux
+/// and on a Windows CI leg — there is no super-linear allocation for the
+/// guard to defend against. What deep nesting *does* threaten is the
+/// recursive descent through `check_expr` (and the recursive `Drop` of the
+/// resulting AST). The original #1 OOM was shown not to be checker
+/// algorithmic complexity; this limit therefore exists to keep recursion
+/// depth finite, and rejecting deep-but-legal programs at 256 is its cost,
+/// not a memory safeguard. Re-tuning the value is tracked separately.
 pub const MAX_EXPR_DEPTH: usize = 256;
 
 pub type CheckResult<T> = Result<T, CheckError>;
@@ -128,8 +134,8 @@ pub struct Checker {
     errors: Vec<CheckError>,
     /// Current function's return type (for checking return statements)
     current_return_type: Option<Ty>,
-    /// Current expression-recursion depth (guards against OOM on pathological
-    /// nesting, see [`MAX_EXPR_DEPTH`]).
+    /// Current expression-recursion depth (bounds stack recursion on
+    /// pathological nesting, see [`MAX_EXPR_DEPTH`]).
     expr_depth: usize,
     /// Set once an [`CheckError::ExpressionTooDeep`] has been reported, to
     /// avoid spamming a duplicate error for every parent expression on the
@@ -841,8 +847,9 @@ impl Checker {
 
     fn check_expr_guarded(&mut self, expr: &Expr) -> Ty {
         // Depth guard: stops pathological inputs (e.g. deeply chained
-        // str_concat/format) from driving the checker into runaway memory
-        // allocation or stack overflow. Reports a single ExpressionTooDeep
+        // str_concat/format) from driving the checker into a stack overflow
+        // via unbounded recursion (allocation is linear — see #14).
+        // Reports a single ExpressionTooDeep
         // error for the whole offending subtree and returns Ty::Error so the
         // surrounding code keeps type-checking in error-recovery mode.
         if self.expr_depth >= MAX_EXPR_DEPTH {
