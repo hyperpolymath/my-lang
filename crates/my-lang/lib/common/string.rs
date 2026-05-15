@@ -206,7 +206,10 @@ pub fn int_to_string_radix(n: i64, radix: u32) -> Option<String> {
     }
 
     let mut result = String::new();
-    let mut num = n.abs() as u64;
+    // `unsigned_abs` instead of `n.abs() as u64`: the latter panics in debug
+    // on `i64::MIN` because `i64::MIN.abs()` overflows. `unsigned_abs`
+    // returns the absolute value as a `u64` losslessly for every `i64`.
+    let mut num = n.unsigned_abs();
 
     while num > 0 {
         let digit = (num % radix as u64) as u32;
@@ -304,5 +307,15 @@ mod tests {
     fn test_radix() {
         assert_eq!(int_to_string_radix(255, 16), Some("ff".to_string()));
         assert_eq!(int_to_string_radix(10, 2), Some("1010".to_string()));
+    }
+
+    #[test]
+    fn test_radix_i64_min_does_not_panic() {
+        // Regression for `n.abs() as u64` panicking on `i64::MIN` in debug
+        // builds. After the switch to `unsigned_abs`, this must round-trip.
+        assert_eq!(
+            int_to_string_radix(i64::MIN, 10),
+            Some("-9223372036854775808".to_string())
+        );
     }
 }
