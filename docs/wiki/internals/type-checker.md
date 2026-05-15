@@ -607,6 +607,23 @@ impl Checker {
 }
 ```
 
+## Allocation & Recursion Cost
+
+`check_expr` / `is_assignable_from` are **linear in AST size** along both the
+nesting-depth and the templating-breadth axes — confirmed by measurement on
+Linux *and* on a `windows-latest` CI leg. There is no super-linear allocation
+hotspot in the checker; each `check_expr` level clones only a fixed-size
+builtin signature, so the type representation cannot grow with nesting.
+
+Consequently the `MAX_EXPR_DEPTH` guard (`src/checker.rs`) is **not**
+load-bearing for checker memory safety: its purpose is bounding *stack
+recursion* (recursive `check_expr`, recursive AST `Drop`, recursive-descent
+parser), not preventing a heap blow-up.
+
+Full methodology, measurements, dead ends, and implications:
+[Checker Allocation Investigation (#14)](./checker-allocation-investigation.md).
+Regression guard: `cargo test -p my-lang --test checker_alloc_scaling`.
+
 ## Testing
 
 ```rust

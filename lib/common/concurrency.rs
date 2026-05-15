@@ -73,14 +73,14 @@ impl<T> Channel<T> {
     pub fn recv(&self) -> Result<T, String> {
         self.receiver
             .lock()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .recv()
             .map_err(|_| "Sender dropped".to_string())
     }
 
     /// Try to receive a message without blocking
     pub fn try_recv(&self) -> Option<T> {
-        self.receiver.lock().unwrap().try_recv().ok()
+        self.receiver.lock().unwrap_or_else(|e| e.into_inner()).try_recv().ok()
     }
 
     /// Clone the sender
@@ -113,7 +113,7 @@ impl<T> SharedMutex<T> {
     where
         F: FnOnce(&mut T) -> R,
     {
-        let mut guard = self.inner.lock().unwrap();
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         f(&mut *guard)
     }
 
@@ -128,12 +128,12 @@ impl<T> SharedMutex<T> {
 impl<T: Clone> SharedMutex<T> {
     /// Get a copy of the value
     pub fn get(&self) -> T {
-        self.inner.lock().unwrap().clone()
+        self.inner.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     /// Set the value
     pub fn set(&self, value: T) {
-        *self.inner.lock().unwrap() = value;
+        *self.inner.lock().unwrap_or_else(|e| e.into_inner()) = value;
     }
 }
 
@@ -155,7 +155,7 @@ impl<T> SharedRwLock<T> {
     where
         F: FnOnce(&T) -> R,
     {
-        let guard = self.inner.read().unwrap();
+        let guard = self.inner.read().unwrap_or_else(|e| e.into_inner());
         f(&*guard)
     }
 
@@ -164,7 +164,7 @@ impl<T> SharedRwLock<T> {
     where
         F: FnOnce(&mut T) -> R,
     {
-        let mut guard = self.inner.write().unwrap();
+        let mut guard = self.inner.write().unwrap_or_else(|e| e.into_inner());
         f(&mut *guard)
     }
 
@@ -179,12 +179,12 @@ impl<T> SharedRwLock<T> {
 impl<T: Clone> SharedRwLock<T> {
     /// Get a copy of the value
     pub fn get(&self) -> T {
-        self.inner.read().unwrap().clone()
+        self.inner.read().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     /// Set the value
     pub fn set(&self, value: T) {
-        *self.inner.write().unwrap() = value;
+        *self.inner.write().unwrap_or_else(|e| e.into_inner()) = value;
     }
 }
 
@@ -210,26 +210,26 @@ impl AtomicCounter {
 
     /// Increment the counter and return the new value
     pub fn increment(&self) -> i64 {
-        let mut val = self.value.lock().unwrap();
+        let mut val = self.value.lock().unwrap_or_else(|e| e.into_inner());
         *val += 1;
         *val
     }
 
     /// Decrement the counter and return the new value
     pub fn decrement(&self) -> i64 {
-        let mut val = self.value.lock().unwrap();
+        let mut val = self.value.lock().unwrap_or_else(|e| e.into_inner());
         *val -= 1;
         *val
     }
 
     /// Get the current value
     pub fn get(&self) -> i64 {
-        *self.value.lock().unwrap()
+        *self.value.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Set the value
     pub fn set(&self, new_val: i64) {
-        *self.value.lock().unwrap() = new_val;
+        *self.value.lock().unwrap_or_else(|e| e.into_inner()) = new_val;
     }
 
     /// Clone the counter
