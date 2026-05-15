@@ -208,13 +208,14 @@ pub fn int_to_string_radix(n: i64, radix: u32) -> Option<String> {
     let mut result = String::new();
     let mut num = n.abs() as u64;
 
+    // Infallible digit table: radix is validated to 2..=36 above and
+    // digit = num % radix < radix <= 36, so the index is always in range.
+    // This avoids any unwrap()/expect() in the conversion loop.
+    const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+
     while num > 0 {
-        let digit = (num % radix as u64) as u32;
-        // radix is validated to 2..=36 above and digit = num % radix < radix,
-        // so char::from_digit always returns Some here.
-        let c = char::from_digit(digit, radix)
-            .expect("char::from_digit: digit < radix (2..=36) by construction");
-        result.insert(0, c);
+        let digit = (num % radix as u64) as usize;
+        result.insert(0, DIGITS[digit] as char);
         num /= radix as u64;
     }
 

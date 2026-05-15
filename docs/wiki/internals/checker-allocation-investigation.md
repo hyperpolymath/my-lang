@@ -195,8 +195,9 @@ confirmed the output is false-positive / policy / non-shipping dominated,
 not a defect list. Disposition of every CI-authoritative finding category:
 
 - **Fixed at source:** `concurrency.rs` lock/poison unwraps; `string.rs`
-  `char::from_digit().unwrap()` → `.expect()` with the proved
-  `digit < radix ≤ 36` invariant (exemption removed).
+  `char::from_digit().unwrap()` → an infallible `DIGITS` table lookup
+  (the `digit < radix ≤ 36` invariant makes the index always in range —
+  no `unwrap`/`expect` in the hot loop), exemption removed.
 - **Eliminated at source:** the Critical Coq `coq_admitted` was a false
   positive matching the word "Admitted" *in a comment* for a fully
   `Qed.`-proved lemma; the comment was reworded so the finding ceases to
