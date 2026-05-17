@@ -118,12 +118,30 @@ pub enum CheckError {
 /// `check_expr` / `is_assignable_from` to be *linear* in AST size on Linux
 /// and on a Windows CI leg — there is no super-linear allocation for the
 /// guard to defend against. What deep nesting *does* threaten is the
-/// recursive descent through `check_expr` (and the recursive `Drop` of the
-/// resulting AST). The original #1 OOM was shown not to be checker
-/// algorithmic complexity; this limit therefore exists to keep recursion
-/// depth finite, and rejecting deep-but-legal programs at 256 is its cost,
-/// not a memory safeguard. Re-tuning the value is tracked separately.
-pub const MAX_EXPR_DEPTH: usize = 256;
+/// recursive descent through `check_expr`. (The recursive `Drop` of a deep
+/// AST is a *separate* overflow; it is now handled structurally and
+/// shape-independently by [`crate::ast::drop_program_iteratively`], so it no
+/// longer constrains this value — hyperpolymath/my-lang#37.)
+///
+/// # Re-derived from a measured stack budget (my-lang#37)
+///
+/// The previous value (256) was an inherited guess, not a budget. Probing one
+/// recursive `check_expr` walk on a fixed-size thread stack
+/// (`examples/measure_depth.rs`) measures **≈4.4 KiB of stack per nesting
+/// level**. The binding constraint is the smallest stack the checker runs on:
+/// the OS main thread (the checker is *not* dispatched onto a large-stack
+/// thread anywhere), i.e. **1 MiB on Windows**. At 256 levels that walk needs
+/// ≈1.14 MiB — it can overflow *before* the guard fires on Windows, so 256 was
+/// not merely unjustified but unsafe there.
+///
+/// `128 × 4.4 KiB ≈ 569 KiB ≈ 54%` of a 1 MiB Windows stack, leaving ~46%
+/// headroom for the rest of the call graph above `check_expr`; vastly safe on
+/// Linux (8 MiB) and Rust's 2 MiB default threads. It is still 2× the parser's
+/// independently-derived [`crate::parser::MAX_PARSE_EXPR_DEPTH`] (64) ceiling,
+/// so — because no *parseable* program nests deeper than 64 — lowering it
+/// rejects zero real programs; it only ever fires on programmatically-built
+/// ASTs, which is its sole remaining purpose.
+pub const MAX_EXPR_DEPTH: usize = 128;
 
 pub type CheckResult<T> = Result<T, CheckError>;
 
@@ -1450,40 +1468,10 @@ mod tests {
         check(&program)
     }
 
-    /// Iteratively flattens any `str_concat(_, inner)`-style right-recursive
-    /// AST chains inside `program` so that the auto-derived recursive `Drop`
-    /// for `Box<Expr>` does not overflow the test thread's stack. Only the
-    /// shapes we construct in the deep-nesting tests are handled.
-    fn drop_program_iteratively(mut program: Program) {
-        use std::mem;
-        for item in program.items.iter_mut() {
-            if let TopLevel::Function(f) = item {
-                for stmt in f.body.stmts.iter_mut() {
-                    if let Stmt::Let { value, .. } = stmt {
-                        flatten_call_chain(value);
-                    }
-                }
-            }
-        }
-
-        fn flatten_call_chain(expr: &mut Expr) {
-            // Repeatedly peel the deepest argument out of a Call and let it
-            // be dropped on its own once we've broken the chain.
-            loop {
-                let next = match expr {
-                    Expr::Call { args, .. } if args.len() == 2 => {
-                        // Replace the recursive arg with a tiny placeholder
-                        // and take ownership of the giant subtree.
-                        let placeholder =
-                            Expr::Literal(Literal::Bool(false, crate::token::Span::default()));
-                        mem::replace(&mut args[1], placeholder)
-                    }
-                    _ => return,
-                };
-                *expr = next;
-            }
-        }
-    }
+    // The former shape-specific `drop_program_iteratively` test helper (it
+    // only flattened 2-arg `Call` chains) is replaced by the general,
+    // shape-independent `crate::ast::drop_program_iteratively`, already in
+    // scope here via `super::*` (hyperpolymath/my-lang#37).
 
     #[test]
     fn test_basic_function() {
@@ -1641,6 +1629,56 @@ mod tests {
         // the chain of Box<Expr> would itself overflow the test thread's
         // stack. (That's a separate, drop-side instance of the same nesting
         // problem; not what this test is about.)
+        drop_program_iteratively(program);
+    }
+
+    #[test]
+    fn test_deep_non_call_ast_teardown_does_not_overflow() {
+        // Regression for hyperpolymath/my-lang#37, subtlety 1: the recursive
+        // `Drop` overflow is *shape-independent*. The former test helper only
+        // flattened 2-arg `Call` chains; a differently-shaped deep AST (here a
+        // `Unary::Not` chain, with no `Call` anywhere) would still overflow.
+        // The general `ast::drop_program_iteratively` must tear it down with
+        // O(1) stack regardless of shape.
+        //
+        // Depth is far beyond the measured recursive-Drop cliff (≈4–6k at a
+        // 512 KiB stack) so a recursion-based teardown would abort the test
+        // process; survival proves the teardown is non-recursive.
+        use crate::token::Span;
+
+        let span = Span::default();
+        let mut expr = Expr::Literal(Literal::Bool(true, span));
+        for _ in 0..50_000 {
+            expr = Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(expr),
+                span,
+            };
+        }
+
+        let program = Program {
+            items: vec![TopLevel::Function(FnDecl {
+                modifiers: vec![],
+                name: Ident::new("main", span),
+                params: vec![],
+                return_type: None,
+                contract: None,
+                body: Block {
+                    stmts: vec![Stmt::Let {
+                        mutable: false,
+                        name: Ident::new("s", span),
+                        ty: None,
+                        value: expr,
+                        span,
+                    }],
+                    span,
+                },
+                span,
+            })],
+        };
+
+        // The sole assertion is that this returns at all: a recursive teardown
+        // would `STATUS_STACK_OVERFLOW` / SIGABRT the test runner first.
         drop_program_iteratively(program);
     }
 
