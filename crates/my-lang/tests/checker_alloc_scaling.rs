@@ -206,9 +206,13 @@ fn deep_chain_program(depth: usize) -> Program {
 /// deep-but-legal programs (well under 256) allocate pathologically.
 #[test]
 fn checker_allocation_is_linear_in_chain_depth() {
-    // All strictly below MAX_EXPR_DEPTH so the #12 guard never fires and we
-    // measure the genuine per-level cost.
-    let depths = [32usize, 64, 128, 200];
+    // Derived from MAX_EXPR_DEPTH (not hardcoded) so this stays strictly below
+    // the #12 guard regardless of how the constant is tuned — it was
+    // re-derived 256 -> 128 from a measured stack budget in
+    // hyperpolymath/my-lang#37. The ladder still spans a ~6x depth range, more
+    // than enough to expose any super-linear per-level term.
+    let m = MAX_EXPR_DEPTH;
+    let depths = [m / 8, m / 4, m / 2, (m * 3) / 4];
     assert!(*depths.last().unwrap() < MAX_EXPR_DEPTH);
 
     let mut report = Vec::new();

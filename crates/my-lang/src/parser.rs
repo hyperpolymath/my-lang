@@ -33,16 +33,22 @@ pub type ParseResult<T> = Result<T, ParseError>;
 /// through before emitting [`ParseError::ExpressionTooDeep`] and unwinding the
 /// in-flight expression.
 ///
-/// Deliberately a quarter of `checker::MAX_EXPR_DEPTH` (256): each step of
-/// expression nesting re-enters `parse_expr` and walks the full precedence
-/// chain (`parse_or_expr` → … → `parse_postfix_expr` → `parse_primary_expr`),
+/// Independently derived from the parser's own stack budget (not a fixed
+/// ratio of `checker::MAX_EXPR_DEPTH`): each step of expression nesting
+/// re-enters `parse_expr` and walks the full precedence chain
+/// (`parse_or_expr` → … → `parse_postfix_expr` → `parse_primary_expr`),
 /// adding roughly a dozen native stack frames per nesting level. In debug
 /// builds with a 1 MiB default test-thread stack (Windows), that puts the
 /// hard `STATUS_STACK_OVERFLOW` boundary at roughly ~140 depth — so the
 /// guard has to fire well before that. 64 leaves a comfortable margin on
 /// every platform/build-mode the test suite runs on, while still accepting
 /// any human-authored expression (real code rarely nests past depth 5–10).
-/// See hyperpolymath/my-lang#15 / #1.
+///
+/// This is the *operational* ceiling: because the parser errors here, no
+/// parsed program ever reaches `checker::MAX_EXPR_DEPTH` (re-derived to 128
+/// from a measured ≈4.4 KiB/level checker-stack budget in my-lang#37); the
+/// checker guard only bounds programmatically-constructed ASTs.
+/// See hyperpolymath/my-lang#15 / #1 / #37.
 pub const MAX_PARSE_EXPR_DEPTH: usize = 64;
 
 pub struct Parser {
@@ -1097,8 +1103,9 @@ impl Parser {
         // Depth guard: stops pathological inputs (e.g. deeply nested
         // parentheses, right-recursive `str_concat("a", str_concat(...))`
         // chains) from overflowing the thread stack before the type-checker
-        // ever sees the AST. Mirrors `checker::MAX_EXPR_DEPTH`; see
-        // hyperpolymath/my-lang#15.
+        // ever sees the AST. This is the operational ceiling that keeps any
+        // parsed AST below `checker::MAX_EXPR_DEPTH`; see
+        // hyperpolymath/my-lang#15 / #37.
         if self.expr_depth >= MAX_PARSE_EXPR_DEPTH {
             let span = self.current_span();
             return Err(ParseError::ExpressionTooDeep {
