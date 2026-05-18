@@ -37,6 +37,9 @@ Thumbs.db
 *.log
 target/
 node_modules/
+# npm lockfile — not tracked, mirroring the Cargo.lock policy above
+# (the only one is vscode-extension/package-lock.json)
+package-lock.json
 _build/
 deps/
 .elixir_ls/
