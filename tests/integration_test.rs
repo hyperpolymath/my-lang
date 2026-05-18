@@ -293,6 +293,27 @@ fn test_eval_date_today() {
     }
 }
 
+// Solo fs_list_dir() stdlib builtin (hyperpolymath/my-lang#55): enumerate a
+// directory, sorted entry names. Self-contained: builds a dir with fs_* builtins
+// then lists it (exercises fs_create_dir_all/fs_write_file/fs_list_dir/str_join).
+#[test]
+fn test_eval_fs_list_dir() {
+    let source = r#"
+        fn main() -> String {
+            let dir = "target/.it_fs_list_dir";
+            fs_create_dir_all(dir);
+            fs_write_file("target/.it_fs_list_dir/b.txt", "x");
+            fs_write_file("target/.it_fs_list_dir/a.txt", "y");
+            let names = fs_list_dir(dir);
+            return str_join(names, ",");
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => assert_eq!(s, "a.txt,b.txt"),
+        other => panic!("expected sorted dir listing, got {:?}", other),
+    }
+}
+
 // AI Runtime tests (require API keys, so just test initialization)
 #[test]
 fn test_ai_runtime_creation() {

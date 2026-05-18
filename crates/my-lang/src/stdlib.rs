@@ -1471,6 +1471,37 @@ fn register_fs_functions(define: &mut impl FnMut(String, Value)) {
             },
         }),
     );
+
+    // fs_list_dir(path) -> Array<String> - entry names (not full paths) in
+    // `path`, sorted for deterministic tooling output. Errors if `path` is not
+    // a readable directory. See hyperpolymath/my-lang#55.
+    define(
+        "fs_list_dir".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "fs_list_dir".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::String(path) => {
+                    let rd = std::fs::read_dir(path).map_err(|e| {
+                        RuntimeError::Custom(format!("fs_list_dir({}) failed: {}", path, e))
+                    })?;
+                    let mut names: Vec<String> = Vec::new();
+                    for entry in rd {
+                        let entry = entry.map_err(|e| {
+                            RuntimeError::Custom(format!("fs_list_dir({}) failed: {}", path, e))
+                        })?;
+                        names.push(entry.file_name().to_string_lossy().into_owned());
+                    }
+                    names.sort();
+                    Ok(Value::Array(names.into_iter().map(Value::String).collect()))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
 }
 
 // ============================================================================
@@ -1880,6 +1911,7 @@ pub fn stdlib_functions() -> Vec<&'static str> {
         "fs_read_file",
         "fs_create_dir_all",
         "fs_exists",
+        "fs_list_dir",
         // Env extras
         "env_args",
         // Map / dict
