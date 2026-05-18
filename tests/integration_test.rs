@@ -261,6 +261,38 @@ fn test_eval_json_roundtrip() {
     }
 }
 
+// Solo date_today() stdlib builtin (hyperpolymath/my-lang#48): ISO YYYY-MM-DD
+// (UTC). Asserts the format/shape and a sane range rather than an exact value
+// (the result depends on the wall clock).
+#[test]
+fn test_eval_date_today() {
+    let source = r#"
+        fn main() -> String {
+            return date_today();
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => {
+            assert_eq!(s.len(), 10, "expected YYYY-MM-DD, got {:?}", s);
+            let b = s.as_bytes();
+            assert_eq!(b[4], b'-');
+            assert_eq!(b[7], b'-');
+            for (i, c) in s.char_indices() {
+                if i != 4 && i != 7 {
+                    assert!(c.is_ascii_digit(), "non-digit at {}: {:?}", i, s);
+                }
+            }
+            let year: i32 = s[0..4].parse().unwrap();
+            let month: u32 = s[5..7].parse().unwrap();
+            let day: u32 = s[8..10].parse().unwrap();
+            assert!((2000..=3000).contains(&year), "implausible year: {}", s);
+            assert!((1..=12).contains(&month), "bad month: {}", s);
+            assert!((1..=31).contains(&day), "bad day: {}", s);
+        }
+        other => panic!("expected ISO date string, got {:?}", other),
+    }
+}
+
 // AI Runtime tests (require API keys, so just test initialization)
 #[test]
 fn test_ai_runtime_creation() {

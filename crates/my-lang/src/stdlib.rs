@@ -50,6 +50,9 @@ pub fn register_stdlib(define: &mut impl FnMut(String, Value)) {
 
     // JSON Functions (json_parse / json_stringify; my-lang#47)
     register_json_functions(define);
+
+    // Date Functions (date_today; my-lang#48)
+    register_date_functions(define);
 }
 
 // ============================================================================
@@ -1743,6 +1746,53 @@ fn register_json_functions(define: &mut impl FnMut(String, Value)) {
     );
 }
 
+// ============================================================================
+// DATE FUNCTIONS
+// ============================================================================
+//
+// date_today() -> String, ISO `YYYY-MM-DD` in UTC. `time()` only yields a Unix
+// timestamp float; tooling that stamps generated artifacts needs a calendar
+// date. See hyperpolymath/my-lang#48 / #45.
+//
+// The civil date is derived from epoch seconds with Howard Hinnant's
+// `civil_from_days` algorithm (public domain) — no date crate dependency, and
+// correct for all Gregorian dates.
+
+/// (year, month [1..=12], day [1..=31]) for a count of days since 1970-01-01.
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365; // [0, 399]
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); // [0, 365]
+    let mp = (5 * doy + 2) / 153; // [0, 11]
+    let d = doy - (153 * mp + 2) / 5 + 1; // [1, 31]
+    let m = if mp < 10 { mp + 3 } else { mp - 9 }; // [1, 12]
+    (y + if m <= 2 { 1 } else { 0 }, m, d)
+}
+
+fn register_date_functions(define: &mut impl FnMut(String, Value)) {
+    // date_today() -> String - current UTC date as ISO `YYYY-MM-DD`.
+    define(
+        "date_today".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "date_today".to_string(),
+            arity: 0,
+            func: |_| {
+                use std::time::{SystemTime, UNIX_EPOCH};
+                let secs = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as i64;
+                let days = secs.div_euclid(86_400);
+                let (y, m, d) = civil_from_days(days);
+                Ok(Value::String(format!("{:04}-{:02}-{:02}", y, m, d)))
+            },
+        }),
+    );
+}
+
 /// Get a list of all stdlib function names
 pub fn stdlib_functions() -> Vec<&'static str> {
     vec![
@@ -1843,5 +1893,7 @@ pub fn stdlib_functions() -> Vec<&'static str> {
         // JSON
         "json_parse",
         "json_stringify",
+        // Date
+        "date_today",
     ]
 }

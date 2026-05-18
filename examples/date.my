@@ -1,0 +1,10 @@
+// Solo date_today() builtin (hyperpolymath/my-lang#48).
+//
+//   my run examples/date.my
+//
+// Prints the current UTC date as ISO YYYY-MM-DD, e.g. 2026-05-18.
+
+fn main() -> Int {
+    println(date_today());
+    return 0;
+}
