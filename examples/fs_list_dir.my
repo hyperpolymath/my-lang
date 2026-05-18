@@ -1,0 +1,12 @@
+// Solo fs_list_dir() builtin (hyperpolymath/my-lang#55).
+//
+//   my run examples/fs_list_dir.my
+//
+// Lists this repo's examples/ directory, sorted. Output includes the other
+// example files (date.my, json.my, map.my, fs_list_dir.my, ...).
+
+fn main() -> Int {
+    let entries = fs_list_dir("examples");
+    println(str_join(entries, "\n"));
+    return 0;
+}
