@@ -51,9 +51,9 @@ This document outlines the development plan for the My Language ecosystem: frame
 | Filesystem (`fs_*`), environment (`env`, `env_args`) | ✅ Shipped |
 | Formatting (`format`) | ✅ Shipped |
 | Random (`random`, `random_int`) | ✅ Shipped |
-| Maps / dict (`map_*`) | 🔄 In flight (#46, PR #49) |
-| JSON (`json_parse`/`json_stringify`) | 🔄 Planned (#47) |
-| Date (`date_today`) | 🔄 Planned (#48) |
+| Maps / dict (`map_*`) | ✅ Shipped (#46, PR #49) |
+| JSON (`json_parse`/`json_stringify`) | ✅ Shipped (#47, PR #53) |
+| Date (`date_today`) | ✅ Shipped (#48, PR #54) |
 | Networking, regex, crypto, subprocess, async, iterators | 🔄 Future capability areas |
 
 ### AI Standard Library (std::ai)
