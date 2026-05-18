@@ -1,0 +1,9 @@
+# Build/runtime artefacts that should not ship in the .vsix.
+# (node_modules production deps ARE bundled by vsce — do not ignore them.)
+deno.lock
+bun.lock
+bun.lockb
+.gitignore
+.vscodeignore
+package-lock.json
+**/.DS_Store
