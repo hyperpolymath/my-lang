@@ -1,0 +1,24 @@
+// Solo JSON builtins (hyperpolymath/my-lang#47): json_parse / json_stringify.
+//
+//   my run examples/json.my
+//
+// Object keys serialize sorted (deterministic), pairing with map_keys (#46).
+// Note: string literals support standard escapes (\" \\ \n \t \uXXXX), so a
+// JSON document can be written inline.
+//
+// Expected output:
+//   {"a":[1,2,3],"b":2,"f":1.5,"n":null,"s":"hi","t":true}
+//   [1,2,3]
+//   42
+//   "plain"
+//   null
+
+fn main() -> Int {
+    let doc = json_parse("{\"b\": 2, \"a\": [1, 2, 3], \"n\": null, \"f\": 1.5, \"s\": \"hi\", \"t\": true}");
+    println(json_stringify(doc));
+    println(json_stringify(json_parse("[1, 2, 3]")));
+    println(json_stringify(json_parse("42")));
+    println(json_stringify(json_parse("\"plain\"")));
+    println(json_stringify(json_parse("null")));
+    return 0;
+}

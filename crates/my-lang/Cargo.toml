@@ -19,7 +19,9 @@ path = "src/main.rs"
 thiserror.workspace = true
 anyhow.workspace = true
 serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
+# Non-optional: json_parse / json_stringify stdlib builtins are always available
+# to Solo programs (my-lang#47). serde derive stays behind the `serde` feature.
+serde_json = { workspace = true }
 tracing.workspace = true
 clap.workspace = true
 my-ai = { path = "../my-ai" }
@@ -29,7 +31,7 @@ dhat = { version = "0.3", optional = true }
 
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json"]
+serde = ["dep:serde"]
 # Heap-profiling support for the #14 allocation investigation. Enables the
 # `dhat_checker_profile` example, which runs the checker under the dhat
 # allocator and writes a per-call-site `dhat-heap.json` (view at
