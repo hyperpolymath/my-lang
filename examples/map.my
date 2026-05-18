@@ -1,0 +1,39 @@
+// Solo string-keyed Map / dict builtins (hyperpolymath/my-lang#46).
+// Maps are backed by Value::Record; mutation builtins are immutable and
+// return a fresh map (same convention as `push`).
+//
+//   my run examples/map.my
+//
+// Expected output:
+//   0
+//   2
+//   99
+//   2
+//   true
+//   false
+//   [a, b]
+//   1
+//   false
+
+fn main() -> Int {
+    let m0 = map_new();
+    println(map_len(m0));            // 0 (empty)
+
+    let m1 = map_set(m0, "a", 1);
+    let m2 = map_set(m1, "b", 2);
+    let m3 = map_set(m2, "a", 99);   // overwrite "a"
+
+    println(map_len(m3));            // 2
+    println(map_get(m3, "a"));       // 99
+    println(map_get(m3, "b"));       // 2
+    println(map_has(m3, "a"));       // true
+    println(map_has(m3, "zzz"));     // false
+
+    println(map_keys(m3));           // [a, b] (sorted, deterministic)
+
+    let m4 = map_remove(m3, "a");
+    println(map_len(m4));            // 1  (m3 itself is unchanged)
+    println(map_has(m4, "a"));       // false
+
+    return 0;
+}

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //! Integration tests for the My Language compilation pipeline
 
-use my_lang::{parse, eval};
+use my_lang::{eval, parse, Value};
 
 #[test]
 fn test_parse_simple_function() {
@@ -196,6 +196,34 @@ fn test_eval_simple() {
 
     // Just test that eval doesn't panic
     let _ = eval(source);
+}
+
+// Solo Map/dict stdlib builtins (hyperpolymath/my-lang#46): string-keyed maps
+// over Value::Record. Exercises new/set (incl. overwrite)/get/remove/len and the
+// immutability convention (map_remove returns a fresh map, m3 is unchanged).
+// map_has / map_keys return Bool / Array and are covered by examples/map.my.
+#[test]
+fn test_eval_map_builtins() {
+    let source = r#"
+        fn main() -> Int {
+            let m0 = map_new();
+            let m1 = map_set(m0, "a", 1);
+            let m2 = map_set(m1, "b", 2);
+            let m3 = map_set(m2, "a", 99);
+            let m4 = map_remove(m3, "b");
+            let a = map_get(m3, "a");
+            let n0 = map_len(m0);
+            let n3 = map_len(m3);
+            let n4 = map_len(m4);
+            return a + n0 + n3 + n4;
+        }
+    "#;
+
+    // 99 (overwritten "a") + 0 (empty m0) + 2 (len m3) + 1 (len m4, "b" removed)
+    match eval(source) {
+        Ok(Value::Int(n)) => assert_eq!(n, 102),
+        other => panic!("expected Int(102), got {:?}", other),
+    }
 }
 
 // AI Runtime tests (require API keys, so just test initialization)
