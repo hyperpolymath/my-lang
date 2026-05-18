@@ -17,7 +17,7 @@
   "activationEvents": [
     "onLanguage:my"
   ],
-  "main": "./src/index.cjs",
+  "main": "./out/extension.cjs",
   "contributes": {
     "languages": [
       {
@@ -76,8 +76,8 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "affinescript compile --vscode-extension src/extension.affine -o out/extension.cjs",
+    "vscode:prepublish": "affinescript compile --vscode-extension --vscode-extension-adapter=../src/affine-vscode-adapter.cjs src/extension.affine -o out/extension.cjs",
+    "compile": "affinescript compile --vscode-extension --vscode-extension-adapter=../src/affine-vscode-adapter.cjs src/extension.affine -o out/extension.cjs",
     "package": "vsce package"
   },
   "devDependencies": {

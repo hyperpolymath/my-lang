@@ -37,9 +37,15 @@ Thumbs.db
 *.log
 target/
 node_modules/
-# npm lockfile — not tracked, mirroring the Cargo.lock policy above
-# (the only one is vscode-extension/package-lock.json)
+# JS lockfiles — not tracked, mirroring the Cargo.lock policy above
+# (all under vscode-extension/; the extension is built on a registry-reachable
+#  host with Deno/bun per the package-manager policy, lockfile regenerated there)
 package-lock.json
+bun.lock
+bun.lockb
+deno.lock
+# Built VS Code extension artefact — distributed via GitHub Release, not git
+*.vsix
 _build/
 deps/
 .elixir_ls/
