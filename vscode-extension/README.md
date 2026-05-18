@@ -48,13 +48,29 @@ My Language has four dialects:
 
 ## Building from Source
 
+The runtime entry the host loads is `src/index.cjs` (a vendored adapter +
+wrapper); `package.json` `main` points there, and `out/extension.cjs` is the
+committed last-good build. Recompiling from the AffineScript source requires:
+
+- the **AffineScript compiler** on `PATH` (`affinescript`), and
+- `AFFINESCRIPT_STDLIB` pointing at the AffineScript `stdlib/` directory
+  (the compiler does not yet bundle stdlib bindings).
+
 ```bash
 cd vscode-extension
 npm install
-npm run compile
-npm run package
-code --install-extension my-lang-0.2.0.vsix
+export AFFINESCRIPT_STDLIB=/path/to/affinescript/stdlib
+npm run compile           # affinescript compile --vscode-extension …
+npm run package           # vsce package  -> my-lang-<version>.vsix (no PAT)
+code --install-extension my-lang-0.3.0.vsix
 ```
+
+> **Status:** the `src/extension.affine` → `out/extension.cjs` recompile is
+> gated on upstream **affinescript#35 Phase 2** (vscode-API stdlib bindings;
+> `stdlib/Vscode.affine` does not yet type-check). Until that lands, the
+> committed `out/extension.cjs` + `src/index.cjs` are the working artifacts;
+> `vsce package` produces an installable `.vsix` from them and needs **no**
+> Azure Marketplace PAT (only `vsce publish` does).
 
 ## License
 
