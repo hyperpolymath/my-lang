@@ -44,6 +44,9 @@ pub fn register_stdlib(define: &mut impl FnMut(String, Value)) {
 
     // Environment Extras (env_args; complements existing env(name))
     register_env_extras(define);
+
+    // Map / Dict Functions (string-keyed maps over Value::Record; my-lang#46)
+    register_map_functions(define);
 }
 
 // ============================================================================
@@ -1488,6 +1491,141 @@ fn register_env_extras(define: &mut impl FnMut(String, Value)) {
     );
 }
 
+// ============================================================================
+// MAP / DICT FUNCTIONS
+// ============================================================================
+//
+// String-keyed maps backed by `Value::Record(HashMap<String, Value>)`. The
+// interpreter's `eval_field` only resolves *static* identifier keys, so tooling
+// (config tables, lookup tables, JSON-shaped data) has no way to use dynamic /
+// computed keys without these builtins. See hyperpolymath/my-lang#46 / #45.
+//
+// Mutation builtins follow the same immutable convention as `push`: they clone
+// the underlying map and return a new `Record` rather than mutating in place.
+
+fn register_map_functions(define: &mut impl FnMut(String, Value)) {
+    // map_new() -> Record - an empty string-keyed map.
+    define(
+        "map_new".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_new".to_string(),
+            arity: 0,
+            func: |_| Ok(Value::Record(HashMap::new())),
+        }),
+    );
+
+    // map_set(map, key, value) -> Record - new map with `key` set to `value`.
+    define(
+        "map_set".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_set".to_string(),
+            arity: 3,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => {
+                    let mut new_map = map.clone();
+                    new_map.insert(key.clone(), args[2].clone());
+                    Ok(Value::Record(new_map))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string, value".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_get(map, key) -> value - errors if the key is absent (use map_has to test).
+    define(
+        "map_get".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_get".to_string(),
+            arity: 2,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => map
+                    .get(key)
+                    .cloned()
+                    .ok_or_else(|| RuntimeError::FieldNotFound(key.clone())),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_has(map, key) -> Bool - true iff `key` is present.
+    define(
+        "map_has".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_has".to_string(),
+            arity: 2,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => Ok(Value::Bool(map.contains_key(key))),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_keys(map) -> Array<String> - keys in sorted order (deterministic for tooling).
+    define(
+        "map_keys".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_keys".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::Record(map) => {
+                    let mut keys: Vec<String> = map.keys().cloned().collect();
+                    keys.sort();
+                    Ok(Value::Array(keys.into_iter().map(Value::String).collect()))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+
+    // map_remove(map, key) -> Record - new map without `key` (no-op if absent).
+    define(
+        "map_remove".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_remove".to_string(),
+            arity: 2,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => {
+                    let mut new_map = map.clone();
+                    new_map.remove(key);
+                    Ok(Value::Record(new_map))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_len(map) -> Int - number of entries.
+    define(
+        "map_len".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_len".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::Record(map) => Ok(Value::Int(map.len() as i64)),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+}
+
 /// Get a list of all stdlib function names
 pub fn stdlib_functions() -> Vec<&'static str> {
     vec![
@@ -1577,5 +1715,13 @@ pub fn stdlib_functions() -> Vec<&'static str> {
         "fs_exists",
         // Env extras
         "env_args",
+        // Map / dict
+        "map_new",
+        "map_set",
+        "map_get",
+        "map_has",
+        "map_keys",
+        "map_remove",
+        "map_len",
     ]
 }

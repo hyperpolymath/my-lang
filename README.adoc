@@ -171,19 +171,31 @@ In Ensemble mode, seven specialized agents—colored by Newton's spectrum—orch
 
 == Status
 
-[cols="2,1"]
+[cols="3,2"]
 |===
 |Component |Status
 
-|Solo dialect (human-first) |Complete
-|Lexer, Parser, Type Checker |Complete
-|Interpreter & REPL |Complete
+|Solo dialect — *language machinery* (lexer, parser, type checker, interpreter, REPL) |Complete
+|Solo dialect — *runtime standard library* |In Progress (Phase 2)
 |AI Runtime (mock) |Complete
 |My SSG |Complete
 |Duet dialect |In Development
 |Ensemble dialect |Planned
 |Native compiler |Planned
 |===
+
+[NOTE]
+====
+"Complete" for the Solo dialect means the *language machinery* — lexer, parser,
+type checker, tree-walking interpreter, and REPL — is feature-complete and can
+run arbitrary Solo programs.
+
+It does *not* mean the *runtime standard library* is finished. The stdlib is
+delivered as native builtins and is being filled in under Phase 2 (file I/O,
+`env_args`, `format`, and string-keyed maps have landed; JSON and date
+primitives are next). Live status is tracked in the GitHub issues, not in this
+table — see the Phase-2 stdlib tracker (`#45`) and its sub-issues.
+====
 
 == License
 
