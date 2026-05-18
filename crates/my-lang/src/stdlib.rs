@@ -47,6 +47,9 @@ pub fn register_stdlib(define: &mut impl FnMut(String, Value)) {
 
     // Map / Dict Functions (string-keyed maps over Value::Record; my-lang#46)
     register_map_functions(define);
+
+    // JSON Functions (json_parse / json_stringify; my-lang#47)
+    register_json_functions(define);
 }
 
 // ============================================================================
@@ -1626,6 +1629,120 @@ fn register_map_functions(define: &mut impl FnMut(String, Value)) {
     );
 }
 
+// ============================================================================
+// JSON FUNCTIONS
+// ============================================================================
+//
+// json_parse(s) -> Value and json_stringify(v) -> String, backed by serde_json
+// (a non-optional dependency of this crate). See hyperpolymath/my-lang#47 / #45.
+//
+// Representation mapping (paired with the Map/dict builtins, #46):
+//   JSON object  <-> Value::Record   JSON array  <-> Value::Array
+//   JSON string  <-> Value::String   JSON bool   <-> Value::Bool
+//   JSON null    <-> Value::Unit
+//   JSON number  ->  Value::Int when integral and i64-representable, else Float
+//                <-  Int as integer, Float as fractional
+// Object keys serialize in sorted order (serde_json's default Map is a
+// BTreeMap), matching the deterministic ordering of `map_keys`.
+
+/// serde_json::Value -> My Value (total; never fails).
+fn json_to_value(j: serde_json::Value) -> Value {
+    match j {
+        serde_json::Value::Null => Value::Unit,
+        serde_json::Value::Bool(b) => Value::Bool(b),
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Value::Int(i)
+            } else {
+                // u64 too large for i64, or a real: fall back to float.
+                Value::Float(n.as_f64().unwrap_or(f64::NAN))
+            }
+        }
+        serde_json::Value::String(s) => Value::String(s),
+        serde_json::Value::Array(arr) => Value::Array(arr.into_iter().map(json_to_value).collect()),
+        serde_json::Value::Object(obj) => {
+            let mut map = HashMap::new();
+            for (k, v) in obj {
+                map.insert(k, json_to_value(v));
+            }
+            Value::Record(map)
+        }
+    }
+}
+
+/// My Value -> serde_json::Value. Errors on values with no JSON analogue
+/// (functions, native functions, AI results).
+fn value_to_json(v: &Value) -> Result<serde_json::Value, RuntimeError> {
+    match v {
+        Value::Unit => Ok(serde_json::Value::Null),
+        Value::Bool(b) => Ok(serde_json::Value::Bool(*b)),
+        Value::Int(i) => Ok(serde_json::Value::Number((*i).into())),
+        Value::Float(f) => serde_json::Number::from_f64(*f)
+            .map(serde_json::Value::Number)
+            .ok_or_else(|| {
+                RuntimeError::Custom(format!(
+                    "json_stringify: {} has no JSON representation (NaN/Infinity)",
+                    f
+                ))
+            }),
+        Value::String(s) => Ok(serde_json::Value::String(s.clone())),
+        Value::Array(arr) => {
+            let mut out = Vec::with_capacity(arr.len());
+            for item in arr {
+                out.push(value_to_json(item)?);
+            }
+            Ok(serde_json::Value::Array(out))
+        }
+        Value::Record(map) => {
+            let mut obj = serde_json::Map::new();
+            for (k, val) in map {
+                obj.insert(k.clone(), value_to_json(val)?);
+            }
+            Ok(serde_json::Value::Object(obj))
+        }
+        other => Err(RuntimeError::TypeError {
+            expected: "JSON-representable value".to_string(),
+            got: format!("{:?}", other),
+        }),
+    }
+}
+
+fn register_json_functions(define: &mut impl FnMut(String, Value)) {
+    // json_parse(s) -> Value - parse a JSON document into a My value.
+    define(
+        "json_parse".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "json_parse".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::String(s) => serde_json::from_str::<serde_json::Value>(s)
+                    .map(json_to_value)
+                    .map_err(|e| RuntimeError::Custom(format!("json_parse: invalid JSON: {}", e))),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+
+    // json_stringify(v) -> String - serialize a My value to a JSON string
+    // (compact, object keys sorted for deterministic output).
+    define(
+        "json_stringify".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "json_stringify".to_string(),
+            arity: 1,
+            func: |args| {
+                let j = value_to_json(&args[0])?;
+                serde_json::to_string(&j)
+                    .map(Value::String)
+                    .map_err(|e| RuntimeError::Custom(format!("json_stringify: {}", e)))
+            },
+        }),
+    );
+}
+
 /// Get a list of all stdlib function names
 pub fn stdlib_functions() -> Vec<&'static str> {
     vec![
@@ -1723,5 +1840,8 @@ pub fn stdlib_functions() -> Vec<&'static str> {
         "map_keys",
         "map_remove",
         "map_len",
+        // JSON
+        "json_parse",
+        "json_stringify",
     ]
 }

@@ -1425,7 +1425,8 @@ impl Parser {
 
     fn parse_string_literal(&mut self) -> ParseResult<Expr> {
         let token = self.advance().ok_or(ParseError::UnexpectedEof)?;
-        Ok(Expr::Literal(Literal::String(token.literal.clone(), token.span)))
+        let value = unescape_string_literal(&token.literal);
+        Ok(Expr::Literal(Literal::String(value, token.span)))
     }
 
     fn parse_bool_literal(&mut self) -> ParseResult<Expr> {
@@ -2107,6 +2108,72 @@ enum Attribute {
     AiGenerate,
     Derive(Vec<Ident>),
     Custom(String),
+}
+
+/// Decode the standard escape sequences in a string-literal body.
+///
+/// The lexer stores the *raw* slice between the quotes (it only consumes `\x`
+/// pairs so it can find the closing quote). Without this, `"a\"b"` would yield
+/// the four characters `a \ " b` and JSON literals such as
+/// `json_parse("{\"k\":1}")` would be unparseable. See hyperpolymath/my-lang#47.
+///
+/// Supported: `\" \\ \/ \n \t \r \0` and `\uXXXX` (BMP) / `\u{...}`. An unknown
+/// escape is passed through literally (lenient: the backslash is dropped and the
+/// following character kept), which never makes a previously-valid program fail.
+fn unescape_string_literal(raw: &str) -> String {
+    if !raw.contains('\\') {
+        return raw.to_string();
+    }
+    let mut out = String::with_capacity(raw.len());
+    let mut chars = raw.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some('"') => out.push('"'),
+            Some('\\') => out.push('\\'),
+            Some('/') => out.push('/'),
+            Some('n') => out.push('\n'),
+            Some('t') => out.push('\t'),
+            Some('r') => out.push('\r'),
+            Some('0') => out.push('\0'),
+            Some('u') => {
+                // \u{...} (Rust-style) or \uXXXX (JSON-style, 4 hex digits).
+                let mut hex = String::new();
+                let rest: String = chars.clone().collect();
+                if rest.starts_with('{') {
+                    chars.next(); // consume '{'
+                    for d in chars.by_ref() {
+                        if d == '}' {
+                            break;
+                        }
+                        hex.push(d);
+                    }
+                } else {
+                    for _ in 0..4 {
+                        match chars.next() {
+                            Some(d) => hex.push(d),
+                            None => break,
+                        }
+                    }
+                }
+                match u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32) {
+                    Some(ch) => out.push(ch),
+                    None => {
+                        // Malformed: keep it visible rather than silently drop.
+                        out.push('\\');
+                        out.push('u');
+                        out.push_str(&hex);
+                    }
+                }
+            }
+            Some(other) => out.push(other),
+            None => out.push('\\'),
+        }
+    }
+    out
 }
 
 #[cfg(test)]

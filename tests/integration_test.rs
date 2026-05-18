@@ -226,6 +226,41 @@ fn test_eval_map_builtins() {
     }
 }
 
+// String-literal escape decoding (hyperpolymath/my-lang#47). The lexer stores
+// the raw slice; parse_string_literal must decode \" \\ \n etc. Regression for
+// the latent bug where `"a\"b"` yielded the literal 4 chars a \ " b.
+#[test]
+fn test_eval_string_escapes() {
+    let source = r#"
+        fn main() -> String {
+            return "a\"b\\c\nd\tend";
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => assert_eq!(s, "a\"b\\c\nd\tend"),
+        other => panic!("expected decoded escapes, got {:?}", other),
+    }
+}
+
+// JSON stdlib builtins (hyperpolymath/my-lang#47): json_parse / json_stringify.
+// Round-trips an object literal (requires escape decoding) and asserts the
+// deterministic sorted-key serialization.
+#[test]
+fn test_eval_json_roundtrip() {
+    let source = r#"
+        fn main() -> String {
+            let v = json_parse("{\"b\": 2, \"a\": [1, 2, 3], \"n\": null, \"t\": true}");
+            return json_stringify(v);
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => {
+            assert_eq!(s, r#"{"a":[1,2,3],"b":2,"n":null,"t":true}"#)
+        }
+        other => panic!("expected sorted-key JSON string, got {:?}", other),
+    }
+}
+
 // AI Runtime tests (require API keys, so just test initialization)
 #[test]
 fn test_ai_runtime_creation() {
