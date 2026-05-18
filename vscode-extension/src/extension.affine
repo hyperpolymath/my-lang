@@ -106,13 +106,14 @@ fn start_lsp() -> Int {
 pub fn activate(ctx: ExtensionContext) -> Int {
   let _ = consoleLog("My Language extension activated");
 
-  // Register commands. The integer second argument to registerCommand is
-  // the wasm-table index of the handler — populated by the JS-side adapter
-  // from the `__indirect_function_table` export. Order must match the
-  // order handlers appear in this file.
-  let _ = pushSubscription(ctx, registerCommand("my-lang.run", 0));
-  let _ = pushSubscription(ctx, registerCommand("my-lang.build", 1));
-  let _ = pushSubscription(ctx, registerCommand("my-lang.test", 2));
+  // Register commands. `registerCommand` takes the handler directly as a
+  // `fn(Unit) -> Int` (Vscode.affine binding); the `--vscode-extension`
+  // codegen lowers the function reference to the wasm table for us. The
+  // earlier Int-index form was a Phase-1 assumption, obsolete since the
+  // Phase-2 (#35) bindings expose real callbacks.
+  let _ = pushSubscription(ctx, registerCommand("my-lang.run", fn(u: Unit) => handler_run()));
+  let _ = pushSubscription(ctx, registerCommand("my-lang.build", fn(u: Unit) => handler_build()));
+  let _ = pushSubscription(ctx, registerCommand("my-lang.test", fn(u: Unit) => handler_test()));
 
   let _ = start_lsp();
   return 0;
