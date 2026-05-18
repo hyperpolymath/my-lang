@@ -58,19 +58,25 @@ committed last-good build. Recompiling from the AffineScript source requires:
 
 ```bash
 cd vscode-extension
-npm install
+npm install               # needs a reachable npm registry (NOT WSL here)
 export AFFINESCRIPT_STDLIB=/path/to/affinescript/stdlib
 npm run compile           # affinescript compile --vscode-extension …
-npm run package           # vsce package  -> my-lang-<version>.vsix (no PAT)
+npm run package           # @vscode/vsce package -> my-lang-<version>.vsix
 code --install-extension my-lang-0.3.0.vsix
 ```
 
-> **Status:** the `src/extension.affine` → `out/extension.cjs` recompile is
-> gated on upstream **affinescript#35 Phase 2** (vscode-API stdlib bindings;
-> `stdlib/Vscode.affine` does not yet type-check). Until that lands, the
-> committed `out/extension.cjs` + `src/index.cjs` are the working artifacts;
-> `vsce package` produces an installable `.vsix` from them and needs **no**
-> Azure Marketplace PAT (only `vsce publish` does).
+> **Status:** `src/extension.affine` **compiles** (`affinescript compile
+> --vscode-extension`) and the upstream `stdlib/Vscode.affine` /
+> `VscodeLanguageClient.affine` bindings type-check on affinescript `main`
+> (#35 Phase 2 effectively complete). `src/index.cjs` (the `main`) +
+> `out/extension.cjs` are the runtime artifacts.
+>
+> **Packaging** needs `@vscode/vsce` (the old deprecated `vsce` 2.x cannot
+> handle a `.cjs` entrypoint — it looks for `index.cjs.js`) **and** a
+> registry-reachable environment for `npm install` (the WSL dev box's npm
+> registry is unreachable, so package/publish must run elsewhere — CI or a
+> non-WSL host). `vsce package` → `.vsix` needs **no** Azure Marketplace
+> PAT; only `vsce publish` (Marketplace upload) does.
 
 ## License
 
