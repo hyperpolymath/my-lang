@@ -76,14 +76,15 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "affinescript compile --vscode-extension --vscode-extension-adapter=../src/affine-vscode-adapter.cjs src/extension.affine -o out/extension.cjs",
-    "compile": "affinescript compile --vscode-extension --vscode-extension-adapter=../src/affine-vscode-adapter.cjs src/extension.affine -o out/extension.cjs",
+    "vscode:prepublish": "affinescript compile --vscode-extension src/extension.affine -o out/extension.cjs",
+    "compile": "affinescript compile --vscode-extension src/extension.affine -o out/extension.cjs",
     "package": "vsce package"
   },
   "devDependencies": {
     "@vscode/vsce": "^3.2.0"
   },
   "dependencies": {
+    "@hyperpolymath/affine-vscode": "^0.1.0",
     "vscode-languageclient": "^9.0.1"
   }
 }

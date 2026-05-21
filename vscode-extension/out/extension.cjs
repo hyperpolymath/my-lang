@@ -98,7 +98,7 @@ exports._freeHandle = _freeHandle;
 // Inserted by --vscode-extension (issue #105): auto-generated glue so this
 // file is directly loadable as a VS Code extension's `main`. Replaces the
 // previously hand-written index.cjs + vendored adapter boilerplate.
-const _makeVscodeBindings = require("../src/affine-vscode-adapter.cjs");
+const _makeVscodeBindings = require("@hyperpolymath/affine-vscode");
 exports.extraImports = function() {
   return _makeVscodeBindings(
     require("vscode"),
