@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! My Language Test Runner
 //!
 //! Discovers and executes tests written in My Language.

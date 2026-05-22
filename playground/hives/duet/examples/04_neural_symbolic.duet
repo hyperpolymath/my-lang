@@ -1,5 +1,5 @@
 // Neural-Symbolic Hybrid Programming
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Demonstrates combining neural networks with symbolic reasoning
 // for more robust and explainable AI systems.

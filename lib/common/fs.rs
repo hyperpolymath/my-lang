@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! File system operations for My Language
 //!
 //! Provides file and directory manipulation functions.

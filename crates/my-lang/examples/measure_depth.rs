@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! Stack-budget probe for hyperpolymath/my-lang#37.
 //!
 //! Builds a deep, *non-`Call`-shaped* AST (a `Unary::Not` chain — the shape

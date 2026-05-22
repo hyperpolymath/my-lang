@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! My Language Linter
 //!
 //! Static analysis and code quality checks for My Language.

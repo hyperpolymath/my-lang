@@ -2,7 +2,7 @@
 :toc: macro
 :icons: font
 
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 *Playground for Ensemble - AI-Native Application Language*
 
@@ -88,4 +88,4 @@ Culmination of My-Lang family:
 
 == License
 
-SPDX-License-Identifier: PMPL-1.0-or-later
+SPDX-License-Identifier: MPL-2.0

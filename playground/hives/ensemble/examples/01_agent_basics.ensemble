@@ -1,5 +1,5 @@
 // Agent Basics - Defining and Using Agents
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Demonstrates how to define agents with capabilities,
 // constraints, and behaviors.

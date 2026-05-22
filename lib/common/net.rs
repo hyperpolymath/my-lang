@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! Networking primitives for My Language
 //!
 //! Provides TCP, UDP sockets and HTTP client functionality.

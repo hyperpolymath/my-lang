@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! My Language CLI - Command-line interface for My Language compiler and interpreter
 
 #![forbid(unsafe_code)]

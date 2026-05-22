@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //! My Language Formatter
 //!
 //! Formats My Language source code according to style guidelines.

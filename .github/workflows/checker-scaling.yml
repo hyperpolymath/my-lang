@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Checker allocation-scaling harness for hyperpolymath/my-lang#14.
 #
 # The original 16-32 GiB OOM was reported on stable-x86_64-pc-windows-msvc and

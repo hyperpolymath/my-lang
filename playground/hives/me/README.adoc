@@ -1,7 +1,7 @@
 = Me Dialect → Moved to Standalone Repository
 :icons: font
 
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 
 [IMPORTANT]
 ====

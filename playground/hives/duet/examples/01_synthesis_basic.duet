@@ -1,5 +1,5 @@
 // Basic AI Synthesis with @synth
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Demonstrates how Duet can synthesize function implementations
 // from specifications or examples.

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 // SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
 = My: Progressive AI-Native Language
@@ -199,7 +199,7 @@ table — see the Phase-2 stdlib tracker (`#45`) and its sub-issues.
 
 == License
 
-PMPL-1.0-or-later (Palimpsest License)—see link:LICENSE[LICENSE].
+MPL-2.0 (Palimpsest License)—see link:LICENSE[LICENSE].
 
 '''
 

@@ -1,5 +1,5 @@
 // Compile-Time Execution (comptime)
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Solo supports compile-time function execution for:
 // - Constant evaluation
