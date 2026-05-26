@@ -1,207 +1,84 @@
 // SPDX-License-Identifier: MPL-2.0
-// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) 2026 Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
 
-= My: Progressive AI-Native Language
+= my-lang
+:author: Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
+:revdate: 2026-05-26
 
-image:https://img.shields.io/badge/OpenSSF-Best_Practices-green?logo=opensourcesecurity[OpenSSF Best Practices,link="https://www.bestpractices.dev/en/projects/new?repo_url=https://github.com/hyperpolymath/my-lang"]
-image:https://img.shields.io/badge/License-PMPL--1.0-indigo.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
-image:https://api.thegreenwebfoundation.org/greencheckimage/github.com[Green Web,link="https://www.thegreenwebfoundation.org/green-web-check/?url=github.com"]
+> This README replaces an earlier stub that incorrectly stated the
+> repository had been moved. *This is the canonical
+> `hyperpolymath/my-lang`.*
 
+`my-lang` is the *next-generation language* working project — a
+multi-dialect surface for the hyperpolymath language stack. It is one
+of two flagship language experiments in the estate (the other being
+link:https://github.com/hyperpolymath/affinescript[`affinescript`]).
 
-:toc: macro
-:toclevels: 2
-:icons: font
-:source-highlighter: rouge
+== What's in here
 
-[.lead]
-*Let learning unfold. Let types guard. Let agents compose.*
+`crates/`::
+Rust crates implementing the compiler / interpreter layers.
 
-Progressive-disclosure programming language with first-class AI integration—four dialects scaling from visual blocks to agentic orchestration.
+`dialects/`::
+Per-dialect surface-syntax definitions. The `my-lang` umbrella admits
+multiple surface dialects sharing a common semantic core.
 
-'''
+`conformance/`::
+Conformance tests — programs that any compliant `my-lang` implementation
+must accept (or reject) identically.
 
-toc::[]
+`examples/`::
+Worked examples covering each dialect, suitable as a learning
+reference and CI smoke-test.
 
-== Who This Is For
+`docs/`::
+Design notes, language-reference drafts, and ADRs (Architecture Decision
+Records).
 
-[cols="1,3"]
-|===
-|*Me-curious* |Educators seeking visual programming that secretly teaches affine types and reversible computation
-|*Solo practitioners* |Developers wanting Rust-level safety with Python-level approachability—human-first, AI-assisted
-|*Duet partners* |Teams exploring balanced human-AI pair programming with explicit collaboration protocols
-|*Ensemble conductors* |Architects orchestrating multi-agent systems with neurosymbolic grammar extensions
-|===
+`frontier-practices/`::
+Forward-looking experiments — things that may become part of the
+language but are not yet stable.
 
-== The Four Dialects
-
-My is not four languages—it is one language with *progressive reveal*. Concepts introduced as playful metaphors in Me unmask their CS foundations as learners advance.
-
-[cols="1,1,2,2"]
-|===
-|Dialect |Stage |Mode |Core Insight
-
-|*Me*
-|Visual (ages 8-12)
-|Blockly-like drag-and-drop
-|Resources as colored tokens; affine types as "use once" rules
-
-|*Solo*
-|Text (ages 13+)
-|Human-first, AI-assists
-|Explicit affine/linear types, checkpoint/rollback, cut operators
-
-|*Duet*
-|Collaborative
-|Balanced co-creation
-|Two-party protocols, neurosymbolic extensions
-
-|*Ensemble*
-|Orchestration
-|AI-leads, human-refines
-|Full agentic composition, Newtonian spectrum agents
-|===
-
-== Why My?
-
-[source,my]
-----
-// Type-safe AI with effect tracking
-fn summarize(text: String) -> AI<String> {
-    ai query {
-        prompt: "Summarize concisely"
-        context: text
-        model: claude
-    }
-}
-
-// Affine types prevent resource bugs
-fn transfer(affine token: Token) -> Result {
-    checkpoint save_state {
-        let result = process(move token);  // must move, can't copy
-        if !result.is_ok() {
-            rollback save_state;
-        }
-        return result;
-    }
-}
-
-// Cut operator for parser commitment
-fn parse(input: String) -> Expr {
-    match input {
-        "(" => { let e = parse_nested(); !; expect(")"); e },
-        _ => parse_simple()
-    }
-}
-----
-
-=== Technical Differentiators
-
-[cols="2,3"]
-|===
-|*AI as First-Class Citizen* |Native `ai!` expressions, typed `AI<T>` return values, prompt templates with effect tracking
-|*Progressive Safety* |Optional affine/linear types—start simple, add safety constraints as complexity grows
-|*Reversible Computation* |Checkpoint/rollback at language level, not library level
-|*Prolog-Heritage Parsing* |Cut operator (`!`) for committed choice in recursive descent
-|*Neurosymbolic Bridge* |Duet dialect enables explicit symbolic-neural protocol boundaries
-|===
-
-== Quick Start
+== Quickstart
 
 [source,bash]
 ----
-# Clone and build
-git clone https://github.com/hyperpolymath/my-lang
+git clone git@github.com:hyperpolymath/my-lang.git
 cd my-lang
-cargo build --release
 
-# Run the REPL
-cargo run -- repl
-
-# Run a program
-cargo run -- run examples/hello.my
-
-# Build a static site with My SSG
-cd my-ssg && cargo run -- new my-blog
+just build    # builds the workspace (Rust)
+just test     # runs unit + conformance tests
 ----
 
-== Architecture
+== Architectural authority
 
-----
-my-lang/
-├── src/                    # Core language (Rust)
-│   ├── lexer.rs
-│   ├── parser.rs
-│   ├── checker.rs         # Type checker with AI<T> support
-│   └── interpreter.rs
-├── my-ssg/                 # Static site generator
-├── docs/wiki/              # Full documentation
-├── solo-dialect/           # OCaml reference (Solo mode)
-└── grammar.ebnf            # Formal specification
-----
+* link:ANCHOR.scope-arrest.2026-01-01.Jewell.scm[`ANCHOR.scope-arrest.*`]
+  — the scope-arrest anchor file enumerating what `my-lang` will and
+  will not be.
+* link:AUTHORITY_STACK.mustfile-nickel.scm[`AUTHORITY_STACK.mustfile-nickel.scm`]
+  — the cross-cutting authority stack for the design.
 
-== Ecosystem Integration
-
-My participates in the *poly-mcp* constellation:
-
-[cols="1,2"]
-|===
-|https://github.com/hyperpolymath/poly-ssg-mcp[poly-ssg-mcp] |MCP hub for static site generators—My SSG exposes `my_init`, `my_build`, `my_serve`
-|https://github.com/hyperpolymath/poly-container-mcp[poly-container-mcp] |Multi-runtime container management
-|https://github.com/hyperpolymath/poly-iac-mcp[poly-iac-mcp] |Infrastructure-as-code MCP servers
-|===
-
-My SSG is one satellite in the broader poly-ssg ecosystem alongside Eclipse (Pony), Tyrano (TypeScript→ReScript migration), and others.
-
-== Newtonian Spectrum
-
-In Ensemble mode, seven specialized agents—colored by Newton's spectrum—orchestrate compilation and execution:
-
-[cols="1,2,2"]
-|===
-|Color |Role |Solo Foundation
-
-|Red |Performance (hot paths) |Optimized parser
-|Orange |Concurrency (async) |Async/await runtime
-|Yellow |Contracts (safety) |Affine type tracking
-|Green |Config (schema) |Structured AST
-|Blue |Audit (trace) |Checkpoint system
-|Indigo |Comptime (meta) |Compile-time evaluation
-|Violet |Governance (policy) |Mode declarations
-|===
+These two files are the source-of-truth for "is `X` in scope for
+`my-lang`?" — consult them before opening a feature request.
 
 == Status
 
-[cols="3,2"]
-|===
-|Component |Status
+* **Licence**: MPL-2.0. (Migrated from PMPL-1.0-or-later 2026-05-26 per
+  the estate licence-debt audit, hyperpolymath/standards#196.)
+* **Maturity**: design-iteration. Working compiler exists; surface and
+  semantics still settling. Per the maintainer's memory entry
+  `my-lang-37-shipped-rest-parked`, item #37 has shipped and several
+  follow-ups (`#38-#41`) are artefact-blocked.
+* **Audit findings**: see `docs/tech-debt-2026-05-26.md` if present
+  (added by the 2026-05-26 estate tech-debt scan).
 
-|Solo dialect — *language machinery* (lexer, parser, type checker, interpreter, REPL) |Complete
-|Solo dialect — *runtime standard library* |In Progress (Phase 2)
-|AI Runtime (mock) |Complete
-|My SSG |Complete
-|Duet dialect |In Development
-|Ensemble dialect |Planned
-|Native compiler |Planned
-|===
+== Contributing
 
-[NOTE]
-====
-"Complete" for the Solo dialect means the *language machinery* — lexer, parser,
-type checker, tree-walking interpreter, and REPL — is feature-complete and can
-run arbitrary Solo programs.
+See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] (or
+link:CONTRIBUTING.md[CONTRIBUTING.md]). GPG-signed commits required.
 
-It does *not* mean the *runtime standard library* is finished. The stdlib is
-delivered as native builtins and is being filled in under Phase 2 (file I/O,
-`env_args`, `format`, and string-keyed maps have landed; JSON and date
-primitives are next). Live status is tracked in the GitHub issues, not in this
-table — see the Phase-2 stdlib tracker (`#45`) and its sub-issues.
-====
+== Companion repositories
 
-== License
-
-MPL-2.0 (Palimpsest License)—see link:LICENSE[LICENSE].
-
-'''
-
-[quote]
-A language that grows with you—from visual tokens to agentic ensembles.
+* link:https://github.com/hyperpolymath/standards[`hyperpolymath/standards`] — canonical estate-wide standards.
+* link:https://github.com/hyperpolymath/affinescript[`hyperpolymath/affinescript`] — sibling language project; differing design intent.
+* link:https://github.com/hyperpolymath/typed-wasm[`hyperpolymath/typed-wasm`] — the typed-wasm backend `my-lang` shares with `affinescript`.
