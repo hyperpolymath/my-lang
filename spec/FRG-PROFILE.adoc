@@ -1,0 +1,229 @@
+// SPDX-License-Identifier: MPL-2.0
+// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
+= FRG-PROFILE — My
+:toc: left
+:toclevels: 2
+
+[cols="1,3"]
+|===
+| Field | Value
+
+| Language | My (`.my`, four dialects)
+| Repository | https://github.com/hyperpolymath/my-lang
+| Current FRG Grade | *X*  (no formalisation in any qualifying prover; PROOF-NEEDS.md explicitly records that template ABI scaffolding was removed without replacement)
+| Assessed | 2026-05-28
+| Assessor | Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+| FRG Spec Version | 1.0
+| ARG Profile | spec/ARG-PROFILE.adoc
+| TRG Profile | spec/TRG-PROFILE.adoc (TBD)
+| Formalisation Directory | `proofs/` exists with subdirs (`duet/`, `ensemble/`, `me/`, `shared/`, `solo/`, `verification/`, `white-papers/`) but PROOF-NEEDS.md records that the template-ABI scaffolding was REMOVED without domain-specific replacement
+| Qualifying Prover(s) | (none mechanised at the calculus level)
+|===
+
+== About this profile
+
+My is FRG-X. The `proofs/` directory exists with dialect-aligned
+subdirectories suggesting *intended* per-dialect formalisation, but
+`PROOF-NEEDS.md` explicitly records (2026-03-29):
+
+[quote]
+____
+Template ABI removed -- was creating false impression of formal
+verification. The removed files (Types.idr, Layout.idr, Foreign.idr)
+contained only RSR template scaffolding with unresolved
+{{PROJECT}}/{{AUTHOR}} placeholders and no domain-specific proofs.
+
+When this project needs formal ABI verification, create
+domain-specific Idris2 proofs following the pattern in repos like
+typed-wasm, proven, echidna, or boj-server.
+____
+
+This is *good FRG-discipline* — the language honestly retracted a
+formalisation claim that was scaffolding-only — but it leaves My
+at FRG-X (no formal artefact in a qualifying prover).
+
+FRG = X. The full chain of axes:
+
+* FRG: X
+* ARG: D-leaning-E (see `spec/ARG-PROFILE.adoc`)
+* TRG: TBD (likely D)
+* CRG: TBD
+* RSR: Compliant at TRG-D level
+
+Cross-axis rule: ARG-A requires FRG ≥ B; My's FRG-X is currently
+the binding constraint for any ARG progression past C (where
+foundations evidence starts to interact).
+
+== Declared TypeLL level
+
+* *TypeLL level claimed:* L4 (Type compatibility) *operationally*
+* *Honest level for FRG:* L4 — implementation enforces affine /
+  borrow / progressive-disclosure types, but no mechanised soundness
+  claim. The dialect structure (solo / duet / ensemble / me)
+  *aspires* to layered type-safety progression but no formal
+  encoding establishes this.
+* *Levels not yet claimed:* L5-L10. Progressive-disclosure pedagogy
+  is orthogonal to FRG levels; FRG asks about *foundations*, not
+  pedagogy.
+
+== Grade rationale (evidence for X)
+
+[cols="2,1,4", options="header"]
+|===
+| Criterion | Met? | Evidence
+
+| *M1 — Abstract syntax formalised*
+| NO
+| `grammar.ebnf` exists (381 lines) but EBNF is not a qualifying-
+  prover encoding. AST exists in Rust crates only.
+
+| *M2 — Typing judgment formalised*
+| NO
+| Typing exists in `my-hir` / `my-lint` Rust crates only
+
+| *M3 — Operational semantics formalised*
+| NO
+|
+
+| *M4 — Preservation theorem stated*
+| NO
+|
+
+| *M5 — Progress theorem stated*
+| NO
+|
+
+| *P1-P4*
+| NO
+|
+
+| *V1 — Single qualifying prover used for M1-M5*
+| NO
+| `proofs/` directory has dialect-aligned subdirs but no mechanised
+  content. The Idris2 template scaffolding was explicitly REMOVED
+  on 2026-03-29 per `PROOF-NEEDS.md`.
+
+| *TypeLL L1-L4*
+| YES (operationally)
+| Implementation enforces
+
+| *TypeLL L5-L10*
+| NO
+|
+
+| *B0 — Zero banned constructs in proof tree*
+| YES (vacuously)
+| No proof tree exists
+
+| *B1 — CI banned-construct lint*
+| N/A
+|
+
+| *VeriSimDB attestation*
+| NO
+|
+
+| *PROOF-NEEDS.md*
+| YES (good discipline)
+| Exists and HONESTLY records the absence of formalisation —
+  this is exactly the discipline FRG rewards even at X
+|===
+
+== Honest reading
+
+My is FRG-X. There is no formalisation. The honest discipline of
+*removing* the template-ABI scaffolding that was creating a false
+impression of formal verification is the *right* move — it
+*evacuates a path to FRG-F* (which would apply if the scaffolding
+had been left in place while being held out as evidence).
+
+By removing the scaffolding without replacement, the language
+recorded itself as FRG-X with PROOF-NEEDS.md honesty. This is the
+correct grade.
+
+Note: the README OpenSSF Best Practices badge link suggests pursuit
+of the OpenSSF criteria, which include some formalisation-related
+items. These are CRG/TRG/RSR concerns, not FRG.
+
+== Language-specific tightening
+
+For My, the following FRG tightening applies:
+
+* *Grade E tightening:* The formalisation MUST cover the *base*
+  dialect (`solo`) syntax + typing first. The progressive-disclosure
+  ambition means the dialects are an ordering on type-richness; the
+  formalisation must start at the simplest and add layered
+  obligations.
+* *Grade D tightening:* Preservation MUST be stated *per dialect*:
+  preservation-solo, preservation-duet, preservation-ensemble,
+  preservation-me, with explicit composition rules for the
+  inclusion `solo ⊆ duet ⊆ ensemble ⊆ me`.
+* *Grade C tightening:* The borrow checker MUST be modelled in the
+  formal calculus, not stubbed out. (My's borrow-check is genuine
+  per `crates/my-lint/`; the formal encoding must match.)
+
+== What is NOT yet met (honest gaps)
+
+* No `formal/` directory at all (the `proofs/` directory is the
+  intended placement but is currently empty of mechanised content).
+* No qualifying-prover encoding of AST, typing, or semantics.
+* No preservation / progress statements.
+* No PROOF-STATUS.a2ml.
+* No banned-construct CI lint (vacuous now, but needs to exist by
+  the time mechanisation lands at E).
+
+== Path to next grade (E — well-formedness only)
+
+* Pick a qualifying prover for My's formalisation. Recommendation:
+  Idris2 (estate-natural for AI-integration narrative; matches
+  template-ABI removal note's suggestion of "typed-wasm, proven,
+  echidna, boj-server" pattern).
+* Create `formal/` directory or repurpose `proofs/`.
+* Encode `solo` dialect AST (start with the smallest dialect).
+* Encode `solo` dialect typing judgment.
+* Wire CI to build the formalisation.
+* Author per-dialect `PROOF-NEEDS.md` (the top-level one is good but
+  the dialect structure invites per-dialect break-down).
+
+*Realistic timeline estimate:* 3-6 months given the dialect
+multiplicity. Starting with `solo` dialect only could land FRG-E
+within 1-2 months.
+
+== Path to grade beyond that (D — preservation stated)
+
+* Encode operational semantics for `solo` dialect.
+* State preservation + progress for `solo`.
+* Track open obligations in PROOF-NEEDS.md.
+* Wire banned-construct lint to CI.
+
+== Demotion risk
+
+* *Lowest:* From X, there is no lower-non-F grade — but
+  reintroducing template-scaffolding-as-evidence without removing
+  it again would drop to F (the failure mode the 2026-03-29
+  retraction prevented).
+* *Catastrophic:* Claiming formal verification in the README or
+  marketing without backing — risks F.
+
+== Iteration history
+
+[cols="1,1,4", options="header"]
+|===
+| Date | Grade | Notes
+
+| 2026-03-29 | X | Template-ABI scaffolding removed (Types.idr, Layout.idr, Foreign.idr) per honest-retraction discipline. PROOF-NEEDS.md records the retraction.
+| 2026-05-28 | X | Initial FRG assessment. Honest X. proofs/ subdir structure present but empty of mechanised content. Discipline of retraction is correct; path forward is creation of domain-specific Idris2 proofs starting with `solo` dialect.
+|===
+
+== Review cycle
+
+* *Routine:* Reassess on every release cycle.
+* *Immediate:* Reassess within 7 days of any demotion trigger.
+* *Formalisation creation:* Reassess when first qualifying-prover
+  file lands in `proofs/` or `formal/`.
+
+== Footer
+
+This profile is itself a VCL-total proposition. `DECLARE`'d to
+VeriSimDB on each commit (once ingestion wired).
