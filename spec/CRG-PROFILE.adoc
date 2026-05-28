@@ -1,0 +1,273 @@
+// SPDX-License-Identifier: MPL-2.0
+// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
+= CRG-PROFILE — My
+:toc: left
+:toclevels: 2
+
+[cols="1,3"]
+|===
+| Field | Value
+
+| Language | My (`.my`, four dialects)
+| Repository | https://github.com/hyperpolymath/my-lang
+| Current CRG Grade | *D*  (X \| F \| E \| D \| C \| B \| A)
+| Assessed | 2026-05-28
+| Assessor | Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+| CRG Spec Version | 2.2
+| ARG Profile | spec/ARG-PROFILE.adoc
+| TRG Profile | spec/TRG-PROFILE.adoc
+| FRG Profile | spec/FRG-PROFILE.adoc
+|===
+
+== About this profile
+
+This profile applies the *CRG v2.2 (STRICT)* baseline to My
+released components. No My crate is yet published to crates.io;
+the `my` binary (via `my-cli`) is the primary released artefact,
+plus the 13 workspace crates that consumers could pull as git
+dependencies.
+
+CRG = *D*. The full chain of axes:
+
+* ARG: *D-leaning-E* (per `spec/ARG-PROFILE.adoc`)
+* TRG: *D* (per `spec/TRG-PROFILE.adoc`)
+* FRG: *X* (per `spec/FRG-PROFILE.adoc`)
+* CRG: *D* (this profile)
+* RSR: Compliant at TRG-D level
+
+== Released components
+
+A *released component* is any unit of work this repository publishes
+under its own name + version: crate, library, binary, plugin, schema,
+or vendored artefact. Each is graded independently against CRG.
+
+The list below is the published surface as of 2026-05-28. All
+workspace crates are at `version = "0.2.0"` per `[workspace.package]`
+in the top-level `Cargo.toml`. None has been published to crates.io.
+
+[cols="2,1,3,4", options="header"]
+|===
+| Component | Grade | Release stage | Evidence
+
+| `my` binary (via `my-cli`)
+| *D*
+| Pre-alpha
+| `crates/my-cli/src/main.rs` (764 lines). Examples confirm working `cargo run -- run examples/hello.ml` flow.
+
+| `my-lang` workspace crate
+| *D*
+| Workspace-internal
+| Compiler core: parser (2867 lines), checker (1792), interpreter (955), stdlib (1931), ast (833), lexer (540). 10.7K lines total. Covered by 74 integration + property tests.
+
+| `my-hir` workspace crate
+| *D*
+| Workspace-internal
+| 666-line HIR. Documented architecture in module docstring.
+
+| `my-mir` workspace crate
+| *D*
+| Workspace-internal
+| 1596-line SSA-form MIR. Explicit drop insertion, monomorphisation, inlining.
+
+| `my-llvm` workspace crate
+| *D*
+| Workspace-internal
+| 1077-line inkwell-based LLVM codegen. Targets x86_64-linux primary + x86_64-darwin.
+
+| `my-lsp` workspace crate
+| *D*
+| Workspace-internal
+| 515-line LSP scaffold (`lib.rs` + `main.rs`).
+
+| `my-fmt` workspace crate
+| *D*
+| Workspace-internal
+| 456-line formatter.
+
+| `my-lint` workspace crate
+| *D*
+| Workspace-internal
+| 352-line linter.
+
+| `my-pkg` workspace crate
+| *D*
+| Workspace-internal
+| 377-line package-manager scaffold.
+
+| `my-ai` workspace crate
+| *D*
+| Workspace-internal
+| 778-line AI-integration scaffold.
+
+| `my-test` workspace crate
+| *D*
+| Workspace-internal
+| 180-line test-runner scaffold.
+
+| `my-dap` workspace crate
+| *D*
+| Workspace-internal
+| DAP scaffold (`main.rs` only).
+
+| `my-debug` workspace crate
+| *D*
+| Workspace-internal
+| Debugger scaffold (`main.rs` only).
+
+| `my-parser` workspace crate
+| *E*
+| Workspace-internal
+| Non-load-bearing scaffold (41 lines) with a TODO. The real parser is in `crates/my-lang/src/parser.rs`. Listed here for completeness; grade E reflects scaffold-only status.
+|===
+
+== Per-component evidence (deep)
+
+CRG §4.5+ (grade C onward) requires *deep per-file + per-directory
+annotation*. The current state has no `audits/audit-<crate>.md`
+files. Three relevant existing documents:
+
+* `docs/wiki/reference/stdlib.md` — covers `my-lang::stdlib`
+  released surface
+* `docs/wiki/internals/stdlib-design.md` — design rationale for the
+  stdlib module
+* `PROOF-NEEDS.md` — records the 2026-03-29 retraction of the
+  template ABI scaffolding
+
+These are good documentation but do not meet the v2.2 STRICT per-
+component audit clause.
+
+== Grade rationale
+
+[cols="2,1,4", options="header"]
+|===
+| Grade clause (CRG §4) | Met? | Evidence
+
+| *E1 — At least one test exists*
+| YES
+| `tests/integration_test.rs` + `tests/property_tests.rs` (74 `#[test]` fns) + `crates/my-lang/src/proptest.rs`.
+
+| *E2 — Failures documented*
+| YES
+| `PROOF-NEEDS.md` records the 2026-03-29 retraction with rationale.
+
+| *D1 — Test matrix documented*
+| PARTIAL
+| 74 tests across two property-style + integration files; matrix structure not yet explicitly documented.
+
+| *D2 — Scope documented*
+| YES
+| `README.md`, `ROADMAP.adoc`, `IMPLEMENTATION.md`, `docs/wiki/`.
+
+| *D3 — RSR compliance*
+| YES
+| RSR baseline present (LICENSE, CONTRIBUTING, CoC, SECURITY).
+
+| *C1 — Dogfooded*
+| PARTIAL
+| Examples in `examples/` run via `cargo run`. The compiler itself is Rust, not My — so the project is *not yet self-hosting*.
+
+| *C2 — CI green*
+| YES
+| CI per `.github/workflows/`.
+
+| *C3 — Deep annotation (per-file + per-dir)*
+| NO
+| No `audits/audit-<crate>.md` per CRG §4.5 + TRG §3. Gating gap.
+
+| *B1 — ≥6 diverse external targets*
+| NO
+| No external adoption beyond first-party tooling.
+
+| *B2 — Issues fed back from external use*
+| NO
+| Closed-issue trail is internal.
+
+| *A1 — Confirmed real-world value, no harm*
+| NO
+| No external feedback corpus.
+
+| *VeriSimDB attestation (grade C+)*
+| NO
+| My is not yet `DECLARE`'d to VeriSimDB.
+|===
+
+== Language-specific tightening (this profile only)
+
+For My, the following additional CRG obligations apply at the
+stated grades:
+
+* *Grade C tightening:* The `my-lang::stdlib` (1931 lines) MUST
+  have a per-module audit document covering the released symbol
+  surface, mirroring the rigour expected of `docs/wiki/reference/
+  stdlib.md` at audit level.
+* *Grade B tightening:* `my-lang` MUST be published as v1.0 to
+  crates.io with at least one external consumer not maintained by
+  the My team.
+* *Grade A tightening:* Registered VeriSimDB instance + public
+  health check + third-party-maintained My library or application.
+
+These tightenings are *additional* to the baseline — none of the
+baseline evidence is waived.
+
+== What is NOT yet met (honest gaps)
+
+* *No crates.io publication*. Every workspace crate is internal.
+* *No per-component v2.2 STRICT audits* under `audits/`.
+* *No VeriSimDB attestation*.
+* *Test matrix not yet explicitly documented* — gates the C3
+  deep-annotation clause.
+* *No external consumers* beyond first-party tooling.
+
+== Path to next grade (*C*)
+
+* Publish at least `my-lang` (the compiler core crate) to crates.io
+  as v0.2.0. (~1-2 weeks if API is stable enough)
+* Author per-crate audit documents under `audits/`. (~3-4 weeks)
+* Land VeriSimDB attestation. (~1 week)
+* Document the explicit test matrix (which tests cover which
+  invariants for which dialect). (~1-2 weeks)
+
+*Realistic timeline estimate:* 2-3 months from current state.
+
+== Path to grade beyond that (*B*)
+
+* Publish v1.0 of at least one workspace crate.
+* External consumer not maintained by the My team.
+* Issue-feedback pipeline with external reporters.
+
+== Demotion risk
+
+* *Lowest:* `tests/integration_test.rs` or `tests/property_tests.rs`
+  regress significantly.
+* *Medium:* The `crates/my-llvm` build path breaks for the primary
+  x86_64-linux target (inkwell or LLVM API drift).
+* *Catastrophic:* A consumer of an unpublished but consumed crate
+  is broken and the breakage is not rolled back.
+
+== Iteration history
+
+[cols="1,1,4", options="header"]
+|===
+| Date | Grade | Notes
+
+| 2026-05-28 | D | Initial CRG-PROFILE per CRG v2.2 STRICT. Gating items: no crates.io publication, no per-crate audits, no VeriSimDB attestation.
+|===
+
+== Review cycle
+
+* *Routine:* Reassess on every release cycle (per CRG §6.3).
+* *Immediate:* Reassess within 7 days of any released-component
+  regression.
+* *VeriSimDB drift alert:* Reassess within 24 hours of any drift
+  alert.
+
+== Footer
+
+Run `just crg-badge` in this repo to generate the shields.io badge
+for the README.
+
+This profile is itself a VCL-total proposition. Its content is
+`DECLARE`'d to VeriSimDB on each commit. Drift between the claimed
+grade above and the underlying evidence surfaces as a grade-stale
+alert.

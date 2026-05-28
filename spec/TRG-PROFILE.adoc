@@ -1,0 +1,232 @@
+// SPDX-License-Identifier: MPL-2.0
+// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
+= TRG-PROFILE — My
+:toc: left
+:toclevels: 2
+
+[cols="1,3"]
+|===
+| Field | Value
+
+| Language | My (`.my`, four dialects)
+| Repository | https://github.com/hyperpolymath/my-lang
+| Current TRG Grade | *D*  (X \| F \| E \| D \| C \| B \| A)
+| Assessed | 2026-05-28
+| Assessor | Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+| TRG Spec Version | 1.0
+| ARG Profile | spec/ARG-PROFILE.adoc
+| FRG Profile | spec/FRG-PROFILE.adoc
+| CRG Profile | spec/CRG-PROFILE.adoc
+|===
+
+== About this profile
+
+This profile applies the *TRG v1.0* baseline to the My toolchain.
+The codebase is structurally substantial — a 14-crate Rust
+workspace with the bulk of the compiler in `crates/my-lang/`
+(parser 2867 lines, checker 1792 lines, interpreter 955 lines,
+stdlib 1931 lines, ast 833 lines, lexer 540 lines), plus an LLVM
+backend (`my-llvm` 1077 lines using inkwell), HIR (`my-hir`
+666 lines), MIR (`my-mir` 1596 lines), LSP scaffold (`my-lsp`
+515 lines), formatter (`my-fmt` 456 lines), linter (`my-lint`
+352 lines), package manager (`my-pkg` 377 lines), CLI driver
+(`my-cli` 764 lines), DAP scaffold (`my-dap`), debugger scaffold
+(`my-debug`), AI scaffold (`my-ai` 778 lines), test runner
+(`my-test`), and a separate parser scaffold (`my-parser`,
+non-load-bearing TODO).
+
+The overall grade lands at *D* rather than C because:
+
+* M5 *semantics document* is partial — `grammar.ebnf` (381 lines)
+  + `spec/system-specs.md` cover surface syntax but not
+  operational/denotational semantics with the rigor required at
+  grade C.
+* B3 *backend registry* is N/A (single LLVM backend), so it does
+  not bind the grade.
+* T9 *pipeline orchestrator* runs implicitly through `cargo` +
+  `my-cli`; no discrete orchestrator artefact.
+* No per-component audit documents at `audits/audit-<component>.md`
+  per TRG §3 + §4.
+* T3 *REPL* is not separately discoverable in the inventory.
+
+The chain of axes:
+
+* ARG: *D-leaning-E* (per `spec/ARG-PROFILE.adoc` — toy-project
+  usable in places, multi-dialect ambition not matched by external
+  adoption)
+* TRG: *D* (this profile)
+* FRG: *X* (per `spec/FRG-PROFILE.adoc` — template ABI scaffolding
+  honestly retracted 2026-03-29 without domain-specific replacement)
+* CRG: *D* (per `spec/CRG-PROFILE.adoc`; no crates.io publication)
+* RSR: Compliant at TRG-D level
+
+Cross-axis rule: ARG ≤ TRG holds (TRG = D ≥ ARG = D-leaning-E).
+
+== Component grades
+
+The toolchain decomposes into components drawn from TRG §3. Each
+component is graded independently against the four-tier audit format
+of TRG §4 (Must / Should / Could / Aspirational → grades E / D / C / B).
+The overall TRG grade is the *worst* of any MUST component.
+
+=== Front-end (TRG §3.1)
+
+[cols="1,3,1,4", options="header"]
+|===
+| # | Component | Grade | Evidence
+
+| F1 | Grammar / Syntax        | *D*  | `grammar.ebnf` (381 lines, EBNF). Acts as functional SoT. No PEG / pest alternative published.
+| F2 | Lexer / Tokeniser       | *C*  | `crates/my-lang/src/lexer.rs` (540 lines) + `src/lexer.rs` (506 lines). Covered by `tests/integration_test.rs` + `tests/property_tests.rs`.
+| F3 | Parser                  | *C*  | `crates/my-lang/src/parser.rs` (2867 lines). The separate `crates/my-parser/src/lib.rs` (41 lines) is a non-load-bearing scaffold with a TODO; it does not gate this grade. Parsing is exercised by integration + property tests (74 `#[test]` fns across `tests/`).
+| F4 | AST                     | *C*  | `crates/my-lang/src/ast.rs` (833 lines) + `src/ast.rs` (546 lines). HIR at `crates/my-hir/src/lib.rs` (666 lines), MIR at `crates/my-mir/src/lib.rs` (1596 lines, SSA form).
+| F5 | Macro expander          | N/A  | My has no macros (prompts + dialect-disclosure handle the role).
+| F6 | Import resolver / Modules | *D* | Module surface implicit in parser + checker; no separate auditable component.
+| F7 | Diagnostics / Errors    | *D*  | `thiserror`-based `ParseError` enum. No published error-code index.
+|===
+
+=== Middle-end (TRG §3.2)
+
+[cols="1,3,1,4", options="header"]
+|===
+| # | Component | Grade | Evidence
+
+| M1 | Semantic analyser       | *D*  | `crates/my-lang/src/scope.rs` (332 lines) + `src/scope.rs` (332 lines). Covers name resolution + scoping.
+| M2 | Type checker            | *C*  | `crates/my-lang/src/checker.rs` (1792 lines) + `src/types.rs` (184 lines). Covered by `tests/property_tests.rs` (type-checker invariants).
+| M3 | Type-checker oracle     | N/A  | My is not a verified language (FRG-X). See FRG-PROFILE.
+| M4 | Proof dispatcher        | N/A  | Same reason as M3.
+| M5 | Semantics document      | *D*  | `grammar.ebnf` (381 lines) + `spec/system-specs.md`. Operational + denotational semantics not yet consolidated into a canonical doc; this is the load-bearing gap for grade C.
+|===
+
+=== Back-end (TRG §3.3)
+
+[cols="1,3,1,4", options="header"]
+|===
+| # | Component | Grade | Evidence
+
+| B1 | Intermediate representation | *C*  | Two IR levels: `crates/my-hir/src/lib.rs` (666 lines, HIR — desugared match, expanded macros/prompts, resolved imports, normalised control flow) + `crates/my-mir/src/lib.rs` (1596 lines, SSA-form MIR with explicit drop insertion, monomorphised generics, inlining).
+| B2 | Code generator          | *D*  | `crates/my-llvm/src/lib.rs` (1077 lines, inkwell-based LLVM codegen). Targets x86_64-linux primary + x86_64-darwin. No conformance-coverage report yet.
+| B3 | Backend registry        | N/A  | Single LLVM backend.
+| B4 | Linker / JIT / eval     | *D*  | Linking via LLVM toolchain (system linker). No bespoke linker artefact.
+| B5 | ABI / FFI surface       | *E*  | Idris2 ABI not yet declared. Zig FFI not yet declared. Estate convention (per `~/developer/repos/my-lang/.claude/CLAUDE.md`) calls for both at grade D+; this is gated.
+| B6 | Runtime                 | *D*  | Tree-walk interpreter at `crates/my-lang/src/interpreter.rs` (955 lines). Native runtime via LLVM-emitted binaries.
+|===
+
+=== Tool surface (TRG §3.4)
+
+[cols="1,3,1,4", options="header"]
+|===
+| # | Component | Grade | Evidence
+
+| T1 | Compiler driver         | *C*  | `crates/my-cli/src/main.rs` (764 lines). Examples `examples/hello.ml`, `examples/demo.ml` confirm working `cargo run -- run <file>` flow.
+| T2 | Interpreter             | *C*  | `crates/my-lang/src/interpreter.rs` (955 lines). Tree-walk; exercised by integration tests.
+| T3 | REPL                    | *E*  | Not separately discoverable. SHOULD per TRG §3.4 — gated as E pending audit or removal.
+| T4 | Formatter               | *D*  | `crates/my-fmt/src/lib.rs` (456 lines).
+| T5 | LSP server              | *D*  | `crates/my-lsp/src/lib.rs` (515 lines) + `main.rs`. Protocol coverage not yet documented.
+| T6 | Debugger                | *D*  | `crates/my-debug/src/main.rs` + `crates/my-dap/src/main.rs` (DAP scaffold).
+| T7 | Package manager         | *D*  | `crates/my-pkg/src/lib.rs` (377 lines).
+| T8 | Standard library        | *C*  | `crates/my-lang/src/stdlib.rs` (1931 lines). Documented at `docs/wiki/reference/stdlib.md` + `docs/wiki/internals/stdlib-design.md`.
+| T9 | Pipeline orchestrator   | *D*  | Implicit via `my-cli` + `cargo`. No discrete pipeline-orchestrator artefact.
+|===
+
+== Language-specific tightening (this profile only)
+
+TRG §1.1 permits per-language tightening. For My, the following
+additional obligations apply at the stated grades:
+
+* *Grade D tightening:* The four-dialect progression (visual blocks
+  → solo → duet → ensemble) MUST be reflected in the lexer +
+  parser as dialect tags. Currently `dialects/solo/` and
+  `dialects/duet/` are committed; `dialects/ensemble/` and
+  `dialects/me/` are designed-but-not-yet-implemented.
+* *Grade C tightening:* A canonical semantics document (M5) MUST
+  cover the dialect-projection rules (each dialect a structural
+  subset of the next).
+* *Grade B tightening:* `my-lang` MUST be self-hosting in at least
+  one dialect (likely `solo`), OR a published rationale MUST
+  explain why Rust is the strategic implementation language
+  indefinitely.
+* *Grade A tightening:* Idris2 ABI declared + Zig FFI declared +
+  domain-specific Idris2 proofs of the dialect-projection
+  judgement (paired with FRG ≥ C).
+
+These tightenings are *additional* to the baseline — none of the
+baseline evidence is waived.
+
+== Canonical Proof Suite extension
+
+N/A at present. My is FRG-X (template ABI scaffolding honestly
+retracted 2026-03-29). A future verified profile would extend
+this section with domain-specific Idris2 proofs following the
+pattern in `typed-wasm` / `proven` / `echidna` / `boj-server`.
+
+== What is NOT yet met (honest gaps)
+
+Gating gaps for grade *C*:
+
+* *M5 canonical semantics document* — `grammar.ebnf` +
+  `system-specs.md` cover surface syntax but not operational +
+  denotational semantics. Gates grade C.
+* *B5 ABI / FFI surface* — neither Idris2 ABI nor Zig FFI declared,
+  in tension with the estate-wide convention from `CLAUDE.md`.
+* *Per-component audits* — no `audits/audit-<component>.md` files
+  per TRG §3 + §4.
+* *T3 REPL* — either ship one or document the absence per TRG §3.
+
+== Path to next grade (*C*)
+
+* Write `spec/semantics.adoc` consolidating operational +
+  denotational semantics with the dialect-projection judgements.
+  (~3-4 weeks)
+* Declare the Idris2 ABI + Zig FFI surfaces (even if minimal
+  placeholders that grow with the language). (~2-3 weeks)
+* Add per-component audit documents under `audits/`. (~3-4 weeks)
+* Decide T3: either ship a REPL or document the absence.
+
+*Realistic timeline estimate:* 2-3 months from current state.
+
+== Path to grade beyond that (*B*)
+
+* Self-host at least the `solo` dialect in My itself, OR publish
+  the rationale for Rust as the strategic implementation language.
+* Land the `dialects/ensemble/` + `dialects/me/` directory contents
+  matching the four-dialect progression.
+* External-consumer evidence beyond the playground.
+
+== Demotion risk
+
+* *Lowest:* `tests/integration_test.rs` or `tests/property_tests.rs`
+  regress significantly.
+* *Medium:* `crates/my-llvm` codegen path breaks for the primary
+  x86_64-linux target.
+* *Catastrophic:* The 14-crate workspace decomposition is found to
+  be load-bearing on a crate that fails to build for upstream
+  Rust toolchain reasons (rustc / inkwell API drift) and is not
+  promptly fixed.
+
+== Iteration history
+
+[cols="1,1,4", options="header"]
+|===
+| Date | Grade | Notes
+
+| 2026-05-28 | D | Initial TRG assessment per TRG v1.0. Gating items: M5 partial, B5 absent, T3 not discoverable.
+|===
+
+== Review cycle
+
+* *Routine:* Reassess on every release cycle (per TRG §8).
+* *Immediate:* Reassess within 7 days of any MUST-component
+  regression.
+* *VeriSimDB drift alert:* Reassess within 24 hours of any drift
+  alert.
+
+== Footer
+
+Run `just trg-badge` in this repo to generate the shields.io badge
+for the README.
+
+This profile is itself a VCL-total proposition. Its content is
+`DECLARE`'d to VeriSimDB on each commit. Drift between the claimed
+grade above and the underlying evidence surfaces as a grade-stale
+alert.
