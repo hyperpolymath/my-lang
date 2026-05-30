@@ -32,6 +32,7 @@ this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- fix(checker): self-driving stack-depth measurement + CI guard on Linux + Windows; harden survives() (closes #37) (#80)
 - fix(licence): clear scaffold-placeholder leak (isolated; dirty repo) (#64)
 - fix(vscode): make the packaged .vsix actually load (Refs #62) (#63)
 - fix(vscode-ext): pass real callbacks to registerCommand (affinescript#35 P2) (#60)
