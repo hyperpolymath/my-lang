@@ -44,6 +44,12 @@ package-lock.json
 bun.lock
 bun.lockb
 deno.lock
+
+# npm-avoidant (standards#67)
+**/package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.npmrc
 # Built VS Code extension artefact — distributed via GitHub Release, not git
 *.vsix
 _build/
