@@ -120,21 +120,61 @@ fn worker(mode: &str, depth: usize, stack_kib: usize) {
         })
         .expect("spawn probe thread");
 
-    // Overflow already aborted the process; a non-overflow panic → non-zero exit.
+    // A guard-page stack overflow already aborted the whole process before we
+    // get here (it is not a catchable panic), which is the cliff signal the
+    // driver reads via the non-zero exit. `join().is_err()` therefore only
+    // covers the *other* failure — an ordinary unwinding panic in the walk —
+    // which we re-raise as a non-zero exit so it is never mistaken for survival.
+    // (Relies on the default `panic = "unwind"`; the workspace sets no
+    // `panic = "abort"`, but abort would still exit non-zero, so either is safe.)
     if handle.join().is_err() {
         std::process::exit(1);
     }
 }
 
 /// Run `self <mode> <depth> <stack_kib>` as a subprocess; `true` == survived.
+///
+/// The measurement hinges on telling three outcomes apart, *not* on a bare
+/// `status.success()`:
+///   * **survived** — exit 0 *and* the worker printed its `OK …` line (positive
+///     proof the walk actually ran to completion). Returns `true`.
+///   * **overflowed** — non-zero exit. A guard-page stack overflow is not a
+///     catchable panic; the Rust runtime aborts the whole worker process
+///     (SIGABRT / `STATUS_STACK_OVERFLOW`), so the cliff *is* the non-zero exit.
+///     Returns `false`.
+///   * **infra failure** — the subprocess could not be spawned, or it exited 0
+///     *without* running the walk (e.g. a future argv-routing change). Silently
+///     reading either as "overflowed" would skew the measured cliff and risk a
+///     false PASS, so both are treated as fatal (exit 3) rather than a datapoint.
 fn survives(exe: &std::path::Path, mode: &str, depth: usize, stack_kib: usize) -> bool {
-    Command::new(exe)
+    let output = match Command::new(exe)
         .arg(mode)
         .arg(depth.to_string())
         .arg(stack_kib.to_string())
         .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("FATAL: could not spawn worker ({mode} {depth} {stack_kib}): {e}");
+            std::process::exit(3);
+        }
+    };
+
+    if output.status.success() {
+        // Exit 0 must be corroborated by the worker's completion line, so a
+        // path that exits 0 without doing the work can never read as "survived".
+        if !String::from_utf8_lossy(&output.stdout).contains("OK ") {
+            eprintln!(
+                "FATAL: worker ({mode} {depth} {stack_kib}) exited 0 without running the walk"
+            );
+            std::process::exit(3);
+        }
+        true
+    } else {
+        // Non-zero exit == the walk overflowed (or otherwise aborted) on this
+        // stack: the cliff signal the searches are looking for.
+        false
+    }
 }
 
 /// Largest `depth` that survives `mode` on a fixed `stack_kib`: exponential
