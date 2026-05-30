@@ -141,6 +141,14 @@ pub enum CheckError {
 /// so — because no *parseable* program nests deeper than 64 — lowering it
 /// rejects zero real programs; it only ever fires on programmatically-built
 /// ASTs, which is its sole remaining purpose.
+///
+/// This budget is reconfirmed automatically rather than by a one-off manual
+/// run: `examples/measure_depth.rs` is self-driving (it re-execs itself as
+/// worker subprocesses to find each overflow cliff and asserts the budget), and
+/// the `Stack Depth (#37)` CI workflow runs it — alongside the
+/// `tests/stack_depth_37.rs` regression — on **both ubuntu-latest and
+/// windows-latest**. So the binding 1 MiB msvc datapoint is produced on every
+/// change and a future bump that breaks the budget fails CI on the affected OS.
 pub const MAX_EXPR_DEPTH: usize = 128;
 
 pub type CheckResult<T> = Result<T, CheckError>;
