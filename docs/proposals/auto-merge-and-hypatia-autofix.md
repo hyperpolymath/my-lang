@@ -17,6 +17,15 @@ This is a **design**. Most of the moving parts live outside `my-lang`
 the gitbots live in the bot-directive repo), so landing it is a cross-repo
 effort. This doc is the `my-lang`-side anchor and the checklist.
 
+> **Scope note (post-#83).** The *one-off* governance fixes this proposal
+> originally also covered are already implemented in **PR #83**: the
+> `.hypatia-baseline.json` array-shape fix and the `frontier-practices/*.res`
+> `.hypatia-ignore` exemption. So this document is now scoped to the part #83
+> does **not** address — the repeatable **autofix + auto-merge automation** so
+> the *next* PR doesn't need a human to re-resolve the same mechanical findings.
+> Items already done in #83 are marked as such below rather than restated as
+> work.
+
 ## 1. What "do this itself" has to mean
 
 Two distinct capabilities, often conflated:
@@ -38,9 +47,9 @@ From PR #84's scans, every blocking item fell into one of three buckets:
 |---|---|---|---|
 | `missing_timeout_minutes` on `cflite_*`, `checker-scaling`, `codeql`, `governance`, `hypatia-scan`, `mirror` | mechanical | `my-lang/.github/workflows/*` | **Yes** — add `timeout-minutes:` |
 | `unpinned_action` → `standards/...governance-reusable.yml@main` | mechanical-ish | `my-lang/.github/workflows/governance.yml` | Yes, but needs a resolver (pin to SHA + keep updated via Renovate/Dependabot) |
-| `Validate Hypatia baseline` shape mismatch (object vs array) | contract drift | `standards` validator **or** `my-lang/.hypatia-baseline.json` | Yes, once the canonical schema is agreed |
-| `Language / package anti-pattern` on `frontier-practices/*.res` | policy decision | `my-lang` (port to AffineScript) **or** `.hypatia-ignore` | **No** — needs a human decision |
-| `scaling (ubuntu-latest)` linearity guard | flaky/threshold | `my-lang/tests/checker_alloc_scaling.rs` | **No** — needs robustness work (issue #85 item 4) |
+| `Validate Hypatia baseline` shape mismatch (object vs array) | contract drift | ✅ **fixed in #83** (`.hypatia-baseline.json` → array) | n/a — done |
+| `Language / package anti-pattern` on `frontier-practices/*.res` | policy decision | ✅ **decided in #83** (rationale'd `.hypatia-ignore` exemption) | n/a — done |
+| `scaling (ubuntu-latest)` linearity guard | flaky/threshold | `my-lang/tests/checker_alloc_scaling.rs` | **No** — needs robustness work (issue #85) |
 
 **Rule of thumb:** the top three are safe for a bot; the bottom two must never
 be auto-resolved (auto-exempting a policy or muting a flaky guard is exactly the
@@ -64,19 +73,16 @@ The Hypatia finding schema already carries an `action` field (`flag`,
 3. Emit an autofix **patch artifact** (not a direct push) so the gitbot, not
    the scanner, owns the commit — keeps provenance and review trail clean.
 
-## 4. Fix the baseline contract (unblocks a whole class)
+## 4. Baseline contract — fixed in #83 (estate follow-up only)
 
-`Validate Hypatia baseline` fails because the committed
-`.hypatia-baseline.json` is an *object* (`{ _comment, fingerprints: [] }`) while
-the validator in `standards` asserts an *array* of finding objects. Pick one
-canonical shape in `standards`, then:
+The `Validate Hypatia baseline` red (committed `.hypatia-baseline.json` was an
+*object*; the `standards` validator asserts an *array*) is **already resolved in
+PR #83**, which converts the baseline to a valid array. No further `my-lang`
+action.
 
-- update the `standards` schema + validator and **all** consumer baselines, or
-- keep the object shape and fix the validator to accept it.
-
-Either way this is a one-time `standards` change that makes the check pass
-deterministically across the estate — and is a precondition for auto-merge,
-since it's currently a permanent red.
+The remaining (estate-level, optional) follow-up is to make the **canonical
+baseline schema** authoritative in `standards` so consumers can't drift again —
+but that is no longer a blocker here.
 
 ## 5. Gitbot behaviour (bot-directive repo)
 
@@ -115,19 +121,16 @@ tier: manual    → touches policy, security gates, allocation/perf guards,
 Tier is derived from changed paths + finding severities; never self-selected by
 the PR author. This is what stops a feature PR from silently auto-merging.
 
-## 7. `my-lang`-side changes (the only ones landable here)
+## 7. `my-lang`-side changes (remaining; the only ones landable here)
 
-These are in scope for this repo and can ship as a small follow-up PR:
+Done in #83: baseline array-shape fix and the `frontier-practices/*.res`
+exemption. Still open in this repo:
 
 - [ ] Add `timeout-minutes:` to `cflite_batch.yml`, `cflite_pr.yml`,
       `checker-scaling.yml`, `codeql.yml`, `governance.yml`, `hypatia-scan.yml`,
       `mirror.yml` (matches the `coverage.yml` precedent from #84).
-- [ ] Decide the `frontier-practices/*.res` policy: port to AffineScript, or add
-      a rationale'd `.hypatia-ignore` entry. (Human decision — issue #85 item 1.)
 - [ ] Harden or tier the `#14` allocation-scaling guard so it isn't flaky on CI
-      runners (issue #85 item 4).
-- [ ] Once `standards` exposes the canonical baseline schema, conform
-      `.hypatia-baseline.json` to it (issue #85 item 2).
+      runners (issue #85).
 - [ ] After branch protection trusts the green set, enable repo setting
       **"Allow auto-merge"** so the gitbot can use native auto-merge.
 
@@ -140,14 +143,14 @@ These are in scope for this repo and can ship as a small follow-up PR:
 
 ## 9. Sequencing
 
-1. Land the `standards` baseline-schema fix (§4) — removes the permanent red.
-2. Land the `my-lang` mechanical fixes (§7, first item) — clears the
+0. ✅ Baseline shape + `.res` exemption — **landed in #83**.
+1. Land the `my-lang` mechanical fixes (§7, timeouts) — clears the
    `missing_timeout_minutes` noise.
-3. Promote mechanical Hypatia rules to `autofix` in `standards` (§3).
-4. Ship the gitbot tiering + native auto-merge enablement (§5, §6).
-5. Resolve the two human-decision items (`.res` policy, scaling guard) so the
+2. Promote mechanical Hypatia rules to `autofix` in `standards` (§3).
+3. Ship the gitbot tiering + native auto-merge enablement (§5, §6).
+4. Resolve the remaining human-decision item (the flaky scaling guard) so the
    estate's required set is permanently green — only then is unattended merge of
    `assisted`-tier PRs safe to consider.
 
-Nothing here auto-merges anything until steps 1–4 are in place and a human has
+Nothing here auto-merges anything until steps 1–3 are in place and a human has
 signed off on the tiering policy.
