@@ -1,0 +1,155 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
+# Design note: integrating `echo-types` into the my-lang type checker
+
+**Status:** accepted (slice 1) · **Date:** 2026-06-02 · **PR:** #86
+**Upstream:** [`hyperpolymath/echo-types`](https://github.com/hyperpolymath/echo-types)
+(Agda library) · executable companion
+[`hyperpolymath/EchoTypes.jl`](https://github.com/hyperpolymath/EchoTypes.jl)
+
+This note records the design decisions for bringing *echo types* — a
+formal account of **"loss that is not total erasure"** — into the my-lang
+type system. It documents what slice 1 (PR #86) deliberately is and is
+not, so later slices stay on the agreed line.
+
+## What an echo type is (upstream)
+
+In `echo-types`, given `f : A → B`, the **echo** at `y : B` is the fiber
+
+```
+Echo f y = Σ (x : A), (f x ≡ y)
+```
+
+— a *proof-relevant* witness of which inputs collapsed to `y`. It captures
+the third case between reversible (no loss) and irreversible (total
+erasure): **irreversible-but-with-a-retained, typed constraint on what was
+lost**.
+
+## 1. Index shape — non-dependent approximation
+
+my-lang is **not** dependently typed, so we do not index echoes by a
+specific function `f` and output `y`. Forcing value-indexing now would drag
+the checker into refinement/dependent territory before the language is
+ready.
+
+**Canonical form:**
+
+```
+Echo<A => B>          // internal: Ty::Echo { mode, domain: A, codomain: B }
+```
+
+read as *"a retained residue/witness of some admissible collapse from `A`
+to `B`"* — **not** the complete fiber of a specific `f` at `y`.
+
+- **Keep** the map-shaped form `Echo<A => B>` as the semantic core; the
+  source/target asymmetry is essential.
+- **Possible sugar later (only if needed):** `Echo<T> := Echo<T => T>` (or
+  `Echo<Unknown => T>`). `Echo<T>` is *not* the primary form — it is too
+  modal and discards the asymmetry.
+- **Avoid for now:** the value-indexed/dependent `Echo<f, y>` form.
+
+The Agda `Echo f y` remains the *semantic ideal*; `Echo<A => B>` is its
+deliberate erased approximation.
+
+## 2. Relationship to the quantity (affine/QTT) system
+
+Echo is **born from** the quantity system but is **not identical** to it:
+
+```
+Quantity controls USE.
+Echo records the structured LOSS caused by weakening / use-erasure.
+```
+
+Design invariant:
+
+> A linear value weakened to affine may **produce** an `Echo` residue. The
+> weakening is one-way. The residue is proof-relevant evidence that
+> something was lost but **not annihilated**.
+
+The first (and, for now, only) bridge is therefore **linear → affine**.
+Echo is **not** made fully orthogonal to quantities yet; orthogonal
+modalities (epistemic/security/provenance) can come later.
+
+## 3. Mode and subtyping (slice 1, implemented)
+
+`EchoMode { Linear, Affine }` mirrors `EchoLinear.agda`'s two-point thin
+poset `linear ⊑ affine`. Assignability (`Ty::is_assignable_from`) encodes:
+
+```
+Echo Linear  <:  Echo Affine          (EchoLinear.weaken)
+Echo Affine  </: Echo Linear          (EchoLinear.no-section-weaken)
+domain / codomain invariant
+```
+
+The five unit tests in `crates/my-lang/src/types.rs` mirror the Agda
+theorems directly: mode ordering (`_≤m_`), `weaken`, `no-section`, and
+domain/codomain invariance.
+
+## 4. Bridges — scope
+
+| Bridge | Status |
+|--------|--------|
+| linear / affine | **in scope now** (slice 1) |
+| provenance / audit | next candidate (design-noted, not implemented) |
+| epistemic | later |
+| security | later |
+| graded / tropical | research layer |
+| choreographic | separate bridge |
+| ordinal | definitely later |
+
+Rationale: provenance/audit/security are tempting because they fit
+my-lang's AI/audit features, but introducing them early would contaminate
+the core. Slice 1 answers exactly one question — *what proof-relevant
+residue remains when linear information is weakened?* — and the audit
+bridge later reuses that answer.
+
+## 5. Surface syntax & runtime — staging
+
+First dialect: **solo** (the affine one). Canonical syntax `Echo<A => B>`.
+The lossy-arrow `~>` is **reserved** for possible later sugar (lossy
+function / operation), not introduced now to avoid overloading. Witnesses
+are **erased** initially.
+
+```
+Stage 1 (this PR): checker-only Echo type former        ← done
+Stage 2: parser syntax for Echo<A => B> (solo)
+Stage 3: proof-layer residue object (EchoResidue, Coq/Idris)
+Stage 4: optional runtime witness — only if audit/provenance needs
+         observable evidence; modelled as a single residue record,
+         not a whole fiber
+```
+
+## 6. Claim boundary
+
+Hold the narrowed line from `echo-types` retraction **R-2026-05-18**:
+
+> Echo is a **loss-graded reindexing modality over a thin poset**.
+
+Permitted, modest, strong claim:
+
+> Echo models irreversible weakening as a one-way, proof-relevant residue
+> transformation. Linear Echo can weaken to Affine Echo. Affine Echo cannot
+> reconstruct Linear Echo.
+
+**Do not** use (unless a future proof actually justifies it): "graded
+comonad", "universal property", "adjunction", "final/initial semantics",
+"free construction".
+
+## 7. EchoTypes.jl as differential oracle
+
+Phase-2, not a blocker for slice 1. The current Rust tests already mirror
+the `EchoLinear.agda` weakening/no-section theorems at the type-algebra
+level. Once parser syntax or proof-layer residue terms exist, add
+finite-domain differential tests against EchoTypes.jl's `LEcho` / `EchoMode`
+— for semantic examples, **not** core checker soundness.
+
+## Slice 1 scope (PR #86) — exactly
+
+- `EchoMode { Linear, Affine }`
+- `Ty::Echo { mode, domain, codomain }`
+- assignability: `Linear → Affine` only; domain/codomain invariant
+- `Display`
+- five Agda-mirroring tests
+
+No parser, codegen, runtime, or proof-layer changes in this PR.
