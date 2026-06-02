@@ -27,6 +27,9 @@ dhat-heap.json
 .coverage/
 *.profraw
 *.profdata
+# cargo-llvm-cov outputs (see .github/workflows/coverage.yml / TESTING.md)
+lcov.info
+coverage-html/
 
 # OS
 Thumbs.db
