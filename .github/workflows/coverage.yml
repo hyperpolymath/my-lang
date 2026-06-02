@@ -37,6 +37,7 @@ jobs:
   coverage:
     name: llvm-cov
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -51,16 +52,17 @@ jobs:
       - name: Install cargo-llvm-cov
         run: cargo install cargo-llvm-cov --locked
 
-      # Coverage gate. --fail-under-lines must mirror COVERAGE_FLOOR. The LLVM
-      # back end (my-llvm) needs a system LLVM toolchain, so it is excluded here
-      # to keep the job hermetic; everything else in the workspace is measured.
-      - name: Measure coverage (enforce floor)
-        run: |
-          cargo llvm-cov \
-            --workspace \
-            --exclude my-llvm \
-            --lcov --output-path lcov.info \
-            --fail-under-lines "${COVERAGE_FLOOR}"
+      # Collect coverage once, then render multiple reports from the same data.
+      # The LLVM back end (my-llvm) needs a system LLVM toolchain, so it is
+      # excluded here to keep the job hermetic; everything else is measured.
+      # NOTE: --workspace/--exclude are only valid on the test-running form, not
+      # on the `report` subcommand, which renders the already-collected data.
+      - name: Collect coverage
+        run: cargo llvm-cov --no-report --workspace --exclude my-llvm
+
+      # Coverage gate. --fail-under-lines must mirror COVERAGE_FLOOR.
+      - name: Enforce coverage floor
+        run: cargo llvm-cov report --fail-under-lines "${COVERAGE_FLOOR}"
 
       - name: Coverage summary
         if: always()
@@ -68,13 +70,17 @@ jobs:
           {
             echo '## Coverage summary'
             echo '```'
-            cargo llvm-cov report --workspace --exclude my-llvm --summary-only
+            cargo llvm-cov report --summary-only
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Generate LCOV report
+        if: always()
+        run: cargo llvm-cov report --lcov --output-path lcov.info
+
       - name: Generate HTML report
         if: always()
-        run: cargo llvm-cov report --workspace --exclude my-llvm --html --output-dir coverage-html
+        run: cargo llvm-cov report --html --output-dir coverage-html
 
       - name: Upload coverage reports
         if: always()
