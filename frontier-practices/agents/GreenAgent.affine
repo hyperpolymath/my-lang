@@ -1,0 +1,179 @@
+// SPDX-License-Identifier: MPL-2.0
+// GreenAgent.affine - The AST Architect
+// Teaches: Abstract syntax trees, code representation, manipulation
+//
+// Ported from GreenAgent.res. Public fns prefixed `green_*` to avoid
+// cross-module name collisions in RevealSystem (see CONVERSION-NOTES.md).
+
+module GreenAgent;
+
+use Types::{
+  Stage, Cuttle, Squidlet, Duet, Octopus,
+  AgentColor, Green,
+  Difficulty, Introductory,
+  Lesson, Activity, ActivityType, Game, Puzzle, Creative, Challenge,
+  GameConfig, PuzzleConfig, CreativeConfig, ChallengeConfig,
+  Personality, AgentNames, Agent,
+  random_element,
+};
+use prelude::{ Option, Some, None };
+
+pub fn names() -> AgentNames {
+  #{
+    cuttle: "Builder Green",
+    squidlet: "Maker Green",
+    duet: "Structure Agent Green",
+    octopus: "Code Architecture Specialist Green",
+  }
+}
+
+pub fn personality() -> Personality {
+  #{
+    voice: "Creative and constructive, always excited about building new things",
+    catchphrase: "Let's build something amazing!",
+    encouragement: [
+      "Great foundation!",
+      "That structure is solid!",
+      "You're building beautifully!",
+      "Perfect piece placement!",
+    ],
+    corrections: [
+      "Hmm, that piece doesn't connect there...",
+      "Let's check the blueprint again.",
+      "The structure needs a stronger base.",
+      "Almost! But buildings need foundations first.",
+    ],
+    celebrations: [
+      "What an amazing creation!",
+      "Architectural masterpiece!",
+      "You built something incredible!",
+      "That structure will stand forever!",
+    ],
+  }
+}
+
+pub fn teaches() -> [String] {
+  [
+    "Composition and construction",
+    "Hierarchical thinking",
+    "Tree structures",
+    "Data representation",
+    "Abstract syntax trees",
+    "Intermediate representations",
+    "Code generation",
+    "Optimization passes",
+  ]
+}
+
+// Get the agent's name for a given stage
+pub fn green_get_name(stage: Stage) -> String {
+  match stage {
+    Cuttle => names().cuttle,
+    Squidlet => names().squidlet,
+    Duet => names().duet,
+    Octopus => names().octopus,
+  }
+}
+
+// Get what the agent is "secretly" teaching at each stage
+pub fn green_get_hidden_concept(stage: Stage) -> String {
+  match stage {
+    Cuttle => "Composition and hierarchy",
+    Squidlet => "Tree structures and data representation",
+    Duet => "AST construction and manipulation",
+    Octopus => "Compiler IR and code generation",
+  }
+}
+
+// Get a random encouragement message
+pub fn green_encourage() -> String {
+  random_element(personality().encouragement, personality().catchphrase)
+}
+
+// Get a random correction message
+pub fn green_correct() -> String {
+  random_element(personality().corrections, "Let's try again!")
+}
+
+// Get a random celebration message
+pub fn green_celebrate() -> String {
+  random_element(personality().celebrations, personality().catchphrase)
+}
+
+// Lesson definitions from curriculum/cuttle/green/
+pub fn lessons() -> [Lesson] {
+  [
+    #{
+      id: "cuttle-green-01",
+      title: "Building Blocks",
+      agent: Green,
+      stage: Cuttle,
+      difficulty: Introductory,
+      description: "Learn the basics of construction - how small parts make bigger things",
+      objectives: [
+        "How small parts make bigger things",
+        "How to stack blocks",
+        "How to plan what you build",
+      ],
+      activities: [
+        #{
+          activityId: "green-01-stack-blocks",
+          activityType: Game(#{
+            gameName: "Block Stacking",
+            rules: ["Stack three blocks vertically", "Each block goes on top of the previous", "Build upward"],
+            winCondition: "Create a stable 3-block tower",
+          }),
+          instructions: "Let's start simple. Stack three blocks to make a tower!",
+          hints: ["Start at the bottom", "Place each block carefully"],
+        },
+        #{
+          activityId: "green-01-build-house",
+          activityType: Game(#{
+            gameName: "House Assembly",
+            rules: ["Place the base first", "Add walls on the base", "Add the roof on top"],
+            winCondition: "Complete house with base, walls, and roof",
+          }),
+          instructions: "A house has parts: a base, walls, and a roof. Build one!",
+          hints: ["Base goes at the bottom", "Walls go in the middle", "Roof goes on top"],
+        },
+        #{
+          activityId: "green-01-build-order",
+          activityType: Puzzle(#{
+            puzzleType: "ordering",
+            pieces: 3,
+            solution: "Bottom (base) first, then middle, then top",
+          }),
+          instructions: "If we're building a tower, what order do we need? What do you build FIRST?",
+          hints: ["Think about gravity", "You can't build the roof first!"],
+        },
+      ],
+      hiddenConcept: "Composition and basic structure",
+      revealedConcept: None,
+    },
+  ]
+}
+
+// Create the complete agent definition
+pub fn agent() -> Agent {
+  #{
+    color: Green,
+    names: names(),
+    compilerRole: "AST Architect - Builds and transforms code representations",
+    teaches: teaches(),
+    personality: personality(),
+    lessons: lessons(),
+  }
+}
+
+// Reveal text shown when transitioning stages
+pub fn green_reveal_text(fromStage: Stage, toStage: Stage) -> Option<String> {
+  match (fromStage, toStage) {
+    (Cuttle, Squidlet) =>
+      Some("All those building blocks? Green was teaching you about STRUCTURE! Every tower you built was like a tree of code, with branches and leaves."),
+    (Squidlet, Duet) =>
+      Some("Green has been teaching you about ABSTRACT SYNTAX TREES! When you assembled pieces into complex structures, you were learning how compilers represent code internally."),
+    (Duet, Octopus) =>
+      Some("You understand code architecture now! You know how Green transforms human-readable code into tree structures that computers can execute."),
+    _ => None,
+  }
+}

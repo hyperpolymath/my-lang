@@ -18,7 +18,7 @@ The Seven Tentacles are pedagogical agents (colorful cephalopod mascots) that te
 |🔴 *Red*
 |Parser (lexing, tokenization, AST construction)
 a|
-* `agents/RedAgent.res`
+* `agents/RedAgent.affine`
 * `curriculum/cuttle/red/`
 * `curriculum/squidlet/red/`
 * `curriculum/duet/red/`
@@ -33,7 +33,7 @@ a|
 |🟠 *Orange*
 |Concurrency Engine (async, scheduling, event loops)
 a|
-* `agents/OrangeAgent.res`
+* `agents/OrangeAgent.affine`
 * `curriculum/cuttle/orange/`
 * `curriculum/squidlet/orange/`
 * `curriculum/duet/orange/`
@@ -48,7 +48,7 @@ a|
 |🟡 *Yellow*
 |Type System (type safety, affine types, ownership)
 a|
-* `agents/YellowAgent.res`
+* `agents/YellowAgent.affine`
 * `curriculum/cuttle/yellow/`
 * `curriculum/squidlet/yellow/`
 * `curriculum/duet/yellow/`
@@ -63,7 +63,7 @@ a|
 |🟢 *Green*
 |AST Architect (code representation, IR, code generation)
 a|
-* `agents/GreenAgent.res`
+* `agents/GreenAgent.affine`
 * `curriculum/cuttle/green/`
 * `curriculum/squidlet/green/`
 * `curriculum/duet/green/`
@@ -78,7 +78,7 @@ a|
 |🔵 *Blue*
 |Auditor (verification, debugging, formal proofs)
 a|
-* `agents/BlueAgent.res`
+* `agents/BlueAgent.affine`
 * `curriculum/cuttle/blue/`
 * `curriculum/squidlet/blue/`
 * `curriculum/duet/blue/`
@@ -93,7 +93,7 @@ a|
 |🟣 *Indigo*
 |Metaprogrammer (compile-time evaluation, macros, staging)
 a|
-* `agents/IndigoAgent.res`
+* `agents/IndigoAgent.affine`
 * `curriculum/cuttle/indigo/`
 * `curriculum/squidlet/indigo/`
 * `curriculum/duet/indigo/`
@@ -108,7 +108,7 @@ a|
 |🟤 *Violet*
 |Governance System (language design, policy, ethics)
 a|
-* `agents/VioletAgent.res`
+* `agents/VioletAgent.affine`
 * `curriculum/cuttle/violet/`
 * `curriculum/squidlet/violet/`
 * `curriculum/duet/violet/`
@@ -127,13 +127,13 @@ a|
 |===
 |Path |Purpose |Type
 
-|`agents/Types.res`
+|`agents/Types.affine`
 |Shared type definitions for all agents
-|ReScript
+|AffineScript
 
-|`tools/RevealSystem.res`
+|`tools/RevealSystem.affine`
 |Progressive concept reveal mechanism
-|ReScript
+|AffineScript
 
 |`tools/reveal-demo.html`
 |Interactive demo of agent evolution
@@ -159,7 +159,7 @@ a|
 [horizontal]
 INV-01:: Each tentacle appears in exactly 7 colors: Red, Orange, Yellow, Green, Blue, Indigo, Violet
 INV-02:: Each tentacle has exactly 4 stage-specific names (Cuttle, Squidlet, Duet, Octopus)
-INV-03:: Agent files follow naming: `agents/{Color}Agent.res`
+INV-03:: Agent files follow naming: `agents/{Color}Agent.affine`
 INV-04:: Curriculum follows structure: `curriculum/{stage}/{color}/lesson_{n}.adoc`
 INV-05:: Tabletop games follow structure: `tabletop/{color}/{rules.adoc, cards.html}`
 
@@ -203,7 +203,7 @@ INV-15:: Playful first: younger learners experience play, not study
 === Technical Invariants
 
 [horizontal]
-INV-30:: Primary language: ReScript (compiles to JS)
+INV-30:: Primary language: AffineScript (`.affine`, compiles to JS/Wasm); agents + reveal system ported from ReScript
 INV-31:: Runtime: Deno (no Node.js/npm/bun)
 INV-32:: CLI tools: Rust only
 INV-33:: Mobile: Tauri 2.0+ or Dioxus (no Kotlin/Swift)
