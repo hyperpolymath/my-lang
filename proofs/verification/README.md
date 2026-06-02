@@ -1,14 +1,25 @@
 # Formal Verification Framework
 
 This directory contains formal verification artifacts for My Language,
-including mechanized proofs in Coq and Lean, and property specifications
-for testing.
+including mechanized proofs in Coq and Idris2, and property
+specifications for testing.
+
+> **Authoritative status:** [`../STATUS.md`](../STATUS.md) is the single
+> source of truth for what is actually proved. The roadmap to
+> AffineScript parity is [`../ALIGNMENT-PLAN.md`](../ALIGNMENT-PLAN.md).
+> The status table further down this file is a convenience summary and
+> defers to `STATUS.md` on any disagreement.
 
 ## Contents
 
-1. [Coq](coq/) - Mechanized proofs in Coq
-2. [Lean](lean/) - Mechanized proofs in Lean 4
-3. [Properties](properties/) - Property-based test specifications
+1. [`coq/`](coq/) — General Coq core (`Syntax.v`, `Typing.v`:
+   non-quantitative, substitution lemma proved).
+2. [`coq/solo-core/`](coq/solo-core/) — **Mechanised QTT affine
+   solo-core** (Coq track): semiring laws proved; progress/preservation
+   stated.
+3. [`idris/solo-core/`](idris/solo-core/) — **Mechanised QTT affine
+   solo-core** (Idris2 track), mirroring AffineScript's solo-core.
+4. `properties/` — Property-based test specifications.
 
 ## Verification Goals
 

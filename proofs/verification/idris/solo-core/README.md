@@ -1,0 +1,58 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
+# my-lang Solo-core — Idris2 mechanisation
+
+A mechanised QTT (Quantitative Type Theory) kernel for my-lang's
+**solo** dialect (affine types + arena allocation). This is the
+Idris2 half of the dual-track mechanisation; the Coq half lives in
+[`../../coq/solo-core/`](../../coq/solo-core/). Both tracks were
+chosen deliberately (see `proofs/ALIGNMENT-PLAN.md`).
+
+## Modules
+
+| Module | Contents | Status |
+|--------|----------|--------|
+| `Quantity.idr` | Three-point QTT semiring `{0,1,ω}` + semiring/ordering laws | **proved** (exhaustive `Refl`, `%default total`) |
+| `Syntax.idr`   | Solo-kernel types and de Bruijn terms | definitions |
+| `Context.idr`  | QTT contexts: pointwise add, scaling, zeroing | definitions |
+| `Typing.idr`   | QTT typing judgement `Has g t a` (context-splitting) | rules |
+| `Soundness.idr`| Values, `Step` (declared), progress / preservation | **statements** (`?todo_*` holes) |
+
+## Methodology: statements first
+
+Following the same approach AffineScript used for its own solo-core,
+the soundness theorems are committed as **statements** with typed
+holes before the proofs are written. This pins the metatheory down
+and lets the rest of the development typecheck while the
+case-by-case derivations land incrementally (Track F1, weeks 3–12).
+
+## Relationship to the implementation
+
+The surface solo type-checker (`dialects/solo/`) is currently
+`TODO(#typeck)`. Until it exists, **this model leads the
+implementation**: it is the specification the checker must satisfy.
+The static context-splitting view here and the eventual post-hoc
+usage-walk in the checker are intended to be equivalent; that
+equivalence lemma is Track F1.4.
+
+## Building
+
+```sh
+idris2 --build solo-core.ipkg     # typecheck the whole package
+idris2 --check Typing.idr         # check one module
+```
+
+No proof assistant is wired into CI yet (the AffineScript solo-core
+is in the same posture). Adding an `idris2 --check` CI leg is a
+Track F1 deliverable — see `proofs/STATUS.md`.
+
+## Scope
+
+Excluded from this kernel (deferred to later tracks / other
+dialects): effects & handlers, session types (duet), the agent
+calculus (ensemble), references / ownership / borrowing, AI
+constructs, records / rows, refinement & dependent types. The
+four-point **affine** quantity (`?` = at-most-once) is the immediate
+refinement of the three-point core — see `Quantity.idr` and
+Track F1.2.

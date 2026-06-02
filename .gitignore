@@ -61,3 +61,12 @@ deps/
 .cache/
 build/
 dist/
+
+# Generated Coq build drivers (coq_makefile output)
+CoqMakefile
+CoqMakefile.conf
+*.vo
+*.vok
+*.vos
+*.glob
+.*.aux
