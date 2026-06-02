@@ -34,6 +34,8 @@ this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- fix(stdlib): `char_at` indexes by character, not byte — the old `idx < s.len()` byte guard could panic on multi-byte UTF-8 (CWE-754); now returns a clean `IndexOutOfBounds` + regression test
+- fix(string): document the `char::from_digit` totality invariant with `.expect` instead of `.unwrap()` in `int_to_string_radix`
 - fix(parser): accept comma/trailing-comma separators in `ai_model` attribute blocks, matching struct-field syntax (#84)
 - fix(my-fmt): borrow-after-move in `fs::write` output path (crate did not compile) (#84)
 - fix(my-lsp): non-exhaustive `CheckError` match — handle `ExpressionTooDeep` (crate did not compile) (#84)
