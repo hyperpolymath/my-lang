@@ -274,25 +274,32 @@ impl Parser {
         let attr_name = self.parse_ident()?;
         self.expect(TokenKind::Colon)?;
 
-        match attr_name.name.as_str() {
+        let attr = match attr_name.name.as_str() {
             "provider" => {
                 let value = self.parse_string_lit()?;
-                Ok(AiModelAttr::Provider(value))
+                AiModelAttr::Provider(value)
             }
             "model" => {
                 let value = self.parse_string_lit()?;
-                Ok(AiModelAttr::Model(value))
+                AiModelAttr::Model(value)
             }
             "temperature" => {
                 let value = self.parse_float_lit()?;
-                Ok(AiModelAttr::Temperature(value))
+                AiModelAttr::Temperature(value)
             }
             "cache" => {
                 let value = self.parse_bool_lit()?;
-                Ok(AiModelAttr::Cache(value))
+                AiModelAttr::Cache(value)
             }
-            _ => Err(self.error("valid ai_model attribute")),
+            _ => return Err(self.error("valid ai_model attribute")),
+        };
+
+        // Optional separator/trailing comma, matching struct-field syntax.
+        if self.check(TokenKind::Comma) {
+            self.advance();
         }
+
+        Ok(attr)
     }
 
     fn parse_prompt_decl(&mut self) -> ParseResult<PromptDecl> {
@@ -2223,6 +2230,27 @@ mod tests {
         let program = parse(input).unwrap();
         if let TopLevel::AiModel(m) = &program.items[0] {
             assert_eq!(m.name.name, "gpt4");
+            assert_eq!(m.attributes.len(), 4);
+        } else {
+            panic!("Expected ai_model");
+        }
+    }
+
+    #[test]
+    fn test_ai_model_decl_comma_separated() {
+        // Comma-separated attributes with a trailing comma, matching struct-field
+        // syntax. Regression for the conformance fixture v03_ai_model.my.
+        let input = r#"
+            ai_model Classifier {
+                provider: "openai",
+                model: "gpt-4",
+                temperature: 0.7,
+                cache: true,
+            }
+        "#;
+        let program = parse(input).unwrap();
+        if let TopLevel::AiModel(m) = &program.items[0] {
+            assert_eq!(m.name.name, "Classifier");
             assert_eq!(m.attributes.len(), 4);
         } else {
             panic!("Expected ai_model");
