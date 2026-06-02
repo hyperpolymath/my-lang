@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# my-lang Mustfile — declarative invariant contract
+# See: https://github.com/hyperpolymath/mustfile
+
+version: 1
+
+metadata:
+  name: my-lang-invariants
+  spec: v0.1.0
+  description: >
+    Invariant checks for the my-lang project: build integrity, type-checker
+    correctness, proof assets, governance compliance, and documentation
+    freshness.
+
+checks:
+  # --- Build integrity ---
+
+  - name: workspace-builds
+    description: "Cargo workspace must compile without errors."
+    run: "cargo build --workspace --quiet"
+    tags: [build, ci]
+
+  - name: all-tests-pass
+    description: "All unit and integration tests must pass (137+ tests)."
+    run: "cargo test --workspace --quiet"
+    tags: [test, ci]
+
+  # --- Type checker correctness ---
+
+  - name: echo-mode-ordering
+    description: "EchoMode::Linear must weaken to Affine; Affine must not weaken to Linear."
+    run: "cargo test -p my-lang echo_tests --quiet"
+    tags: [proof-adjacent, echo-types, ci]
+
+  # --- Proof assets: shape checks (not soundness) ---
+
+  - name: coq-project-present
+    description: "Coq solo-core _CoqProject must be present and non-empty."
+    run: "test -s proofs/verification/coq/solo-core/_CoqProject"
+    tags: [proofs, coq]
+
+  - name: idris-pkg-present
+    description: "Idris2 solo-core package descriptor must be present."
+    run: "test -s proofs/verification/idris/solo-core/solo-core.ipkg"
+    tags: [proofs, idris2]
+
+  - name: proof-status-present
+    description: "Proof Status Registry must exist and be non-empty."
+    run: "test -s proofs/STATUS.md"
+    tags: [proofs, documentation]
+
+  - name: no-admitted-in-coq-trusted-base
+    description: >
+      No Coq file in solo-core/ may contain a bare 'Admitted.' or 'Axiom'
+      that would pollute the trusted base. (Named Prop definitions are OK;
+      they assert nothing.)
+    run: >
+      bash -uc '! grep -rn "^\s*Admitted\.\|^\s*Axiom\b"
+        proofs/verification/coq/solo-core/*.v'
+    tags: [proofs, coq, trusted-base, ci]
+
+  # --- Governance ---
+
+  - name: spdx-headers-on-rust-sources
+    description: "All Rust source files in crates/ must have SPDX licence headers."
+    run: >
+      bash -uc '! find crates -name "*.rs" -exec grep -L "SPDX-License-Identifier" {} \; | grep -q .'
+    tags: [governance, licence, ci]
+
+  - name: hypatia-baseline-valid-json-array
+    description: ".hypatia-baseline.json must be a valid JSON array (governance validator requirement)."
+    run: "jq -e 'type == \"array\"' .hypatia-baseline.json > /dev/null"
+    tags: [governance, hypatia, ci]
+
+  - name: no-sha1-in-security-code
+    description: "No MD5 or SHA1 usage in crates/ (SHA256+ required for security)."
+    run: >
+      bash -uc '! grep -r --include="*.rs" -i "sha1\|md5" crates/ | grep -v test | grep -v "#"'
+    tags: [security, ci]
+
+  # --- Documentation freshness ---
+
+  - name: readme-present
+    description: "README.adoc must exist and be non-empty."
+    run: "test -s README.adoc"
+    tags: [documentation]
+
+  - name: explainme-present
+    description: "EXPLAINME.adoc must exist for new contributors."
+    run: "test -s EXPLAINME.adoc"
+    tags: [documentation]
+
+  - name: alignment-plan-present
+    description: "Alignment plan (proofs/ALIGNMENT-PLAN.md) must exist."
+    run: "test -s proofs/ALIGNMENT-PLAN.md"
+    tags: [documentation, proofs]
+
+  - name: state-a2ml-current
+    description: >
+      .machine_readable/6a2/STATE.a2ml must be present and have been
+      updated this calendar year.
+    run: >
+      bash -uc 'grep -q "last-updated" .machine_readable/6a2/STATE.a2ml &&
+                grep "last-updated" .machine_readable/6a2/STATE.a2ml | grep -q "2026"'
+    tags: [documentation, machine-readable]
+
+  - name: design-notes-present
+    description: "Echo-types integration design note must exist."
+    run: "test -s docs/design/echo-types-integration.md"
+    tags: [documentation, echo-types]

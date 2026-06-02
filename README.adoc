@@ -3,25 +3,38 @@
 
 = my-lang
 :author: Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
-:revdate: 2026-05-26
-
-> This README replaces an earlier stub that incorrectly stated the
-> repository had been moved. *This is the canonical
-> `hyperpolymath/my-lang`.*
+:revdate: 2026-06-02
+:toc: left
+:toclevels: 2
 
 `my-lang` is the *next-generation language* working project — a
 multi-dialect surface for the hyperpolymath language stack. It is one
 of two flagship language experiments in the estate (the other being
 link:https://github.com/hyperpolymath/affinescript[`affinescript`]).
+The two projects are *siblings*, not a fork — they share design
+principles but diverge in dialect scope and proof strategy.
+
+For a gentler entry point see link:EXPLAINME.adoc[EXPLAINME.adoc].
 
 == What's in here
 
 `crates/`::
-Rust crates implementing the compiler / interpreter layers.
+Rust crates implementing the compiler / interpreter layers. The core
+type checker lives in `crates/my-lang/src/types.rs` and includes
+`EchoMode`, `Ty::Echo`, and full affine-weakening semantics.
 
 `dialects/`::
 Per-dialect surface-syntax definitions. The `my-lang` umbrella admits
-multiple surface dialects sharing a common semantic core.
+multiple surface dialects sharing a common semantic core: *solo*
+(affine, single-agent), *duet* (session-typed, two-party), *ensemble*
+(multi-agent), and *me* (block/visual/pedagogic).
+
+`proofs/`::
+Formal verification assets — paper proofs, mechanised Coq + Idris2
+solo-core, and the alignment roadmap toward AffineScript parity.
+See link:proofs/STATUS.md[`proofs/STATUS.md`] for the authoritative
+proof-status registry and link:proofs/ALIGNMENT-PLAN.md[`proofs/ALIGNMENT-PLAN.md`]
+for the phased roadmap.
 
 `conformance/`::
 Conformance tests — programs that any compliant `my-lang` implementation
@@ -33,11 +46,16 @@ reference and CI smoke-test.
 
 `docs/`::
 Design notes, language-reference drafts, and ADRs (Architecture Decision
-Records).
+Records). Includes link:docs/design/echo-types-integration.md[the echo-types
+integration design note].
 
 `frontier-practices/`::
 Forward-looking experiments — things that may become part of the
 language but are not yet stable.
+
+`contractiles/`::
+Project-level Mustfile / Dustfile contracts: invariant checks and
+recovery semantics for `my-lang` tooling.
 
 == Quickstart
 
@@ -49,6 +67,72 @@ cd my-lang
 just build    # builds the workspace (Rust)
 just test     # runs unit + conformance tests
 ----
+
+To check a single Coq proof file:
+
+[source,bash]
+----
+cd proofs/verification/coq/solo-core
+coq_makefile -f _CoqProject -o CoqMakefile && make -f CoqMakefile
+----
+
+To check the Idris2 solo-core:
+
+[source,bash]
+----
+cd proofs/verification/idris/solo-core
+idris2 --check solo-core.ipkg
+----
+
+== Proof and verification status
+
+`my-lang` follows a *statements-first, machine-checked later* proof
+methodology (mirroring `affinescript`'s solo-core approach). The
+link:proofs/STATUS.md[Proof Status Registry] is the single
+authoritative source — no proof is described as "proved" there until
+a proof assistant accepts it.
+
+Current state (2026-06-02):
+
+* **QTT semiring + laws** — *locally-checked* on both Coq and Idris2
+  tracks. All semiring and ordering laws proved by exhaustive case
+  analysis (`Qed` / `Refl`).
+* **Solo-core syntax, contexts, typing** — *definitions-only* on
+  both tracks.
+* **Progress / Preservation** — *statement-only* obligations;
+  proofs are Phase F1.3 / F1.4 deliverables.
+* **Echo type former** — *locally-checked* in Rust (5 Agda-mirroring
+  unit tests covering `EchoMode` ordering and affine-weakening
+  semantics). Mechanised residue layer in Coq/Idris is Phase F1 work.
+* **Paper proofs** — ~6.3 k lines across `proofs/shared/` and
+  per-dialect subdirectories (solo/duet/ensemble/me): type-system
+  soundness, effect soundness, memory model, operational and
+  denotational semantics, AI semantics.
+
+Proof CI (running `coqc`/`idris2 --check` in CI) is Phase F5.
+
+== Echo type integration
+
+`my-lang` integrates the link:https://github.com/hyperpolymath/echo-types[`echo-types`]
+Agda library — a formal account of *loss that is not total erasure*.
+
+[source]
+----
+Echo<A => B>   // "a proof-relevant residue of a lossy collapse from A to B"
+----
+
+`EchoMode { Linear, Affine }` mirrors the `EchoLinear.agda` two-point
+poset `linear ⊑ affine`. A `Linear` echo may be weakened to `Affine`
+(one-way, no section). Domain and codomain are invariant under subtyping.
+
+Claim boundary (retraction R-2026-05-18):
+____
+Echo models irreversible weakening as a one-way, proof-relevant residue
+transformation. It is a *loss-graded reindexing modality over a thin
+poset*, not a graded comonad or free construction.
+____
+
+For full design rationale see link:docs/design/echo-types-integration.md[docs/design/echo-types-integration.md].
 
 == Architectural authority
 
@@ -65,20 +149,27 @@ These two files are the source-of-truth for "is `X` in scope for
 
 * **Licence**: MPL-2.0. (Migrated from PMPL-1.0-or-later 2026-05-26 per
   the estate licence-debt audit, hyperpolymath/standards#196.)
-* **Maturity**: design-iteration. Working compiler exists; surface and
-  semantics still settling. Per the maintainer's memory entry
-  `my-lang-37-shipped-rest-parked`, item #37 has shipped and several
-  follow-ups (`#38-#41`) are artefact-blocked.
-* **Audit findings**: see `docs/tech-debt-2026-05-26.md` if present
-  (added by the 2026-05-26 estate tech-debt scan).
+* **Maturity**: design-iteration / early alpha. Working Rust compiler
+  core exists (137 passing tests); surface syntax and semantics still
+  settling.
+* **Proof phase**: F1.0 complete — QTT semiring proved, soundness
+  statements committed on dual Coq + Idris2 tracks.
+* **Governance**: CI green on all shipped checks; proof CI (F5) pending.
 
 == Contributing
 
 See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] (or
 link:CONTRIBUTING.md[CONTRIBUTING.md]). GPG-signed commits required.
 
+Language policy, package management, and security requirements are
+enforced by the estate governance workflow
+(`hyperpolymath/standards`). New contributors should read
+link:EXPLAINME.adoc[EXPLAINME.adoc] first.
+
 == Companion repositories
 
-* link:https://github.com/hyperpolymath/standards[`hyperpolymath/standards`] — canonical estate-wide standards.
-* link:https://github.com/hyperpolymath/affinescript[`hyperpolymath/affinescript`] — sibling language project; differing design intent.
+* link:https://github.com/hyperpolymath/standards[`hyperpolymath/standards`] — canonical estate-wide standards and governance.
+* link:https://github.com/hyperpolymath/affinescript[`hyperpolymath/affinescript`] — sibling language project; the target AffineScript parity state is defined in link:proofs/ALIGNMENT-PLAN.md[`proofs/ALIGNMENT-PLAN.md`].
+* link:https://github.com/hyperpolymath/echo-types[`hyperpolymath/echo-types`] — upstream Agda echo-types library integrated into the `my-lang` type checker.
+* link:https://github.com/hyperpolymath/EchoTypes.jl[`hyperpolymath/EchoTypes.jl`] — Julia executable companion to `echo-types`; planned differential oracle for Phase 2 echo-type testing.
 * link:https://github.com/hyperpolymath/typed-wasm[`hyperpolymath/typed-wasm`] — the typed-wasm backend `my-lang` shares with `affinescript`.

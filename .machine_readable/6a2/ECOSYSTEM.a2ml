@@ -3,18 +3,80 @@
 #
 # ECOSYSTEM.a2ml — My Lang ecosystem position
 [metadata]
-version = "1.0"
-last-updated = "2026-04-11"
+version = "1.1"
+last-updated = "2026-06-02"
 
 [project]
 name = "My Lang"
-purpose = ""
-role = ""
+purpose = """
+Multi-dialect programming language with Quantitative Type Theory (QTT) semantic
+core. Combines affine/linear type discipline, echo-type loss modelling, formal
+mechanised proofs, and AI-adjacent effect tracking. Four dialects: solo, duet,
+ensemble, me.
+"""
+role = "flagship-language-experiment"
+licence = "MPL-2.0"
 
 [position-in-ecosystem]
-category = ""
+category = "programming-language"
+tier = "flagship"
+sibling = "affinescript"
+relationship-to-sibling = """
+my-lang and affinescript are siblings, not a fork. affinescript is the more
+mature implementation (OCaml, ~80 modules, ~20 backends). my-lang has broader
+dialect coverage (four dialects vs affinescript's solo) and is catching up on
+mechanisation maturity via the ALIGNMENT-PLAN.md roadmap.
+"""
+proof-methodology = "statements-first, dual-track Coq + Idris2"
 
 [related-projects]
 projects = [
-  # No related projects recorded
+  {
+    name = "affinescript",
+    repo = "hyperpolymath/affinescript",
+    relationship = "sibling-language",
+    description = "The more mature flagship language. Sets the mechanisation target (Idris2 QTT solo-core, capability matrix). my-lang alignment tracked in proofs/ALIGNMENT-PLAN.md.",
+    role = "target-parity-reference"
+  },
+  {
+    name = "echo-types",
+    repo = "hyperpolymath/echo-types",
+    relationship = "upstream-dependency",
+    description = "Agda library formalising echo types — proof-relevant residues of lossy maps. Echo f y = Σ(x:A)(f x ≡ y). The my-lang type checker integrates this as Echo<A => B> with EchoMode { Linear, Affine }.",
+    role = "formal-foundation"
+  },
+  {
+    name = "EchoTypes.jl",
+    repo = "hyperpolymath/EchoTypes.jl",
+    relationship = "tooling-companion",
+    description = "Julia executable companion to echo-types. Planned differential oracle for finite-domain semantic testing of echo type examples against the Rust checker (Phase 2 / echo slice 3).",
+    role = "testing-oracle"
+  },
+  {
+    name = "standards",
+    repo = "hyperpolymath/standards",
+    relationship = "governance",
+    description = "Estate-wide standards, governance workflows (language policy, Hypatia scan, trusted-base reduction), and capability-matrix discipline. All my-lang CI uses the reusable workflows from this repo.",
+    role = "governance-authority"
+  },
+  {
+    name = "typed-wasm",
+    repo = "hyperpolymath/typed-wasm",
+    relationship = "shared-backend",
+    description = "Typed-wasm backend shared with affinescript. One of the target compilation backends for the my-lang solo dialect.",
+    role = "compilation-backend"
+  },
+]
+
+[alignment-gap-summary]
+reference = "proofs/ALIGNMENT-PLAN.md"
+gaps-closed = [
+  "G1-partial: mechanised QTT solo-core scaffold on dual Coq + Idris2 tracks (F1.0 done)",
+]
+gaps-open = [
+  "G1-remainder: F1.1–F1.4 (small-step semantics, progress/preservation proofs)",
+  "G2: no mechanised operational semantics constructors yet",
+  "G3: proof CI leg absent (Phase F5)",
+  "G4: paper-proof topic parity (quantitative-types doc, row-polymorphism, Hoare semantics, categorical semantics, complexity analysis)",
+  "G5: no coqc/idris2 CI leg",
 ]

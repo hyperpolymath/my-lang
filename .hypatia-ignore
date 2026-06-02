@@ -18,6 +18,15 @@
 playground/
 dialects/
 
+# --- frontier-practices/ is exploratory forward-looking research code outside
+# the Cargo workspace. The .res (ReScript) agent files pre-date the estate's
+# AffineScript preference; CLAUDE.md continues to permit ReScript as a primary
+# application language. AffineScript migration is a direction, not a blocker
+# for non-shipping frontier work. Exempted path-wide (consistent with the
+# playground/ and dialects/ treatment) so CI stays clean without forcing a
+# disruptive migration of non-shipping research code.
+frontier-practices/
+
 # --- Scanner false positive: this Nickel file is a POLICY that *bans*
 # Dockerfile (`banned_files = ["Makefile", "Dockerfile"]`). The rule fires on
 # the substring "Dockerfile" even though the config enforces the very policy

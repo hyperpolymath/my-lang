@@ -1,0 +1,111 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# my-lang Dustfile — recovery and rollback semantics
+
+version: 1
+
+recovery:
+  # --- Build rollback ---
+
+  build:
+    - name: cargo-lockfile-restore
+      path: Cargo.lock
+      description: "Restore Cargo.lock to the last known-good state if a dependency upgrade breaks the build."
+      rollback: "git checkout HEAD~1 -- Cargo.lock"
+      notes: >
+        Only roll back Cargo.lock if the workspace no longer builds.
+        Investigate why the upstream dependency changed before rolling back
+        permanently — a security patch may require the new version.
+
+  # --- Proof assets ---
+
+  proofs:
+    - name: coq-solo-core-rollback
+      path: proofs/verification/coq/solo-core/
+      description: "Roll back Coq solo-core to a known-good state if a proof change introduces Admitted or breaks compilation."
+      rollback: "git checkout HEAD~1 -- proofs/verification/coq/solo-core/"
+      notes: >
+        Before rolling back: check proofs/STATUS.md to confirm which items are
+        statement-only vs locally-checked. A coqc failure on a new file is
+        acceptable if the file is in statement-only status. Only roll back if a
+        previously-passing Qed is now broken.
+
+    - name: idris2-solo-core-rollback
+      path: proofs/verification/idris/solo-core/
+      description: "Roll back Idris2 solo-core to a known-good state."
+      rollback: "git checkout HEAD~1 -- proofs/verification/idris/solo-core/"
+      notes: >
+        idris2 --check failures on statement-only holes (?todo_*) are expected
+        and not rollback triggers. Roll back only if a previously-passing module
+        now fails to typecheck.
+
+  # --- Type checker ---
+
+  type-checker:
+    - name: echo-mode-rollback
+      path: crates/my-lang/src/types.rs
+      description: "Restore the echo-type integration to the last green state if tests regress."
+      rollback: "git checkout HEAD~1 -- crates/my-lang/src/types.rs"
+      notes: >
+        The five echo_tests mirror Agda theorems directly. If they regress, the
+        rollback restores the theorem-mirroring behaviour. Investigate whether
+        the regression is in EchoMode::weakens_to or is_assignable_from.
+
+  # --- Governance ---
+
+  governance:
+    - name: hypatia-baseline-rollback
+      path: .hypatia-baseline.json
+      description: "Restore .hypatia-baseline.json to [] if a change invalidates the array schema."
+      rollback: "echo '[]' > .hypatia-baseline.json"
+      notes: >
+        The governance validator requires .hypatia-baseline.json to be a valid
+        JSON array. It must not be an object. The intentional state is an empty
+        array [] because all scanner findings are either resolved at source or
+        exempted in .hypatia-ignore with documented rationale.
+
+    - name: hypatia-ignore-rollback
+      path: .hypatia-ignore
+      description: "Roll back .hypatia-ignore if a change accidentally removes a required exemption."
+      rollback: "git checkout HEAD~1 -- .hypatia-ignore"
+      notes: >
+        Key exemptions that must be present: playground/, dialects/, and
+        frontier-practices/ (non-shipping code). Removing these will cause
+        governance CI to fail on pre-existing non-shipped code.
+
+  # --- Documentation ---
+
+  documentation:
+    - name: state-a2ml-rollback
+      path: .machine_readable/6a2/STATE.a2ml
+      description: "Roll back STATE.a2ml if a botched edit corrupts the TOML structure."
+      rollback: "git checkout HEAD~1 -- .machine_readable/6a2/STATE.a2ml"
+      notes: >
+        STATE.a2ml must remain valid TOML. Run 'toml-test' or 'tomll' to check
+        before committing edits.
+
+dust-events:
+  - name: ci-governance-failure
+    event: "ci.governance.failure"
+    description: "Triggered when the Governance CI workflow fails on a PR."
+    triage: >
+      1. Check which governance job failed (Validate Hypatia baseline vs
+         Language / package anti-pattern policy vs other).
+      2. If Hypatia baseline: ensure .hypatia-baseline.json is a plain JSON
+         array (not an object). Run: jq -e 'type == "array"' .hypatia-baseline.json
+      3. If language anti-pattern: check .hypatia-ignore for the affected path.
+         Non-shipping trees (playground/, dialects/, frontier-practices/) should
+         be unconditionally exempted.
+      4. If trusted-base: grep for bare 'Admitted.' or 'Axiom' in .v files.
+         Replace with named Prop definitions.
+
+  - name: ci-test-failure
+    event: "ci.tests.failure"
+    description: "Triggered when cargo test regresses."
+    triage: >
+      1. Run 'cargo test --workspace' locally and check which test failed.
+      2. For echo_tests failures: review EchoMode::weakens_to and
+         Ty::is_assignable_from for the Echo arm.
+      3. If the failure is pre-existing (in a non-shipping crate), consider
+         adding the crate to the CI skip list rather than fixing it in this PR.
