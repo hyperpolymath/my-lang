@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: MPL-2.0
+# Line/region coverage for the Rust workspace via cargo-llvm-cov.
+#
+# Why: the workspace had fuzzing and a stack-depth guard but no coverage
+# measurement, so coverage regressions went unnoticed (see TESTING.md). This
+# workflow measures coverage on every change, publishes an LCOV report + an
+# HTML report as artifacts, writes a summary to the job page, and enforces a
+# conservative line-coverage FLOOR so coverage can only ratchet upward.
+#
+# Raising the floor: bump COVERAGE_FLOOR (and the matching --fail-under-lines
+# value below) as coverage improves. It is intentionally a floor, not a target.
+name: Coverage
+
+on:
+  push:
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/coverage.yml'
+  pull_request:
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/coverage.yml'
+
+permissions: read-all
+
+env:
+  # Minimum acceptable line coverage (percent). Ratchet upward over time.
+  # Baseline at introduction was ~46.7% line coverage (workspace, excl. my-llvm);
+  # the floor sits just below that so it gates regressions without being flaky.
+  COVERAGE_FLOOR: "40"
+
+jobs:
+  coverage:
+    name: llvm-cov
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
+        with:
+          toolchain: stable
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      # Coverage gate. --fail-under-lines must mirror COVERAGE_FLOOR. The LLVM
+      # back end (my-llvm) needs a system LLVM toolchain, so it is excluded here
+      # to keep the job hermetic; everything else in the workspace is measured.
+      - name: Measure coverage (enforce floor)
+        run: |
+          cargo llvm-cov \
+            --workspace \
+            --exclude my-llvm \
+            --lcov --output-path lcov.info \
+            --fail-under-lines "${COVERAGE_FLOOR}"
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          {
+            echo '## Coverage summary'
+            echo '```'
+            cargo llvm-cov report --workspace --exclude my-llvm --summary-only
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate HTML report
+        if: always()
+        run: cargo llvm-cov report --workspace --exclude my-llvm --html --output-dir coverage-html
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-report
+          path: |
+            lcov.info
+            coverage-html
+          if-no-files-found: warn
