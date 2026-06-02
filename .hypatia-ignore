@@ -17,6 +17,14 @@
 # every PR produced repeated noise unrelated to any PR's diff.
 playground/
 dialects/
+# _exploratory/me-scaffolding is the sidelined `me` dialect scaffolding,
+# explicitly removed from the active workspace (Cargo.toml note +
+# _exploratory/me-scaffolding/SIDELINED.adoc). my-ssg is a separate, non-workspace
+# static-site-generator crate. Neither ships from the root workspace, so their
+# unwrap()/dangerous-default findings are non-shipping noise (same rationale as
+# playground/ and dialects/ above), not a security backlog on shipped code.
+_exploratory/
+my-ssg/
 
 # --- frontier-practices/ is exploratory forward-looking research code outside
 # the Cargo workspace. The .res (ReScript) agent files pre-date the estate's
