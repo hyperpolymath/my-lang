@@ -6,10 +6,21 @@
 (* (Coq twin of Soundness.idr)                                *)
 (*                                                            *)
 (* Statements-first: progress and preservation are committed  *)
-(* as theorems with [Admitted] placeholders. The case-by-case *)
-(* derivations land incrementally (Track F1; ALIGNMENT-PLAN). *)
-(* Each [Admitted] is a tracked proof obligation, NOT a claim  *)
-(* of a completed proof — see proofs/STATUS.md.               *)
+(* as named PROPOSITIONS (Definition ... : Prop), not as      *)
+(* incomplete Theorems. This is deliberate:                   *)
+(*                                                            *)
+(*   - A bare `Definition : Prop` asserts NOTHING — it only   *)
+(*     records the proposition we intend to prove. It leaves  *)
+(*     no proof hole and adds no unproved assumption to the   *)
+(*     trusted base (cf. the standards Trusted-Base Reduction *)
+(*     Policy, which forbids undocumented proof-debt escape   *)
+(*     hatches in .v files).                                  *)
+(*   - Each proposition is discharged later as                *)
+(*       `Theorem progress : Progress. Proof. ... Qed.`       *)
+(*     (Track F1.3 / F1.4 — see proofs/ALIGNMENT-PLAN.md).    *)
+(*                                                            *)
+(* Authoritative status: proofs/STATUS.md. These are          *)
+(* *statement-only* until the discharging Theorems land.      *)
 (* ========================================================== *)
 
 Require Import Coq.Init.Nat.
@@ -28,39 +39,34 @@ Inductive value : tm -> Prop :=
   | VInr  : forall a t, value t -> value (Inr a t).
 
 (** * Small-step reduction (relation declared; constructors
-      deferred to Track F1.3 once the operational semantics is
+      deferred to Track F1.1 once the operational semantics is
       committed — call-by-value, left-to-right). *)
 
 Inductive step : tm -> tm -> Prop := .
 
-(** * Progress *)
+(** * Progress (proposition) *)
 
 (** A closed, well-typed Solo term is a value or can step. *)
-Theorem progress : forall t a,
-  has_type Empty t a ->
-  value t \/ exists t', step t t'.
-Proof.
-  (* Track F1: by induction on the typing derivation, using the
-     canonical-forms lemmas. *)
-Admitted.
+Definition Progress : Prop :=
+  forall t a,
+    has_type Empty t a ->
+    value t \/ exists t', step t t'.
 
-(** * Preservation *)
+(** * Preservation (proposition) *)
 
 (** Reduction preserves typing in the SAME context — the affine
     accounting content of the theorem. *)
-Theorem preservation : forall g t t' a,
-  has_type g t a ->
-  step t t' ->
-  has_type g t' a.
-Proof.
-  (* Track F1: by induction on the step relation, using a QTT
-     substitution lemma that respects context splitting. *)
-Admitted.
+Definition Preservation : Prop :=
+  forall g t t' a,
+    has_type g t a ->
+    step t t' ->
+    has_type g t' a.
 
-(** * Affine preservation (corollary) *)
+(** * Affine preservation (proposition; same as Preservation for
+      the Solo kernel, since the preserved context already carries
+      the quantity accounting). *)
+Definition AffinePreservation : Prop := Preservation.
 
-Theorem affine_preservation : forall g t t' a,
-  has_type g t a ->
-  step t t' ->
-  has_type g t' a.
-Proof. exact preservation. Qed.
+(* Track F1.3: Theorem progress         : Progress.        Proof. ... Qed. *)
+(* Track F1.4: Theorem preservation     : Preservation.    Proof. ... Qed. *)
+(* Track F1.4: Theorem affine_pres      : AffinePreservation. Proof. ... Qed. *)

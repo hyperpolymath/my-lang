@@ -22,8 +22,10 @@ Last verified: 2026-06-02.
 | **definitions-only** | Syntax/rules/operations defined; no theorems yet. |
 | **absent** | Does not exist, regardless of prose elsewhere. |
 
-> **No `Admitted`/`?todo` is ever described as "proved".** A
-> statement-only theorem is an obligation, not a result.
+> **No proof hole is ever described as "proved".** A statement-only
+> theorem is an obligation, not a result. On the Coq track the
+> obligations are recorded as named `Prop`s (no `Admitted`/`Axiom` in
+> the trusted base); on the Idris2 track as typed holes (`?todo_*`).
 
 ## Mechanised cores
 
@@ -32,8 +34,8 @@ Last verified: 2026-06-02.
 | QTT semiring + laws | Idris2 `idris/solo-core/Quantity.idr` | **locally-checked** | Semiring + ordering laws by exhaustive `Refl`, `%default total`. CI leg pending (Phase F5). |
 | QTT semiring + laws | Coq `coq/solo-core/Quantity.v` | **locally-checked** | Laws by `destruct; reflexivity`, real `Qed`. CI leg pending (F5). |
 | Solo syntax / contexts / typing | Idris2 + Coq `solo-core/` | **definitions-only** | de Bruijn terms, QTT context split/scale/zero, context-splitting typing judgement. |
-| `progress` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | `?todo_progress` / `Admitted`. Proof = Phase F1.3. |
-| `preservation` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | `?todo_preservation` / `Admitted`. Proof = Phase F1.4. |
+| `progress` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Coq `Definition Progress : Prop`; Idris `?todo_progress`. Proof = Phase F1.3. |
+| `preservation` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Coq `Definition Preservation : Prop`; Idris `?todo_preservation`. Proof = Phase F1.4. |
 | `affine_preservation` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Corollary of preservation. |
 | Small-step `Step`/`step` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Relation declared with no constructors yet; committed in F1.1. |
 | General core typing + substitution | Coq `coq/Typing.v` | **locally-checked** | Pre-existing: 9 `Qed`, 0 `Admitted`. Non-quantitative; substitution lemma proved. |

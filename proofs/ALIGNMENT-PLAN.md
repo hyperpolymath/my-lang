@@ -96,7 +96,8 @@ investment).
   `proofs/verification/idris/solo-core/` and
   `proofs/verification/coq/solo-core/`. Semiring laws are *fully
   proved* on both tracks; progress/preservation are statements-first
-  (`?todo_*` / `Admitted`).
+  (Coq named `Prop`s; Idris `?todo_*` holes — no `Admitted`/`Axiom`
+  in the Coq trusted base).
 - **F1.1** — Commit the small-step operational semantics (`Step` /
   `step` constructors): call-by-value, left-to-right beta / projection
   / case. Mirror across both tracks.
@@ -144,8 +145,10 @@ phases per the user's "starting with proofs" directive.
   investment *and* mirror AS's Idris2 solo-core for cross-repo parity.
   The two tracks are kept structurally parallel.
 - **D2 — Statements-first.** Soundness theorems are committed as
-  statements with holes/`Admitted` before proof, matching AS's
-  methodology. `proofs/STATUS.md` is the single truth on what is
+  statements before proof, matching AS's methodology — as named `Prop`s
+  on the Coq track (no `Admitted`/`Axiom`, to keep the trusted base
+  clean per the standards Trusted-Base Reduction Policy) and as typed
+  holes on the Idris2 track. `proofs/STATUS.md` is the single truth on what is
   actually proved.
 - **D3 — Three-point semiring first, affine `?` next (F1.2).** Land a
   fully-proved canonical QTT core, then refine to four-point affine —

@@ -18,18 +18,24 @@ the other.
 | `Syntax.v`   | Solo-kernel types and de Bruijn terms | definitions |
 | `Context.v`  | QTT contexts: `ctx_add`, `ctx_scale`, `ctx_zero` | definitions |
 | `Typing.v`   | `has_type` / `has_var` (context-splitting QTT rules) | rules |
-| `Soundness.v`| `value`, `step` (declared), `progress` / `preservation` | **statements** (`Admitted`) |
+| `Soundness.v`| `value`, `step` (declared), `Progress` / `Preservation` | **statement-only** (named `Prop`s) |
 
-Every `Admitted` in `Soundness.v` is a *tracked proof obligation*,
-not a completed proof. The honest current state is recorded in
-`proofs/STATUS.md`; do not describe these theorems as "proved" until
-the `Admitted` becomes `Qed`.
+The soundness theorems are stated as named **propositions**
+(`Definition Progress : Prop := ...`), *not* as incomplete theorems.
+A bare `Prop` definition asserts nothing and introduces no proof hole
+or unproved assumption into the trusted base — it just records the
+obligation, which is discharged later as
+`Theorem progress : Progress. Proof. ... Qed.` (Track F1.3 / F1.4).
+The honest current state is recorded in `proofs/STATUS.md`; nothing
+here is "proved" until those Theorems land.
 
 ## Building
 
 ```sh
-make            # coq_makefile -f _CoqProject && build
-# or directly:
+# Generate a build driver from _CoqProject (output name CoqMakefile is
+# generated, not committed) and build:
+coq_makefile -f _CoqProject -o CoqMakefile && make -f CoqMakefile
+# or check a single file directly:
 coqc -R . SoloCore Quantity.v
 ```
 
