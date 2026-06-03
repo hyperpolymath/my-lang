@@ -351,3 +351,25 @@ cache = true
     assert!(manifest.dependencies.contains_key("std"));
     assert_eq!(manifest.ai.default_model, Some("claude-3-opus".to_string()));
 }
+
+// Regression: `char_at` must index by character, not byte. "aé" is 2 chars but
+// 3 bytes; the old `idx < s.len()` (byte) guard let an in-byte-range / out-of-
+// char-range index reach `chars().nth(idx) == None` and panic (CWE-754). Now it
+// returns the correct char in range and a clean runtime error out of range.
+#[test]
+fn test_eval_char_at_is_char_indexed_not_byte() {
+    // In range: char index 1 of "aé" is the multi-byte 'é', not a byte split.
+    let in_range = r#"fn main() -> String { return char_at("aé", 1); }"#;
+    match eval(in_range) {
+        Ok(Value::String(s)) => assert_eq!(s, "é"),
+        other => panic!("expected \"é\", got {:?}", other),
+    }
+
+    // Out of char range but within byte length (2 chars, 3 bytes): index 2 must
+    // be a recoverable error, NOT a panic.
+    let oob = r#"fn main() -> String { return char_at("aé", 2); }"#;
+    assert!(
+        eval(oob).is_err(),
+        "char_at past the char count must error, not panic"
+    );
+}
