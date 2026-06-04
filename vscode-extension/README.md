@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # My Language VSCode Extension
 
 Language support for My Language - an AI-native programming language with four dialects (Solo, Duet, Ensemble, Me).

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Regression guard for hyperpolymath/my-lang#37.
 //!
 //! Subtlety 3 of #37: `MAX_EXPR_DEPTH` must be safe on the *smallest* target

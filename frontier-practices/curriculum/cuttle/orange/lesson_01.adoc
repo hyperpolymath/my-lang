@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Lesson 1: Basic Juggling
 :lesson-id: cuttle-orange-01
 :agent: Orange

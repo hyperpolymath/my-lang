@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Tree-walking interpreter for My Language
 //!
 //! This module implements a tree-walking interpreter that directly

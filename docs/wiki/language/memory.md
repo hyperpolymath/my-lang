@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Memory Management
 
 My Language uses ownership and borrowing for memory safety without garbage collection, similar to Rust but with ergonomic improvements.
