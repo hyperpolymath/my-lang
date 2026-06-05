@@ -115,4 +115,6 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines on contributing to the 
 
 ## License
 
-My Language is open source under the MIT License.
+My Language is open source under the **Mozilla Public License 2.0 (MPL-2.0)** —
+see [`LICENSE`](../../LICENSE). (Every source file carries an
+`SPDX-License-Identifier: MPL-2.0` header.)
