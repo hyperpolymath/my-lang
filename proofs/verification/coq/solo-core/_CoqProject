@@ -1,7 +1,9 @@
 -R . SoloCore
 
 Quantity.v
+EchoMode.v
 Syntax.v
 Context.v
 Typing.v
 Soundness.v
+EchoResidue.v

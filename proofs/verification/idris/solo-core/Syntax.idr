@@ -25,6 +25,7 @@
 module Syntax
 
 import Quantity
+import EchoMode
 
 %default total
 
@@ -42,6 +43,11 @@ data Ty : Type where
   TPair : Ty -> Ty -> Ty
   TSum  : Ty -> Ty -> Ty
   TArr  : Q -> Ty -> Ty -> Ty
+  ||| Echo residue type former: `m Echo<a => b>`. The proof-relevant
+  ||| residue of an admissible collapse `a => b` at linearity mode `m`
+  ||| (echo-types-integration.md). Mirrors `Ty::Echo` in the Rust
+  ||| checker and `TEcho` in the Coq twin.
+  TEcho : Mode -> Ty -> Ty -> Ty
 
 %name Ty a, b, c
 
@@ -68,5 +74,68 @@ data Tm : Type where
           -- scrutinee, left branch (binds 1), right branch (binds 1)
   Let   : Q -> Tm -> Tm -> Tm
           -- let (q x) = e1 in e2
+  -- echo-types residue (echo-types-integration.md slice 3):
+  -- `MkEcho m a b t` retains witness `t : a` as the proof-relevant
+  -- residue of an admissible collapse `a => b` at mode `m`; `Weaken t`
+  -- weakens a linear echo to an affine one (one-way).
+  MkEcho : Mode -> Ty -> Ty -> Tm -> Tm
+  Weaken : Tm -> Tm
 
 %name Tm t, t1, t2, u
+
+------------------------------------------------------------
+-- de Bruijn substitution
+------------------------------------------------------------
+--
+-- The operational semantics (Soundness.idr) reduces redexes by
+-- substituting a value for the bound variable. Standard
+-- capture-avoiding de Bruijn substitution: `shift` renumbers free
+-- variables when pushing under a binder, `substAt j u t` replaces
+-- de Bruijn index `j` by `u`, and `subst0` is the index-0 case the
+-- reduction rules use. Coq twin: the same operations in Syntax.v.
+
+||| `shift c t`: increment every free variable `>= c` by one.
+public export
+shift : Nat -> Tm -> Tm
+shift c (Var k)        = if k < c then Var k else Var (S k)
+shift c UnitT          = UnitT
+shift c (Lam q a t)    = Lam q a (shift (S c) t)
+shift c (App t1 t2)    = App (shift c t1) (shift c t2)
+shift c (Pair t1 t2)   = Pair (shift c t1) (shift c t2)
+shift c (Fst t)        = Fst (shift c t)
+shift c (Snd t)        = Snd (shift c t)
+shift c (Inl b t)      = Inl b (shift c t)
+shift c (Inr a t)      = Inr a (shift c t)
+shift c (Case t tL tR) = Case (shift c t) (shift (S c) tL) (shift (S c) tR)
+shift c (Let q t1 t2)  = Let q (shift c t1) (shift (S c) t2)
+shift c (MkEcho m a b t) = MkEcho m a b (shift c t)
+shift c (Weaken t)     = Weaken (shift c t)
+
+||| `substAt j u t`: replace de Bruijn index `j` by `u`, decrementing
+||| every free variable `> j`. Under a binder, `j` grows and `u` is
+||| shifted so its free variables keep pointing at the same things.
+public export
+substAt : Nat -> Tm -> Tm -> Tm
+substAt j u (Var k) = case compare k j of
+                        LT => Var k
+                        EQ => u
+                        GT => Var (minus k 1)
+substAt j u UnitT          = UnitT
+substAt j u (Lam q a t)    = Lam q a (substAt (S j) (shift 0 u) t)
+substAt j u (App t1 t2)    = App (substAt j u t1) (substAt j u t2)
+substAt j u (Pair t1 t2)   = Pair (substAt j u t1) (substAt j u t2)
+substAt j u (Fst t)        = Fst (substAt j u t)
+substAt j u (Snd t)        = Snd (substAt j u t)
+substAt j u (Inl b t)      = Inl b (substAt j u t)
+substAt j u (Inr a t)      = Inr a (substAt j u t)
+substAt j u (Case t tL tR) =
+  Case (substAt j u t) (substAt (S j) (shift 0 u) tL) (substAt (S j) (shift 0 u) tR)
+substAt j u (Let q t1 t2)  = Let q (substAt j u t1) (substAt (S j) (shift 0 u) t2)
+substAt j u (MkEcho m a b t) = MkEcho m a b (substAt j u t)
+substAt j u (Weaken t)     = Weaken (substAt j u t)
+
+||| Single-variable substitution for index 0 — the `(\x.t) v -> t[v/x]`
+||| workhorse of the reduction rules.
+public export
+subst0 : Tm -> Tm -> Tm
+subst0 u t = substAt 0 u t

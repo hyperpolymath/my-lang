@@ -24,6 +24,7 @@
 module Typing
 
 import Quantity
+import EchoMode
 import Syntax
 import Context
 
@@ -69,13 +70,21 @@ data Has : Ctx -> Tm -> Ty -> Type where
   ||| T-App: function typed in `g1`, argument in `g2` scaled by
   ||| the parameter quantity `q`, whole application in the
   ||| pointwise sum `g1 + q * g2`.
-  THApp : Has g1 t1 (TArr q a b)
+  |||
+  ||| The split contexts `g1`, `g2` and the scaling quantity `q` are
+  ||| explicit fields: the derivation *records its context split*. (In
+  ||| QTT-as-Idris this also keeps them runtime-relevant, which the
+  ||| `progress` closed-context inversion needs; the Coq twin leaves
+  ||| them as `Prop` binders since `Prop` has no erasure.)
+  THApp : (g1, g2 : Ctx) -> (q : Q)
+       -> Has g1 t1 (TArr q a b)
        -> Has g2 t2 a
        -> ctxAdd g1 (ctxScale q g2) = Just g
        -> Has g (App t1 t2) b
 
   ||| T-Pair: product introduction splits the context additively.
-  THPair : Has g1 t1 a
+  THPair : (g1, g2 : Ctx)
+        -> Has g1 t1 a
         -> Has g2 t2 b
         -> ctxAdd g1 g2 = Just g
         -> Has g (Pair t1 t2) (TPair a b)
@@ -97,7 +106,8 @@ data Has : Ctx -> Tm -> Ty -> Type where
   ||| injected value with quantity One and is typed in `g2`
   ||| extended with that binder. Branches agree on `g2` and on
   ||| the result type. The whole `case` is typed in `g1 + g2`.
-  THCase : Has g1 t (TSum a b)
+  THCase : (g1, g2 : Ctx)
+        -> Has g1 t (TSum a b)
         -> Has (Snoc g2 a One) tL c
         -> Has (Snoc g2 b One) tR c
         -> ctxAdd g1 g2 = Just g
@@ -106,7 +116,22 @@ data Has : Ctx -> Tm -> Ty -> Type where
   ||| T-Let: bind `t1` with declared quantity `q`. The RHS is
   ||| typed in `g1`, scaled by `q`, then added to `g2` (the
   ||| body's context).
-  THLet : Has g1 t1 a
+  THLet : (g1, g2 : Ctx) -> (q : Q)
+       -> Has g1 t1 a
        -> Has (Snoc g2 a q) t2 b
        -> ctxAdd (ctxScale q g1) g2 = Just g
        -> Has g (Let q t1 t2) b
+
+  ||| T-Echo: introduce an echo residue retaining a witness `t : a`
+  ||| of an admissible collapse `a => b` at mode `m`. The codomain
+  ||| `b` is a phantom annotation (the non-dependent approximation,
+  ||| echo-types-integration.md §1). Does not split the context — it
+  ||| only records what was kept.
+  THEcho : Has g t a
+        -> Has g (MkEcho m a b t) (TEcho m a b)
+
+  ||| T-Weaken: `EchoLinear.weaken`. A Linear echo may be weakened to
+  ||| an Affine one; one-way (the reverse is barred —
+  ||| `EchoMode.noSectionWeaken`).
+  THWeaken : Has g t (TEcho Linear a b)
+          -> Has g (Weaken t) (TEcho Affine a b)
