@@ -1,6 +1,61 @@
 # Type System
 
-My Language features a powerful, static type system with inference, generics, and AI-aware types.
+My Language features a static type system with inference and generics, built on
+an **affine, Quantitative-Type-Theory (QTT) core**. The semantic kernel of the
+**Solo** dialect is mechanised in Coq + Idris2 (see
+[Formal Verification](../internals/formal-verification.md)); the surface features
+below are layered on that core.
+
+> **Note on scope.** This page documents the intended surface type system,
+> including forward-looking features. The mechanised, *proved* fragment is the
+> Solo QTT kernel (Unit, pairs, sums, functions, `let`, and Echo) — see
+> [Formal Verification](../internals/formal-verification.md) for exactly what is
+> proved today.
+
+## Quantities (QTT) and affinity
+
+Every binder in the Solo core carries a **quantity** describing how the bound
+resource may be used:
+
+| Quantity | Meaning |
+|----------|---------|
+| `0` | **erased** — present only at compile time (irrelevant at runtime) |
+| `1` | **linear** — used exactly once |
+| `ω` | **unrestricted** — used any number of times |
+
+Solo is **affine**: weakening lives in the quantity ordering (`0 ≤ 1`), so a
+linear resource *may* be dropped (used at most once) but never duplicated. The
+type checker accounts for usage by splitting the context across subterms
+(application, pairing, `let`, `case`) — the standard QTT discipline. The
+mechanised kernel proves this accounting sound (*progress* today; *preservation*
+in progress).
+
+## Echo types
+
+My Language integrates [`echo-types`](https://github.com/hyperpolymath/echo-types)
+— a formal account of **loss that is not total erasure** — directly into the type
+system. Given a lossy map `A → B`, an **echo** is the proof-relevant residue of
+*which inputs collapsed*: irreversibility *with a retained, typed constraint on
+what was lost*.
+
+```ml
+// An echo residue of an admissible collapse A => B, at a linearity mode.
+linear Echo<A => B>     // full residue — distinctions retained
+affine Echo<A => B>     // collapsed residue — distinctions weakened away
+```
+
+Echo is a **loss-graded reindexing modality over a thin poset** `Linear ⊑ Affine`:
+
+- a **`linear`** echo may be **weakened** to an **`affine`** one (one-way);
+- the weakening has **no section** — an `affine` echo can *never* be used where a
+  `linear` one is required;
+- domain and codomain are invariant.
+
+These laws are mechanised (`EchoMode`, `EchoResidue`) and back the Rust checker's
+`Ty::is_assignable_from` for the Echo case. The claim line is deliberately narrow:
+Echo is *not* a graded comonad / universal property / adjunction. See the
+[echo-types integration design note](../../design/echo-types-integration.md) and
+[Formal Verification](../internals/formal-verification.md).
 
 ## Primitive Types
 

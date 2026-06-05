@@ -4,21 +4,29 @@
 # META.a2ml — My Lang meta-level information
 [metadata]
 version = "0.1.0"
-last-updated = "2026-04-11"
+last-updated = "2026-06-05"
 
 [project-info]
 license = "MPL-2.0"
 author = "Jonathan D.A. Jewell (hyperpolymath)"
 
 [architecture-decisions]
+# ADRs. Prose design notes live in docs/ (e.g. docs/design/echo-types-integration.md);
+# proofs/ALIGNMENT-PLAN.md tracks the mechanisation roadmap.
 decisions = [
-  # No ADRs recorded
+  { id = "ADR-001", date = "2026-06-02", title = "Dual-track QTT mechanisation (Coq + Idris2) for the solo-core", status = "accepted", note = "The solo dialect's affine/linear kernel is mechanised twice — Coq (Prop) and Idris2 (Type) — so the two flagship metatheories track the same shape. Methodology is statements-first: theorems committed as statements, then discharged. Semiring laws proved by exhaustive Refl/reflexivity." },
+  { id = "ADR-002", date = "2026-06-05", title = "Echo-types is a first-class type former in the formal kernel", status = "accepted", note = "echo-types is integrated into the type SYSTEM, not only the Rust checker: TEcho type former + MkEcho/Weaken terms + THEcho/THWeaken typing rules + echo reduction rules in the Coq/Idris solo-core. EchoMode = Linear/Affine thin poset (weaken + no-section laws); EchoResidue = proof-layer object pinning the laws behind the Rust Ty::is_assignable_from Echo case (closes slice 3 of docs/design/echo-types-integration.md). Claim line held to R-2026-05-18: Echo is a loss-graded reindexing modality over a thin poset — NOT graded-comonad/universal-property/adjunction." },
+  { id = "ADR-003", date = "2026-06-05", title = "Idris splitting rules carry explicit context/quantity fields", status = "accepted", note = "On the Idris track the four context-splitting rules (THApp/THPair/THCase/THLet) carry their split contexts (and the App/Let quantity) as explicit constructor fields. Rationale: Idris2 QTT erases the typing-derivation context indices at runtime, but the closed-context progress inversion (g1+g2=Empty implies both Empty) needs them relevant. The Coq twin leaves them as Prop binders (Prop has no erasure). Documented track divergence; the derivation now records its own split, which is arguably more faithful." },
+  { id = "ADR-004", date = "2026-06-05", title = "Product/elimination form undecided — gates F1.4 preservation", status = "open", note = "Kernel pairs are multiplicative (THPair splits the context) but eliminators are projections (Fst/Snd); that combination is unsound for preservation on open terms. Decision pending between additive (projections), multiplicative tensor (let-pair elim), or both. See issue #93. Preservation (F1.4) is blocked until resolved." },
+  { id = "ADR-005", date = "2026-06-05", title = "Scope unchanged — no new realignment ANCHOR", status = "accepted", note = "This session (operational semantics, progress, Echo-in-the-typesystem) is progress WITHIN the 2026-01-01 scope-arrest ANCHOR (Solo-first; Rust impl; contain other dialects). It is not a scope realignment, so no new ANCHOR.*.a2ml is issued. Formal mechanisation remains a first-class deliverable consistent with that anchor; proof assistants (Coq/Idris/Agda) are verification tooling, not new compiler host languages." },
 ]
 
 [development-practices]
 versioning = "SemVer"
 documentation = "AsciiDoc"
 build-tool = "just"
+proof-assistants = ["Coq 8.18", "Idris2 0.7.0"]
+proof-discipline = "no Admitted/Axiom/postulate/sorry/believe_me/assert_*; statements-first; proofs/STATUS.md is the authoritative proof-status registry"
 
 [maintenance-axes]
 scoping-first = true

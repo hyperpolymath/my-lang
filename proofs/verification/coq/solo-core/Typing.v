@@ -11,6 +11,7 @@
 
 Require Import Coq.Init.Nat.
 Require Import Quantity.
+Require Import EchoMode.
 Require Import Syntax.
 Require Import Context.
 
@@ -77,4 +78,21 @@ Inductive has_type : ctx -> tm -> ty -> Prop :=
       has_type g1 t1 a ->
       has_type (Snoc g2 a q) t2 b ->
       ctx_add (ctx_scale q g1) g2 = Some g ->
-      has_type g (Let q t1 t2) b.
+      has_type g (Let q t1 t2) b
+
+  (* echo-types residue (echo-types-integration.md slice 3).
+     T_Echo introduces a residue retaining a witness [t : a] of an
+     admissible collapse [a => b] at mode [m]; the codomain [b] is a
+     phantom annotation (the non-dependent approximation, design §1).
+     The residue does not split the context — it just records what was
+     kept. *)
+  | T_Echo : forall g m a b t,
+      has_type g t a ->
+      has_type g (MkEcho m a b t) (TEcho m a b)
+
+  (* T_Weaken is [EchoLinear.weaken]: a Linear echo may be weakened to
+     an Affine one. One-way (the reverse is barred — no-section-weaken,
+     EchoMode.no_section_weaken). *)
+  | T_Weaken : forall g a b t,
+      has_type g t (TEcho Linear a b) ->
+      has_type g (Weaken t) (TEcho Affine a b).

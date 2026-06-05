@@ -46,7 +46,7 @@ To check the Idris2 solo-core:
 
 ```bash
 cd proofs/verification/idris/solo-core
-idris2 --check solo-core.ipkg
+idris2 --build solo-core.ipkg
 ```
 
 ## Proof and verification status
@@ -56,16 +56,18 @@ mirroring `affinescript`'s solo-core approach.
 [`proofs/STATUS.md`](proofs/STATUS.md) is the single authoritative source — no
 proof is described as "proved" there until a proof assistant accepts it.
 
-**Current state (2026-06-02):**
+**Current state (2026-06-05):**
 
 | Artefact | Status |
 |----------|--------|
 | QTT semiring + laws (Coq + Idris2) | *locally-checked* — all laws proved by exhaustive case analysis |
-| Solo syntax, contexts, typing (Coq + Idris2) | *definitions-only* |
-| Progress / Preservation | *statement-only* — Phase F1.3/F1.4 |
-| Echo type former (`EchoMode`, `Ty::Echo`, weakening) | *locally-checked* — 5 Agda-mirroring unit tests |
+| Solo syntax, contexts, typing (Coq + Idris2) | *locally-checked* |
+| Operational semantics (CBV small-step) | *locally-checked* — Phase **F1.1 done** (both tracks) |
+| **Progress** | *locally-checked* — Phase **F1.3 done**: Coq `Theorem … Qed.` (axiom-free); Idris total, hole-free |
+| Preservation | *statement-only* — Phase F1.4, **gated on the product/elimination decision** ([#93](https://github.com/hyperpolymath/my-lang/issues/93)) |
+| Echo in the type system (`TEcho`, `MkEcho`/`Weaken`, `THEcho`/`THWeaken`, `EchoMode`, `EchoResidue`) | *locally-checked* — Echo is a first-class type former in the formal kernel; `EchoResidue` backs the Rust `Ty::Echo` (5/5 unit tests are its laws) |
 | Paper proofs (~6.3k lines) | *proved-on-paper* |
-| Proof CI | *absent* — Phase F5 |
+| Proof CI | *absent* — Phase F5 (wiring `coqc` + `idris2 --build`) |
 
 See [`proofs/ALIGNMENT-PLAN.md`](proofs/ALIGNMENT-PLAN.md) for the phased
 roadmap toward AffineScript parity.
