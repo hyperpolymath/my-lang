@@ -2,3 +2,6 @@
 
 demo:
 	@echo "Ensemble hive demo not yet implemented"
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

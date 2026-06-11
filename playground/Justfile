@@ -29,3 +29,6 @@ clean:
 # Run standard checks
 check: fmt lint test
     @echo "All checks passed"
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

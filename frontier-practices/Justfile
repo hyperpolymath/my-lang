@@ -136,3 +136,6 @@ status:
     @echo ""
     @echo "📖 Documentation:"
     @ls -1 *.adoc docs/*.adoc 2>/dev/null | wc -l | xargs echo "  AsciiDoc files:"
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

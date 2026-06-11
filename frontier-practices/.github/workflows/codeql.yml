@@ -1,11 +1,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # CodeQL disabled - no scannable source code detected
 name: CodeQL Security Analysis
-
 on:
-  workflow_dispatch:  # Manual trigger only
-
-
+  workflow_dispatch: # Manual trigger only
 jobs:
   placeholder:
     runs-on: ubuntu-latest
