@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: MPL-2.0
+-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+--
+-- Idris2 package for the my-lang Solo-core mechanisation.
+-- Build/typecheck with:  idris2 --build solo-core.ipkg
+-- or check a single module: idris2 --check Typing.idr
+
+package solo-core
+version = 0.1.0
+authors = "Jonathan D.A. Jewell"
+license = "MPL-2.0"
+
+modules = Quantity
+        , EchoMode
+        , Syntax
+        , Context
+        , Typing
+        , Soundness
+        , EchoResidue
+
+main = Soundness

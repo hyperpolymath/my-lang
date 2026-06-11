@@ -376,14 +376,17 @@ fn register_string_functions(define: &mut impl FnMut(String, Value)) {
             arity: 2,
             func: |args| match (&args[0], &args[1]) {
                 (Value::String(s), Value::Int(idx)) => {
-                    let idx = *idx as usize;
-                    if idx < s.len() {
-                        Ok(Value::String(s.chars().nth(idx).unwrap().to_string()))
-                    } else {
-                        Err(RuntimeError::IndexOutOfBounds {
-                            index: idx as i64,
-                            length: s.len(),
-                        })
+                    // Index by *character*, not byte: `s.len()` is the byte
+                    // length, so the old `idx < s.len()` guard let a multi-byte
+                    // UTF-8 string reach `chars().nth(idx) == None` and panic.
+                    // `try_from` also rejects negative indices. Length is
+                    // reported as the char count to match char-indexing.
+                    match usize::try_from(*idx).ok().and_then(|i| s.chars().nth(i)) {
+                        Some(c) => Ok(Value::String(c.to_string())),
+                        None => Err(RuntimeError::IndexOutOfBounds {
+                            index: *idx,
+                            length: s.chars().count(),
+                        }),
                     }
                 }
                 _ => Err(RuntimeError::TypeError {

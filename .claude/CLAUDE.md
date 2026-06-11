@@ -4,14 +4,19 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 ## Machine-Readable Artefacts
 
-The following files in `.machine_readable/` contain structured project metadata:
+The following files in `.machine_readable/6a2/` contain structured project
+metadata (a2ml format; the earlier `.scm` root-level names are retired):
 
-- `STATE.scm` - Current project state and progress
-- `META.scm` - Architecture decisions and development practices
-- `ECOSYSTEM.scm` - Position in the ecosystem and related projects
-- `AGENTIC.scm` - AI agent interaction patterns
-- `NEUROSYM.scm` - Neurosymbolic integration config
-- `PLAYBOOK.scm` - Operational runbook
+- `6a2/STATE.a2ml` - Current project state and progress
+- `6a2/META.a2ml` - Architecture decisions (ADRs) and development practices
+- `6a2/ECOSYSTEM.a2ml` - Position in the ecosystem and related projects
+- `6a2/AGENTIC.a2ml` - AI agent interaction patterns
+- `6a2/NEUROSYM.a2ml` - Neurosymbolic integration config
+- `6a2/PLAYBOOK.a2ml` - Operational runbook
+
+Self-validation / service metadata lives in `.machine_readable/svc/`
+(`svc/k9/my-lang-metadata.k9.ncl`, `svc/README.adoc`). The scope-arrest anchor
+is the top-level `ANCHOR.scope-arrest.2026-01-01.Jewell.scm`.
 
 ---
 

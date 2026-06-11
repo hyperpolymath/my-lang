@@ -38,7 +38,7 @@ fn main() {
 
     // Write the output file
     let output_path = args.output.unwrap_or(input_path);
-    match fs::write(output_path, formatted) {
+    match fs::write(&output_path, formatted) {
         Ok(_) => println!("Formatted {}", output_path.display()),
         Err(e) => eprintln!("Error writing file: {}", e),
     }

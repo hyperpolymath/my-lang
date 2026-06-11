@@ -118,6 +118,7 @@ fn extract_error_location(error: &CheckError) -> (usize, usize) {
         CheckError::WrongArgCount { line, column, .. } => (*line, *column),
         CheckError::InvalidBinaryOp { line, column, .. } => (*line, *column),
         CheckError::NonBoolCondition { line, column, .. } => (*line, *column),
+        CheckError::ExpressionTooDeep { line, column, .. } => (*line, *column),
         CheckError::Other { line, column, .. } => (*line, *column),
     }
 }

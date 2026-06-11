@@ -17,6 +17,23 @@
 # every PR produced repeated noise unrelated to any PR's diff.
 playground/
 dialects/
+# _exploratory/me-scaffolding is the sidelined `me` dialect scaffolding,
+# explicitly removed from the active workspace (Cargo.toml note +
+# _exploratory/me-scaffolding/SIDELINED.adoc). my-ssg is a separate, non-workspace
+# static-site-generator crate. Neither ships from the root workspace, so their
+# unwrap()/dangerous-default findings are non-shipping noise (same rationale as
+# playground/ and dialects/ above), not a security backlog on shipped code.
+_exploratory/
+my-ssg/
+
+# --- frontier-practices/ is exploratory forward-looking research code outside
+# the Cargo workspace. The .res (ReScript) agent files pre-date the estate's
+# AffineScript preference; CLAUDE.md continues to permit ReScript as a primary
+# application language. AffineScript migration is a direction, not a blocker
+# for non-shipping frontier work. Exempted path-wide (consistent with the
+# playground/ and dialects/ treatment) so CI stays clean without forcing a
+# disruptive migration of non-shipping research code.
+frontier-practices/
 
 # --- Scanner false positive: this Nickel file is a POLICY that *bans*
 # Dockerfile (`banned_files = ["Makefile", "Dockerfile"]`). The rule fires on
@@ -35,3 +52,21 @@ code_safety/panic_macro:src/proptest.rs
 # was a false positive on the word inside a comment for a fully-proved
 # (`Qed.`) lemma; the comment was reworded so the finding no longer exists.
 # Both were closed under issue #34 rather than suppressed.
+
+# --- Reusable-workflow CALLER jobs (issue #95). Each of these workflows is a thin
+# wrapper whose single job is `uses: hyperpolymath/standards/.github/workflows/
+# *-reusable.yml@<pinned-sha>`. GitHub Actions FORBIDS `timeout-minutes` on a
+# `uses:` job (schema error — it would break the workflow), so this finding is
+# un-actionable in my-lang: the timeout belongs INSIDE the standards reusable
+# workflow, and Hypatia should exempt reusable-workflow caller jobs. Same for
+# scorecard's job-permissions finding (a property of the wrapper/reusable
+# pattern). Exempted with rationale; revisit when the upstream fix (#95) lands.
+# (Contrast: checker-scaling/codeql/stack-depth are direct `runs-on` jobs and
+# WERE hardened with timeout-minutes in PRs #89/#90.)
+workflow_audit/missing_timeout_minutes:governance.yml
+workflow_audit/missing_timeout_minutes:hypatia-scan.yml
+workflow_audit/missing_timeout_minutes:mirror.yml
+workflow_audit/missing_timeout_minutes:scorecard.yml
+workflow_audit/missing_timeout_minutes:secret-scanner.yml
+workflow_audit/missing_timeout_minutes:spark-theatre-gate.yml
+workflow_audit/scorecard_wrapper_missing_job_permissions:scorecard.yml

@@ -19,6 +19,8 @@ this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- test(conformance): run conformance/valid|invalid + examples/*.my fixtures under `cargo test`, with a fail-closed KNOWN_PARSE_GAPS allowlist (#84)
+- docs(testing): add TESTING.md coverage roadmap — state, gaps, prioritised plan (#84)
 - feat(solo/stdlib): fs_list_dir(path) -> Array<String> (#56)
 - feat(solo/stdlib): date_today() -> ISO YYYY-MM-DD (UTC) (#54)
 - feat(solo/stdlib): json_parse / json_stringify + fix string escapes (#53)
@@ -31,6 +33,12 @@ this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- fix(stdlib): `char_at` indexes by character, not byte — the old `idx < s.len()` byte guard could panic on multi-byte UTF-8 (CWE-754); now returns a clean `IndexOutOfBounds` + regression test
+- fix(string): document the `char::from_digit` totality invariant with `.expect` instead of `.unwrap()` in `int_to_string_radix`
+- fix(parser): accept comma/trailing-comma separators in `ai_model` attribute blocks, matching struct-field syntax (#84)
+- fix(my-fmt): borrow-after-move in `fs::write` output path (crate did not compile) (#84)
+- fix(my-lsp): non-exhaustive `CheckError` match — handle `ExpressionTooDeep` (crate did not compile) (#84)
+- fix(my-lint): invalid multi-codepoint char literals + borrow-after-move; correct never-run unit test (crate did not compile) (#84)
 - fix(checker): self-driving stack-depth measurement + CI guard on Linux + Windows; harden survives() (closes #37) (#80)
 - fix(licence): clear scaffold-placeholder leak (isolated; dirty repo) (#64)
 - fix(vscode): make the packaged .vsix actually load (Refs #62) (#63)
@@ -59,6 +67,7 @@ this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### CI
 
+- ci(coverage): add cargo-llvm-cov workspace coverage job with LCOV+HTML artifacts and a ratcheting line-coverage floor (baseline ~46.7%) (#84)
 - ci(spark): adopt estate SPARK Theatre Gate (standards#135) (#65)
 - ci(codeql): scan `actions` instead of javascript-typescript (#32)
 - ci(secret-scanner): drop duplicate --fail from trufflehog extra_args (#17)

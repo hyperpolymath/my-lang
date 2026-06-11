@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+
+= my-lang Contractiles
+:revdate: 2026-06-02
+
+Project-level operational contracts for `my-lang`: declarative
+invariant checks (Mustfile) and recovery / rollback semantics
+(Dustfile).
+
+== Contents
+
+`must/Mustfile`::
+Declarative invariant checks: build integrity, type-checker test
+correctness, proof-asset shape, governance compliance, and
+documentation freshness. Mirrors what CI enforces but runnable
+locally.
+
+`dust/Dustfile`::
+Recovery semantics: per-component rollback procedures and triage
+guidance for common CI failure events (governance failures, test
+regressions, proof compilation errors).
+
+== Running the checks
+
+[source,bash]
+----
+# Run all must-checks (requires mustfile installed)
+mustfile check contractiles/must/Mustfile
+
+# Or run individual checks manually — see Mustfile for commands
+cargo test --workspace --quiet           # all-tests-pass
+jq -e 'type == "array"' .hypatia-baseline.json   # hypatia-baseline-valid
+----
+
+== Relationship to CI
+
+The Mustfile records the same invariants CI enforces, so they serve
+as runnable local documentation of what must be true before any commit
+lands. The Dustfile documents the recovery path when CI turns red.
+
+For the full governance configuration see
+link:../.hypatia-ignore[`.hypatia-ignore`] and
+link:../.hypatia-baseline.json[`.hypatia-baseline.json`].
+For proof status see link:../proofs/STATUS.md[`proofs/STATUS.md`].

@@ -1,0 +1,95 @@
+# SPDX-License-Identifier: MPL-2.0
+# Proof CI — machine-checks the mechanised Solo-core on BOTH tracks.
+#
+# Closes the long-standing proof-ci = "absent" gap (STATE.a2ml /
+# proofs/ALIGNMENT-PLAN.md Phase F5): "locally-checked" proofs become
+# machine-verified on every PR that touches proofs/. Mirrors the
+# echo-types agda.yml install-from-distro pattern. Direct `runs-on`
+# jobs (so timeout-minutes + job permissions are valid and present —
+# unlike the reusable-workflow callers in issue #95).
+name: Proofs (Solo-core)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'proofs/verification/**'
+      - '.github/workflows/proofs.yml'
+  pull_request:
+    paths:
+      - 'proofs/verification/**'
+      - '.github/workflows/proofs.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  coq:
+    name: Coq solo-core
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install Coq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y coq
+          coqc --version | head -1
+
+      - name: Build solo-core (dependency order via _CoqProject)
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          coq_makefile -f _CoqProject -o CoqMakefile
+          make -f CoqMakefile
+
+      - name: Assert `progress` is axiom-free (no Admitted/Axiom in the trusted base)
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          echo 'Require Import Soundness. Print Assumptions progress.' \
+            | coqtop -R . SoloCore 2>/dev/null | tee /tmp/assum.txt
+          grep -q "Closed under the global context" /tmp/assum.txt \
+            || { echo "::error::progress is NOT axiom-free"; exit 1; }
+
+  idris:
+    name: Idris2 solo-core
+    runs-on: ubuntu-latest
+    # Bound generously: a cold from-source Idris2 bootstrap is the slow
+    # path (~15 min); the solo-core build itself is seconds.
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install Chez Scheme + build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chezscheme make gcc git
+
+      - name: Bootstrap Idris2 (v0.7.0)
+        run: |
+          git clone --depth 1 --branch v0.7.0 \
+            https://github.com/idris-lang/Idris2.git /tmp/Idris2
+          cd /tmp/Idris2
+          make bootstrap SCHEME=chezscheme
+          make install
+          echo "$HOME/.idris2/bin" >> "$GITHUB_PATH"
+
+      - name: Sanity-check toolchain
+        run: idris2 --version
+
+      # `%default total` across the solo-core means a failed totality
+      # or coverage check fails the build — so a green build IS the
+      # `progress is total` certificate (plus no ?todo holes except the
+      # documented ?todo_preservation, which still type-checks).
+      - name: Build solo-core (idris2 --build)
+        working-directory: proofs/verification/idris/solo-core
+        run: idris2 --build solo-core.ipkg

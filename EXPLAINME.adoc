@@ -1,0 +1,181 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
+
+= EXPLAINME — what is my-lang, and why does it exist?
+:author: Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
+:revdate: 2026-06-02
+:toc: left
+:toclevels: 2
+
+This file is the fast orientation for a new contributor, reviewer, or
+anyone who just cloned the repo and wants to know what they are looking
+at before reading the full link:README.adoc[README].
+
+== One paragraph
+
+`my-lang` is a *multi-dialect programming language* designed for
+safety-critical and AI-adjacent applications. Its central concern is
+**resource accountability**: variables, effects, and data flows are
+tracked at compile time using *Quantitative Type Theory* (QTT) — a
+semiring-based discipline that can express "this value is used exactly
+once (linear), at most once (affine), or arbitrarily (unrestricted)."
+The `my-lang` umbrella covers four dialects (*solo*, *duet*, *ensemble*,
+*me*) that share a QTT semantic core but differ in concurrency model and
+surface syntax. Formal verification — paper proofs plus a mechanised
+Coq + Idris2 solo-core — is a first-class deliverable, not an
+afterthought.
+
+== Why does this exist alongside `affinescript`?
+
+Both `my-lang` and
+link:https://github.com/hyperpolymath/affinescript[`affinescript`] are
+flagship language experiments in the same estate. They are *siblings*:
+
+* `affinescript` is the more mature implementation (~80 OCaml modules,
+  ~20 backends, borrow checker, LSP). Its mechanised solo-core
+  (Idris2 QTT semiring, progress/preservation as typed holes) sets the
+  proof maturity target.
+* `my-lang` has *broader paper coverage* (~6.3 k lines, four dialects)
+  but was, until recently, thinner on mechanisation.
+
+The link:proofs/ALIGNMENT-PLAN.md[Alignment Plan] documents the gap
+and the phased roadmap to close it. The two repos share design intent
+without being a fork; improvements to one inform the other.
+
+== What "echo types" are (and why they are here)
+
+`my-lang` integrates the
+link:https://github.com/hyperpolymath/echo-types[`echo-types`] Agda
+library. An *echo type* models the **third case** between a fully
+reversible map (no information lost) and total erasure (information
+gone, no record kept):
+
+----
+Echo<A => B>
+----
+
+Read as: "a proof-relevant residue of some collapse from `A` to `B`"
+— the type of evidence that *something was lost but not annihilated*.
+Concretely, the type-checker tracks a two-point mode poset:
+
+* `Linear` — the full fiber witness is retained; distinctions preserved.
+* `Affine` — the collapsed residue only; distinctions weakened away.
+
+A `Linear` echo may always be supplied where an `Affine` one is
+expected (weakening), but never the reverse (no section). This is the
+formal content of `EchoLinear.agda`'s `weaken` / `no-section-weaken`
+theorems, mirrored in five unit tests in
+link:crates/my-lang/src/types.rs[`crates/my-lang/src/types.rs`].
+
+The claim boundary is narrow and precise:
+____
+Echo is a *loss-graded reindexing modality over a thin poset*.
+It is NOT a graded comonad, adjunction, universal property, or free
+construction. (Retraction R-2026-05-18 from the upstream `echo-types`
+library.)
+____
+
+For full design rationale see
+link:docs/design/echo-types-integration.md[docs/design/echo-types-integration.md].
+
+== Repository layout at a glance
+
+[cols="1,3"]
+|===
+| Path | What it is
+
+| `crates/`
+| Rust compiler crates. `crates/my-lang/src/types.rs` is the type
+  checker; it includes `EchoMode`, `Ty::Echo`, and 137+ unit tests.
+
+| `dialects/`
+| Per-dialect surface syntax. `solo/` (affine, single-agent) is the
+  primary focus; `duet/` (session-typed), `ensemble/` (multi-agent),
+  and `me/` (visual/pedagogic) follow.
+
+| `proofs/`
+| All formal verification assets. See the
+  link:proofs/STATUS.md[Proof Status Registry] for what is and is not
+  currently proved.
+
+| `proofs/verification/coq/solo-core/`
+| Coq mechanisation: `Quantity.v` (semiring laws, all real `Qed`),
+  `Syntax.v`, `Context.v`, `Typing.v`, `Soundness.v` (progress /
+  preservation as named `Prop`s — no `Admitted` in the trusted base).
+
+| `proofs/verification/idris/solo-core/`
+| Idris2 twin: same five modules plus `.ipkg`. Semiring laws by
+  exhaustive `Refl`, `%default total`. Soundness as `?todo_*` typed holes.
+
+| `docs/design/`
+| Architecture Decision Records and integration design notes.
+
+| `frontier-practices/`
+| Exploratory forward-looking research code (outside the Cargo
+  workspace; not shipped).
+
+| `contractiles/`
+| Mustfile / Dustfile invariant and recovery contracts for `my-lang`.
+
+| `.machine_readable/`
+| Machine-readable project metadata (`STATE.a2ml`, `ECOSYSTEM.a2ml`,
+  and estate-standard config files).
+|===
+
+== Proof methodology
+
+`my-lang` uses a *statements-first* approach:
+
+1. State the theorem as a named artefact before writing the proof.
+2. On the Coq track: `Definition Progress : Prop := ...` — a named
+   proposition, not an `Admitted` theorem. A bare `Prop` asserts
+   nothing and adds nothing to the trusted base.
+3. On the Idris2 track: `?todo_progress` — a typed hole, not a
+   postulate.
+4. Discharge with `Theorem progress : Progress. Proof. ... Qed.` when
+   the proof is complete (Phase F1.3).
+
+No proof hole is ever described as "proved" in
+link:proofs/STATUS.md[`proofs/STATUS.md`]. That file is the
+ground truth.
+
+== Getting oriented in the code
+
+. Read `proofs/STATUS.md` — understand what is actually proved vs
+  stated.
+. Read `proofs/ALIGNMENT-PLAN.md` — understand the gap vs
+  `affinescript` and which phase addresses it.
+. Read `proofs/verification/coq/solo-core/Quantity.v` — the fully
+  proved QTT semiring; the shortest complete formal artefact.
+. Read `crates/my-lang/src/types.rs` — the Rust type checker; the
+  `echo_tests` module mirrors the Agda theorems directly.
+. Read `docs/design/echo-types-integration.md` — design decisions for
+  the echo type integration.
+
+== What "Hypatia" is
+
+Hypatia is the estate's neurosymbolic governance scanner
+(`hyperpolymath/standards`). It runs on every PR and checks for:
+
+* Banned languages (no TypeScript, Python, Go, Makefile, etc.)
+* Security anti-patterns (unwrapped errors, hardcoded secrets)
+* Trusted-base pollution (`Admitted`/`Axiom` in Coq files)
+* Licence consistency (SPDX headers on all files)
+
+Exemptions live in link:.hypatia-ignore[`.hypatia-ignore`] with inline
+rationale. The link:.hypatia-baseline.json[`.hypatia-baseline.json`]
+file is an intentionally empty array (`[]`) — all scanner findings have
+been resolved at source or exempted with documented rationale.
+
+== Language policy summary
+
+The estate enforces strict language restrictions (see
+link:.claude/CLAUDE.md[`.claude/CLAUDE.md`]):
+
+* **Allowed**: Rust, Idris2, OCaml (AffineScript compiler), Coq,
+  Agda, ReScript, Deno, Gleam, Nickel, Guile Scheme, Julia, Ada.
+* **Banned**: TypeScript (use ReScript), Node/npm/bun (use Deno),
+  Go (use Rust), Python (use Julia/Rust/ReScript),
+  Kotlin/Swift/Flutter (use Tauri 2.0+/Dioxus).
+
+All new source files require an SPDX licence header.

@@ -5,10 +5,10 @@
   "license": "AGPL-3.0",
   "imports": {
     "live-server": "npm:live-server@^1.2.2",
-    "rescript": "npm:rescript@^12.0.0"
+    "affinescript": "npm:@hyperpolymath/affinescript"
   },
   "tasks": {
-    "build": "deno run -A --node-modules-dir=auto npm:rescript build",
+    "build": "just build-agents",
     "dev": "deno run -A npm:live-server --port=3000 --open=tools/reveal-demo.html",
     "watch": "deno run --watch mod.ts",
     "test": "deno test",

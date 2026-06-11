@@ -179,4 +179,6 @@ cargo check --workspace
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the
+**Mozilla Public License 2.0 (MPL-2.0)**, the project's licence (see
+[`LICENSE`](../../../LICENSE)).
