@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 # Seven Tentacles - Justfile
 # Teaching Compiler Architecture Ages 8-18
 
@@ -141,3 +143,6 @@ status:
     @echo ""
     @echo "📖 Documentation:"
     @ls -1 *.adoc docs/*.adoc 2>/dev/null | wc -l | xargs echo "  AsciiDoc files:"
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

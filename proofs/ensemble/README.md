@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Ensemble Dialect: Formal Specification
 
 The **Ensemble** dialect provides full agentic composition with the Newtonian

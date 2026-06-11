@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Functions and Closures
 
 Functions are first-class values in My Language, supporting generics, effects, contracts, and powerful closure semantics.

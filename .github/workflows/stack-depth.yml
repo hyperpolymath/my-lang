@@ -14,7 +14,6 @@
 # the 1 MiB floor with headroom — so the Windows datapoint is produced *and*
 # locked in on every change instead of relying on a manual run.
 name: Stack Depth (#37)
-
 on:
   push:
     paths:
@@ -24,9 +23,7 @@ on:
     paths:
       - 'crates/my-lang/**'
       - '.github/workflows/stack-depth.yml'
-
 permissions: read-all
-
 jobs:
   measure:
     name: measure (${{ matrix.os }})
@@ -40,14 +37,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
-
       - name: Stack-depth regression test (#37 subtleties 1 & 3)
         run: cargo test -p my-lang --test stack_depth_37 --release -- --nocapture
-
       - name: Measure stack budget and assert MAX_EXPR_DEPTH fits the 1 MiB floor
         run: cargo run -p my-lang --example measure_depth --release

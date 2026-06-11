@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Substitution Lemma (fixed)
 
 This document records the substitution lemma proof that underpins Solo's affine-aware type system.

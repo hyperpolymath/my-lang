@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! My SSG - Static Site Generator powered by My Language
 //!
 //! A fast, AI-native static site generator that uses My Language for templating.

@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+<!-- Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
 # Dialects
 
 My Language is a **progressive-disclosure language family**: complexity is

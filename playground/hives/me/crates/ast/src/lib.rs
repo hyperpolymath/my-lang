@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // Abstract Syntax Tree for Solo/Duet/Ensemble
 
 #![forbid(unsafe_code)]
