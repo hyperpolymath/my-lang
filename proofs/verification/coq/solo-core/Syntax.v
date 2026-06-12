@@ -17,10 +17,10 @@ Require Import EchoMode.
 
 Inductive ty : Type :=
   | TUnit : ty
-  | TWith : ty -> ty -> ty          (* additive product  a & b  (shared usage,
-                                       projected by Fst/Snd). The multiplicative
-                                       product  a (X) b  is deferred to a
-                                       follow-up (TTensor + let-pair). *)
+  | TWith   : ty -> ty -> ty        (* additive product  a & b
+                                       (shared usage, projected by Fst/Snd) *)
+  | TTensor : ty -> ty -> ty        (* multiplicative product  a (X) b
+                                       (split usage, eliminated by let-pair) *)
   | TSum  : ty -> ty -> ty
   | TArr  : Q -> ty -> ty -> ty     (* (q x : a) -> b *)
   | TEcho : Mode -> ty -> ty -> ty. (* echo residue: [m] Echo<a => b> *)
@@ -35,6 +35,8 @@ Inductive tm : Type :=
   | With  : tm -> tm -> tm    (* additive pair  <t1, t2> : a & b *)
   | Fst   : tm -> tm
   | Snd   : tm -> tm
+  | Tensor  : tm -> tm -> tm  (* multiplicative pair  (t1, t2) : a (X) b *)
+  | LetPair : tm -> tm -> tm  (* let (x, y) = e1 in e2  (e2 binds 2 vars) *)
   | Inl   : ty -> tm -> tm    (* annotation = the other summand *)
   | Inr   : ty -> tm -> tm
   | Case  : tm -> tm -> tm -> tm   (* scrutinee, left (binds 1), right (binds 1) *)
@@ -71,6 +73,8 @@ Fixpoint shift (c : nat) (t : tm) : tm :=
   | With t1 t2   => With (shift c t1) (shift c t2)
   | Fst t1       => Fst (shift c t1)
   | Snd t1       => Snd (shift c t1)
+  | Tensor t1 t2  => Tensor (shift c t1) (shift c t2)
+  | LetPair t1 t2 => LetPair (shift c t1) (shift (S (S c)) t2)
   | Inl b t1     => Inl b (shift c t1)
   | Inr a t1     => Inr a (shift c t1)
   | Case t1 tL tR => Case (shift c t1) (shift (S c) tL) (shift (S c) tR)
@@ -97,6 +101,9 @@ Fixpoint subst_at (j : nat) (u : tm) (t : tm) : tm :=
   | With t1 t2   => With (subst_at j u t1) (subst_at j u t2)
   | Fst t1       => Fst (subst_at j u t1)
   | Snd t1       => Snd (subst_at j u t1)
+  | Tensor t1 t2  => Tensor (subst_at j u t1) (subst_at j u t2)
+  | LetPair t1 t2 =>
+      LetPair (subst_at j u t1) (subst_at (S (S j)) (shift 0 (shift 0 u)) t2)
   | Inl b t1     => Inl b (subst_at j u t1)
   | Inr a t1     => Inr a (subst_at j u t1)
   | Case t1 tL tR =>
@@ -111,3 +118,10 @@ Fixpoint subst_at (j : nat) (u : tm) (t : tm) : tm :=
 (** Single-variable substitution for index 0 — the [(\x.t) v -> t[v/x]]
     workhorse of the reduction rules. *)
 Definition subst0 (u : tm) (t : tm) : tm := subst_at 0 u t.
+
+(** Two-variable substitution for the let-pair eliminator: replace de
+    Bruijn index 1 by [u1] and index 0 by [u2]. For CLOSED [u1] [u2]
+    (the operational use — both are values), the two sequential single
+    substitutions suffice: substituting index 0 first collapses the
+    former index 1 down to index 0 for the second pass. *)
+Definition subst2 (u1 u2 : tm) (t : tm) : tm := subst0 u1 (subst0 u2 t).
