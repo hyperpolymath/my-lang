@@ -4,95 +4,114 @@
 (* ========================================================== *)
 (* my-lang Solo core: QTT typing (Coq twin of Typing.idr)     *)
 (*                                                            *)
-(* [has_type g t a]: term t has type a in QTT context g, with *)
-(* g's quantities accounting exactly for the variable uses in *)
-(* t. Context splitting is explicit at App/Pair/Let/Case.     *)
+(* [has_type G D t a]: term [t] has type [a] in type context  *)
+(* [G] under usage vector [D], with [D]'s quantities          *)
+(* accounting exactly for the variable uses in [t].           *)
+(*                                                            *)
+(* SEPARATED-CONTEXT presentation (Usage.v, design decision   *)
+(* 2026-06-12): the TYPE context [G] is SHARED across every    *)
+(* premise of a rule; only the USAGE vector [D] is split (via  *)
+(* [uadd] at App/Pair/Let/Case) or scaled (via [uscale] at     *)
+(* App/Let). Because splitting is now pure quantity algebra,   *)
+(* [uadd] is genuinely commutative and associative — the clean *)
+(* algebra the F1.4 substitution lemma / preservation depends  *)
+(* on (the old conflated [ctx] took the type from [ctx_add]'s  *)
+(* first argument, so it was not commutative in the types).    *)
 (* ========================================================== *)
 
 Require Import Coq.Init.Nat.
 Require Import Quantity.
 Require Import EchoMode.
 Require Import Syntax.
-Require Import Context.
+Require Import Usage.
 
-(** * Variable lookup: One at position n, Zero elsewhere *)
+(** * Variable lookup: [One] at position [n], [Zero] elsewhere.
 
-Inductive has_var : ctx -> nat -> ty -> Prop :=
-  | HVHere  : forall g a,
-      has_var (Snoc (ctx_zero g) a One) 0 a
-  | HVThere : forall g n a b,
-      has_var g n a ->
-      has_var (Snoc g b Zero) (S n) a.
+    [has_var G D n a]: in type context [G], the usage [D] spends [One]
+    at de Bruijn index [n] (whose type is [a]) and [Zero] everywhere
+    else. The type context is arbitrary; only the usage is pinned. *)
 
-(** * The QTT typing judgement *)
+Inductive has_var : tctx -> uvec -> nat -> ty -> Prop :=
+  | HVHere  : forall G a,
+      has_var (TSnoc G a) (USnoc (uzero G) One) 0 a
+  | HVThere : forall G D n a b,
+      has_var G D n a ->
+      has_var (TSnoc G b) (USnoc D Zero) (S n) a.
 
-Inductive has_type : ctx -> tm -> ty -> Prop :=
+(** * The QTT typing judgement.
 
-  | T_Var : forall g n a,
-      has_var g n a ->
-      has_type g (Var n) a
+    Every rule shares the TYPE context [G]; the USAGE vector [D] adds
+    up (App/Pair/Let/Case) or scales (App/Let) exactly as the affine
+    accounting demands. *)
 
-  | T_Unit : forall g,
-      has_type (ctx_zero g) UnitT TUnit
+Inductive has_type : tctx -> uvec -> tm -> ty -> Prop :=
 
-  | T_Lam : forall g q a b t,
-      has_type (Snoc g a q) t b ->
-      has_type g (Lam q a t) (TArr q a b)
+  | T_Var : forall G D n a,
+      has_var G D n a ->
+      has_type G D (Var n) a
 
-  | T_App : forall g g1 g2 q a b t1 t2,
-      has_type g1 t1 (TArr q a b) ->
-      has_type g2 t2 a ->
-      ctx_add g1 (ctx_scale q g2) = Some g ->
-      has_type g (App t1 t2) b
+  | T_Unit : forall G,
+      has_type G (uzero G) UnitT TUnit
 
-  | T_Pair : forall g g1 g2 a b t1 t2,
-      has_type g1 t1 a ->
-      has_type g2 t2 b ->
-      ctx_add g1 g2 = Some g ->
-      has_type g (Pair t1 t2) (TPair a b)
+  | T_Lam : forall G D q a b t,
+      has_type (TSnoc G a) (USnoc D q) t b ->
+      has_type G D (Lam q a t) (TArr q a b)
 
-  | T_Fst : forall g a b t,
-      has_type g t (TPair a b) ->
-      has_type g (Fst t) a
+  | T_App : forall G D D1 D2 q a b t1 t2,
+      has_type G D1 t1 (TArr q a b) ->
+      has_type G D2 t2 a ->
+      uadd D1 (uscale q D2) = Some D ->
+      has_type G D (App t1 t2) b
 
-  | T_Snd : forall g a b t,
-      has_type g t (TPair a b) ->
-      has_type g (Snd t) b
+  | T_Pair : forall G D D1 D2 a b t1 t2,
+      has_type G D1 t1 a ->
+      has_type G D2 t2 b ->
+      uadd D1 D2 = Some D ->
+      has_type G D (Pair t1 t2) (TPair a b)
 
-  | T_Inl : forall g a b t,
-      has_type g t a ->
-      has_type g (Inl b t) (TSum a b)
+  | T_Fst : forall G D a b t,
+      has_type G D t (TPair a b) ->
+      has_type G D (Fst t) a
 
-  | T_Inr : forall g a b t,
-      has_type g t b ->
-      has_type g (Inr a t) (TSum a b)
+  | T_Snd : forall G D a b t,
+      has_type G D t (TPair a b) ->
+      has_type G D (Snd t) b
 
-  | T_Case : forall g g1 g2 a b c t tL tR,
-      has_type g1 t (TSum a b) ->
-      has_type (Snoc g2 a One) tL c ->
-      has_type (Snoc g2 b One) tR c ->
-      ctx_add g1 g2 = Some g ->
-      has_type g (Case t tL tR) c
+  | T_Inl : forall G D a b t,
+      has_type G D t a ->
+      has_type G D (Inl b t) (TSum a b)
 
-  | T_Let : forall g g1 g2 q a b t1 t2,
-      has_type g1 t1 a ->
-      has_type (Snoc g2 a q) t2 b ->
-      ctx_add (ctx_scale q g1) g2 = Some g ->
-      has_type g (Let q t1 t2) b
+  | T_Inr : forall G D a b t,
+      has_type G D t b ->
+      has_type G D (Inr a t) (TSum a b)
+
+  | T_Case : forall G D D1 D2 a b c t tL tR,
+      has_type G D1 t (TSum a b) ->
+      has_type (TSnoc G a) (USnoc D2 One) tL c ->
+      has_type (TSnoc G b) (USnoc D2 One) tR c ->
+      uadd D1 D2 = Some D ->
+      has_type G D (Case t tL tR) c
+
+  | T_Let : forall G D D1 D2 q a b t1 t2,
+      has_type G D1 t1 a ->
+      has_type (TSnoc G a) (USnoc D2 q) t2 b ->
+      uadd (uscale q D1) D2 = Some D ->
+      has_type G D (Let q t1 t2) b
 
   (* echo-types residue (echo-types-integration.md slice 3).
      T_Echo introduces a residue retaining a witness [t : a] of an
      admissible collapse [a => b] at mode [m]; the codomain [b] is a
      phantom annotation (the non-dependent approximation, design §1).
-     The residue does not split the context — it just records what was
-     kept. *)
-  | T_Echo : forall g m a b t,
-      has_type g t a ->
-      has_type g (MkEcho m a b t) (TEcho m a b)
+     The residue does not split the usage — it just records what was
+     kept, so [D] is threaded unchanged. *)
+  | T_Echo : forall G D m a b t,
+      has_type G D t a ->
+      has_type G D (MkEcho m a b t) (TEcho m a b)
 
   (* T_Weaken is [EchoLinear.weaken]: a Linear echo may be weakened to
      an Affine one. One-way (the reverse is barred — no-section-weaken,
-     EchoMode.no_section_weaken). *)
-  | T_Weaken : forall g a b t,
-      has_type g t (TEcho Linear a b) ->
-      has_type g (Weaken t) (TEcho Affine a b).
+     EchoMode.no_section_weaken). Usage [D] is unchanged: weakening
+     spends no resources, it only drops a distinction. *)
+  | T_Weaken : forall G D a b t,
+      has_type G D t (TEcho Linear a b) ->
+      has_type G D (Weaken t) (TEcho Affine a b).
