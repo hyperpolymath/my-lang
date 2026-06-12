@@ -5,6 +5,7 @@ EchoMode.v
 Syntax.v
 Context.v
 ContextProps.v
+Usage.v
 Typing.v
 Soundness.v
 EchoResidue.v
