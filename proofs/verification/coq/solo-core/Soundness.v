@@ -40,7 +40,9 @@ Inductive value : tm -> Prop :=
   | VInr  : forall a t, value t -> value (Inr a t)
   (* an echo with a fully-evaluated residue is a value; [Weaken] is
      not (it is the elimination that drives the linear->affine step) *)
-  | VEcho : forall m a b t, value t -> value (MkEcho m a b t).
+  | VEcho : forall m a b t, value t -> value (MkEcho m a b t)
+  (* a multiplicative pair is a value once both components are *)
+  | VTensor : forall t1 t2, value t1 -> value t2 -> value (Tensor t1 t2).
 
 (** * Small-step reduction — call-by-value, left-to-right (F1.1).
 
@@ -63,6 +65,9 @@ Inductive step : tm -> tm -> Prop :=
       value v -> step (Case (Inr a v) tL tR) (subst0 v tR)
   | S_Let   : forall q v t2,
       value v -> step (Let q v t2) (subst0 v t2)
+  | S_LetPair : forall v1 v2 body,
+      value v1 -> value v2 ->
+      step (LetPair (Tensor v1 v2) body) (subst2 v1 v2 body)
   (* --- congruence (left-to-right, CBV) --- *)
   | S_App1  : forall t1 t1' t2,
       step t1 t1' -> step (App t1 t2) (App t1' t2)
@@ -84,6 +89,12 @@ Inductive step : tm -> tm -> Prop :=
       step t t' -> step (Case t tL tR) (Case t' tL tR)
   | S_Let1  : forall q t1 t1' t2,
       step t1 t1' -> step (Let q t1 t2) (Let q t1' t2)
+  | S_Tensor1 : forall t1 t1' t2,
+      step t1 t1' -> step (Tensor t1 t2) (Tensor t1' t2)
+  | S_Tensor2 : forall v1 t2 t2',
+      value v1 -> step t2 t2' -> step (Tensor v1 t2) (Tensor v1 t2')
+  | S_LetPair1 : forall t1 t1' t2,
+      step t1 t1' -> step (LetPair t1 t2) (LetPair t1' t2)
   (* echo residue: evaluate inside, and the one-way linear->affine
      weakening fires once the residue is a value (EchoLinear.weaken). *)
   | S_Echo1   : forall m a b t t',
@@ -155,9 +166,10 @@ Lemma canon_arr : forall q a b v,
 Proof.
   intros q a b v Hv Ht.
   destruct Hv as [ | q0 a0 tb | u1 u2 Hu1 Hu2 | b0 u0 Hu0 | a0 u0 Hu0
-                 | m0 ae be ue Hue ].
+                 | m0 ae be ue Hue | w1 w2 Hw1 Hw2 ].
   - inversion Ht.
   - exists q0, a0, tb. reflexivity.
+  - inversion Ht.
   - inversion Ht.
   - inversion Ht.
   - inversion Ht.
@@ -170,10 +182,11 @@ Lemma canon_with : forall a b v,
 Proof.
   intros a b v Hv Ht.
   destruct Hv as [ | q0 a0 tb | u1 u2 Hu1 Hu2 | b0 u0 Hu0 | a0 u0 Hu0
-                 | m0 ae be ue Hue ].
+                 | m0 ae be ue Hue | w1 w2 Hw1 Hw2 ].
   - inversion Ht.
   - inversion Ht.
   - exists u1, u2. split; [reflexivity | split; assumption].
+  - inversion Ht.
   - inversion Ht.
   - inversion Ht.
   - inversion Ht.
@@ -186,12 +199,13 @@ Lemma canon_sum : forall a b v,
 Proof.
   intros a b v Hv Ht.
   destruct Hv as [ | q0 a0 tb | u1 u2 Hu1 Hu2 | b0 u0 Hu0 | a0 u0 Hu0
-                 | m0 ae be ue Hue ].
+                 | m0 ae be ue Hue | w1 w2 Hw1 Hw2 ].
   - inversion Ht.
   - inversion Ht.
   - inversion Ht.
   - left.  exists b0, u0. split; [reflexivity | assumption].
   - right. exists a0, u0. split; [reflexivity | assumption].
+  - inversion Ht.
   - inversion Ht.
 Qed.
 
@@ -204,13 +218,33 @@ Lemma canon_echo : forall m a b v,
 Proof.
   intros m a b v Hv Ht.
   destruct Hv as [ | q0 a0 tb | u1 u2 Hu1 Hu2 | b0 u0 Hu0 | a0 u0 Hu0
-                 | m0 ae be ue Hue ].
+                 | m0 ae be ue Hue | w1 w2 Hw1 Hw2 ].
   - inversion Ht.
   - inversion Ht.
   - inversion Ht.
   - inversion Ht.
   - inversion Ht.
   - inversion Ht; subst. exists ue. split; [reflexivity | assumption].
+  - inversion Ht.
+Qed.
+
+(** Canonical form for tensors: a closed value of multiplicative-product
+    type is a [Tensor] of two values. Drives the [LetPair] case of
+    progress. *)
+Lemma canon_tensor : forall a b v,
+  value v -> has_type TEmpty UEmpty v (TTensor a b) ->
+  exists v1 v2, v = Tensor v1 v2 /\ value v1 /\ value v2.
+Proof.
+  intros a b v Hv Ht.
+  destruct Hv as [ | q0 a0 tb | u1 u2 Hu1 Hu2 | b0 u0 Hu0 | a0 u0 Hu0
+                 | m0 ae be ue Hue | w1 w2 Hw1 Hw2 ].
+  - inversion Ht.
+  - inversion Ht.
+  - inversion Ht.
+  - inversion Ht.
+  - inversion Ht.
+  - inversion Ht.
+  - exists w1, w2. split; [reflexivity | split; assumption].
 Qed.
 
 (** ** Progress. *)
@@ -226,6 +260,8 @@ Proof.
     | t1 IHt1 t2 IHt2 (* With *)
     | t1 IHt1         (* Fst  *)
     | t1 IHt1         (* Snd  *)
+    | t1 IHt1 t2 IHt2 (* Tensor  *)
+    | t1 IHt1 t2 IHt2 (* LetPair *)
     | bAnn t1 IHt1    (* Inl  *)
     | aAnn t1 IHt1    (* Inr  *)
     | t1 IHt1 tL IHtL tR IHtR  (* Case *)
@@ -286,6 +322,27 @@ Proof.
       [ destruct (canon_with _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
         right; exists v2; apply S_Snd; [exact Hv1 | exact Hv2]
       | right; exists (Snd t1'); apply S_Snd1; exact Hs ]
+    end.
+
+  - (* Tensor t1 t2 : multiplicative pair — a value once both components are *)
+    inversion Ht; subst; empty_uvec.
+    match goal with HT1 : has_type TEmpty UEmpty t1 _ |- _ =>
+      match goal with HT2 : has_type TEmpty UEmpty t2 _ |- _ =>
+        destruct (IHt1 _ HT1) as [Hv1 | [t1' Hs1]];
+        [ destruct (IHt2 _ HT2) as [Hv2 | [t2' Hs2]];
+          [ left; apply VTensor; assumption
+          | right; exists (Tensor t1 t2'); apply S_Tensor2; [exact Hv1 | exact Hs2] ]
+        | right; exists (Tensor t1' t2); apply S_Tensor1; exact Hs1 ]
+      end
+    end.
+
+  - (* LetPair t1 t2 : steps once the scrutinee is a Tensor value *)
+    inversion Ht; subst; empty_uvec.
+    match goal with HT : has_type TEmpty UEmpty t1 (TTensor _ _) |- _ =>
+      destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
+      [ destruct (canon_tensor _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
+        right; exists (subst2 v1 v2 t2); apply S_LetPair; [exact Hv1 | exact Hv2]
+      | right; exists (LetPair t1' t2); apply S_LetPair1; exact Hs ]
     end.
 
   - (* Inl bAnn t1 *)

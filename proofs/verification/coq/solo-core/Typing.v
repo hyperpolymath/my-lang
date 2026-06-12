@@ -83,6 +83,23 @@ Inductive has_type : tctx -> uvec -> tm -> ty -> Prop :=
       has_type G D t (TWith a b) ->
       has_type G D (Snd t) b
 
+  (* Multiplicative product  a (X) b  (the genuine tensor). Introduction
+     SPLITS usage (uadd D1 D2): both halves are paid for separately,
+     because elimination delivers BOTH components. Eliminated by LetPair
+     (let (x,y) = e1 in e2): the body e2 binds two variables — x:a at de
+     Bruijn index 1, y:b at index 0 — each used linearly (One). *)
+  | T_Tensor : forall G D D1 D2 a b t1 t2,
+      has_type G D1 t1 a ->
+      has_type G D2 t2 b ->
+      uadd D1 D2 = Some D ->
+      has_type G D (Tensor t1 t2) (TTensor a b)
+
+  | T_LetPair : forall G D D1 D2 a b c t1 t2,
+      has_type G D1 t1 (TTensor a b) ->
+      has_type (TSnoc (TSnoc G a) b) (USnoc (USnoc D2 One) One) t2 c ->
+      uadd D1 D2 = Some D ->
+      has_type G D (LetPair t1 t2) c
+
   | T_Inl : forall G D a b t,
       has_type G D t a ->
       has_type G D (Inl b t) (TSum a b)
