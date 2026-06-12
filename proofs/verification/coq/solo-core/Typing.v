@@ -63,18 +63,24 @@ Inductive has_type : tctx -> uvec -> tm -> ty -> Prop :=
       uadd D1 (uscale q D2) = Some D ->
       has_type G D (App t1 t2) b
 
-  | T_Pair : forall G D D1 D2 a b t1 t2,
-      has_type G D1 t1 a ->
-      has_type G D2 t2 b ->
-      uadd D1 D2 = Some D ->
-      has_type G D (Pair t1 t2) (TPair a b)
+  (* Additive product  a & b  (the coherent additive pair). Both
+     components are typed under the SAME usage [D] — NOT split — because
+     only one component ever survives elimination (Fst / Snd), so reusing
+     a linear resource across the two components is safe. This is the
+     genuine `&`; the earlier conflated `Pair` split usage at intro yet
+     projected at elim, making it neither `&` nor `(X)` and strictly
+     weaker than both. *)
+  | T_With : forall G D a b t1 t2,
+      has_type G D t1 a ->
+      has_type G D t2 b ->
+      has_type G D (With t1 t2) (TWith a b)
 
   | T_Fst : forall G D a b t,
-      has_type G D t (TPair a b) ->
+      has_type G D t (TWith a b) ->
       has_type G D (Fst t) a
 
   | T_Snd : forall G D a b t,
-      has_type G D t (TPair a b) ->
+      has_type G D t (TWith a b) ->
       has_type G D (Snd t) b
 
   | T_Inl : forall G D a b t,
