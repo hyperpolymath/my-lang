@@ -4,7 +4,8 @@
 (* ========================================================== *)
 (* my-lang Solo core: syntax (Coq twin of Syntax.idr)         *)
 (*                                                            *)
-(* Simply-typed lambda calculus + Unit + pairs + sums + let,  *)
+(* Simply-typed lambda calculus + Unit + additive pairs (&) + *)
+(* sums + let,                                                *)
 (* every binder annotated by a QTT quantity. de Bruijn terms. *)
 (* ========================================================== *)
 
@@ -16,7 +17,10 @@ Require Import EchoMode.
 
 Inductive ty : Type :=
   | TUnit : ty
-  | TPair : ty -> ty -> ty
+  | TWith : ty -> ty -> ty          (* additive product  a & b  (shared usage,
+                                       projected by Fst/Snd). The multiplicative
+                                       product  a (X) b  is deferred to a
+                                       follow-up (TTensor + let-pair). *)
   | TSum  : ty -> ty -> ty
   | TArr  : Q -> ty -> ty -> ty     (* (q x : a) -> b *)
   | TEcho : Mode -> ty -> ty -> ty. (* echo residue: [m] Echo<a => b> *)
@@ -28,7 +32,7 @@ Inductive tm : Type :=
   | UnitT : tm
   | Lam   : Q -> ty -> tm -> tm
   | App   : tm -> tm -> tm
-  | Pair  : tm -> tm -> tm
+  | With  : tm -> tm -> tm    (* additive pair  <t1, t2> : a & b *)
   | Fst   : tm -> tm
   | Snd   : tm -> tm
   | Inl   : ty -> tm -> tm    (* annotation = the other summand *)
@@ -64,7 +68,7 @@ Fixpoint shift (c : nat) (t : tm) : tm :=
   | UnitT        => UnitT
   | Lam q a t1   => Lam q a (shift (S c) t1)
   | App t1 t2    => App (shift c t1) (shift c t2)
-  | Pair t1 t2   => Pair (shift c t1) (shift c t2)
+  | With t1 t2   => With (shift c t1) (shift c t2)
   | Fst t1       => Fst (shift c t1)
   | Snd t1       => Snd (shift c t1)
   | Inl b t1     => Inl b (shift c t1)
@@ -90,7 +94,7 @@ Fixpoint subst_at (j : nat) (u : tm) (t : tm) : tm :=
   | UnitT        => UnitT
   | Lam q a t1   => Lam q a (subst_at (S j) (shift 0 u) t1)
   | App t1 t2    => App (subst_at j u t1) (subst_at j u t2)
-  | Pair t1 t2   => Pair (subst_at j u t1) (subst_at j u t2)
+  | With t1 t2   => With (subst_at j u t1) (subst_at j u t2)
   | Fst t1       => Fst (subst_at j u t1)
   | Snd t1       => Snd (subst_at j u t1)
   | Inl b t1     => Inl b (subst_at j u t1)

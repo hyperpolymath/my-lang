@@ -35,7 +35,7 @@ Require Import Typing.
 Inductive value : tm -> Prop :=
   | VUnit : value UnitT
   | VLam  : forall q a t, value (Lam q a t)
-  | VPair : forall t1 t2, value t1 -> value t2 -> value (Pair t1 t2)
+  | VWith : forall t1 t2, value t1 -> value t2 -> value (With t1 t2)
   | VInl  : forall b t, value t -> value (Inl b t)
   | VInr  : forall a t, value t -> value (Inr a t)
   (* an echo with a fully-evaluated residue is a value; [Weaken] is
@@ -54,9 +54,9 @@ Inductive step : tm -> tm -> Prop :=
   | S_App   : forall q a t v,
       value v -> step (App (Lam q a t) v) (subst0 v t)
   | S_Fst   : forall v1 v2,
-      value v1 -> value v2 -> step (Fst (Pair v1 v2)) v1
+      value v1 -> value v2 -> step (Fst (With v1 v2)) v1
   | S_Snd   : forall v1 v2,
-      value v1 -> value v2 -> step (Snd (Pair v1 v2)) v2
+      value v1 -> value v2 -> step (Snd (With v1 v2)) v2
   | S_CaseL : forall b v tL tR,
       value v -> step (Case (Inl b v) tL tR) (subst0 v tL)
   | S_CaseR : forall a v tL tR,
@@ -68,10 +68,10 @@ Inductive step : tm -> tm -> Prop :=
       step t1 t1' -> step (App t1 t2) (App t1' t2)
   | S_App2  : forall v1 t2 t2',
       value v1 -> step t2 t2' -> step (App v1 t2) (App v1 t2')
-  | S_Pair1 : forall t1 t1' t2,
-      step t1 t1' -> step (Pair t1 t2) (Pair t1' t2)
-  | S_Pair2 : forall v1 t2 t2',
-      value v1 -> step t2 t2' -> step (Pair v1 t2) (Pair v1 t2')
+  | S_With1 : forall t1 t1' t2,
+      step t1 t1' -> step (With t1 t2) (With t1' t2)
+  | S_With2 : forall v1 t2 t2',
+      value v1 -> step t2 t2' -> step (With v1 t2) (With v1 t2')
   | S_Fst1  : forall t t',
       step t t' -> step (Fst t) (Fst t')
   | S_Snd1  : forall t t',
@@ -164,9 +164,9 @@ Proof.
   - inversion Ht.
 Qed.
 
-Lemma canon_pair : forall a b v,
-  value v -> has_type TEmpty UEmpty v (TPair a b) ->
-  exists v1 v2, v = Pair v1 v2 /\ value v1 /\ value v2.
+Lemma canon_with : forall a b v,
+  value v -> has_type TEmpty UEmpty v (TWith a b) ->
+  exists v1 v2, v = With v1 v2 /\ value v1 /\ value v2.
 Proof.
   intros a b v Hv Ht.
   destruct Hv as [ | q0 a0 tb | u1 u2 Hu1 Hu2 | b0 u0 Hu0 | a0 u0 Hu0
@@ -223,7 +223,7 @@ Proof.
     |                 (* UnitT *)
     | q tyL t1 IHt1   (* Lam  *)
     | t1 IHt1 t2 IHt2 (* App  *)
-    | t1 IHt1 t2 IHt2 (* Pair *)
+    | t1 IHt1 t2 IHt2 (* With *)
     | t1 IHt1         (* Fst  *)
     | t1 IHt1         (* Snd  *)
     | bAnn t1 IHt1    (* Inl  *)
@@ -257,32 +257,33 @@ Proof.
       end
     end.
 
-  - (* Pair t1 t2 *)
-    inversion Ht; subst; empty_uvec.
+  - (* With t1 t2 : additive pair — a value once both components are.
+       T_With shares usage (no split), so nothing to clear here. *)
+    inversion Ht; subst.
     match goal with HT1 : has_type TEmpty UEmpty t1 _ |- _ =>
       match goal with HT2 : has_type TEmpty UEmpty t2 _ |- _ =>
         destruct (IHt1 _ HT1) as [Hv1 | [t1' Hs1]];
         [ destruct (IHt2 _ HT2) as [Hv2 | [t2' Hs2]];
-          [ left; apply VPair; assumption
-          | right; exists (Pair t1 t2'); apply S_Pair2; [exact Hv1 | exact Hs2] ]
-        | right; exists (Pair t1' t2); apply S_Pair1; exact Hs1 ]
+          [ left; apply VWith; assumption
+          | right; exists (With t1 t2'); apply S_With2; [exact Hv1 | exact Hs2] ]
+        | right; exists (With t1' t2); apply S_With1; exact Hs1 ]
       end
     end.
 
   - (* Fst t1 *)
-    inversion Ht; subst; empty_uvec.
-    match goal with HT : has_type TEmpty UEmpty t1 (TPair _ _) |- _ =>
+    inversion Ht; subst.
+    match goal with HT : has_type TEmpty UEmpty t1 (TWith _ _) |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
-      [ destruct (canon_pair _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
+      [ destruct (canon_with _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
         right; exists v1; apply S_Fst; [exact Hv1 | exact Hv2]
       | right; exists (Fst t1'); apply S_Fst1; exact Hs ]
     end.
 
   - (* Snd t1 *)
-    inversion Ht; subst; empty_uvec.
-    match goal with HT : has_type TEmpty UEmpty t1 (TPair _ _) |- _ =>
+    inversion Ht; subst.
+    match goal with HT : has_type TEmpty UEmpty t1 (TWith _ _) |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
-      [ destruct (canon_pair _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
+      [ destruct (canon_with _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
         right; exists v2; apply S_Snd; [exact Hv1 | exact Hv2]
       | right; exists (Snd t1'); apply S_Snd1; exact Hs ]
     end.
