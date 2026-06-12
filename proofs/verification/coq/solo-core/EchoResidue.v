@@ -29,7 +29,7 @@
 Require Import Quantity.
 Require Import EchoMode.
 Require Import Syntax.
-Require Import Context.
+Require Import Usage.
 Require Import Typing.
 Require Import Soundness.
 
@@ -42,9 +42,9 @@ Require Import Soundness.
 (** Typed weaken: a Linear echo over [a => b] weakens to an Affine one
     in the SAME context — no resources are spent, only a distinction is
     dropped. *)
-Theorem echo_weaken_typed : forall g a b t,
-  has_type g t (TEcho Linear a b) ->
-  has_type g (Weaken t) (TEcho Affine a b).
+Theorem echo_weaken_typed : forall G D a b t,
+  has_type G D t (TEcho Linear a b) ->
+  has_type G D (Weaken t) (TEcho Affine a b).
 Proof. intros. apply T_Weaken. assumption. Qed.
 
 (** Operational weaken: once the residue is a value, [Weaken] takes the
@@ -122,12 +122,12 @@ Qed.
     relation [echo_assignable Affine Linear]. The proof-relevant
     residue and the type-algebra subtyping agree. *)
 
-Theorem weaken_realises_assignable : forall g a b t,
-  has_type g t (TEcho Linear a b) ->
-  has_type g (Weaken t) (TEcho Affine a b) /\
+Theorem weaken_realises_assignable : forall G D a b t,
+  has_type G D t (TEcho Linear a b) ->
+  has_type G D (Weaken t) (TEcho Affine a b) /\
   echo_assignable Affine Linear a b a b.
 Proof.
-  intros g a b t Ht. split.
+  intros G D a b t Ht. split.
   - apply echo_weaken_typed. assumption.
   - apply echo_assignable_weaken.
 Qed.

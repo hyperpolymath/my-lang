@@ -13,6 +13,10 @@
 (*     proposition (its QTT substitution lemma is the         *)
 (*     outstanding obligation). Recorded in proofs/STATUS.md. *)
 (*                                                            *)
+(* Stated over the SEPARATED context (Usage.v): a closed term *)
+(* is typed in the empty type context [TEmpty] under the      *)
+(* empty usage [UEmpty].                                       *)
+(*                                                            *)
 (* Discipline: a `Definition : Prop` asserts nothing and adds *)
 (* no unproved assumption to the trusted base; a `Theorem     *)
 (* ... Qed.` is a real result. We never describe a hole as    *)
@@ -23,7 +27,7 @@ Require Import Coq.Init.Nat.
 Require Import Quantity.
 Require Import EchoMode.
 Require Import Syntax.
-Require Import Context.
+Require Import Usage.
 Require Import Typing.
 
 (** * Values: canonical forms of closed terms *)
@@ -91,10 +95,11 @@ Inductive step : tm -> tm -> Prop :=
 
 (** * Progress (proposition) *)
 
-(** A closed, well-typed Solo term is a value or can step. *)
+(** A closed, well-typed Solo term is a value or can step. "Closed" =
+    typed in the empty type context under the empty usage. *)
 Definition Progress : Prop :=
   forall t a,
-    has_type Empty t a ->
+    has_type TEmpty UEmpty t a ->
     value t \/ exists t', step t t'.
 
 (** * Preservation (proposition) — outstanding obligation, F1.4 *)
@@ -102,49 +107,50 @@ Definition Progress : Prop :=
 (** Reduction preserves typing in the SAME context — the affine
     accounting content of the theorem. *)
 Definition Preservation : Prop :=
-  forall g t t' a,
-    has_type g t a ->
+  forall G D t t' a,
+    has_type G D t a ->
     step t t' ->
-    has_type g t' a.
+    has_type G D t' a.
 
 (** Affine preservation: identical to [Preservation] for the Solo
-    kernel (the preserved context already carries the accounting). *)
+    kernel (the preserved usage already carries the accounting). *)
 Definition AffinePreservation : Prop := Preservation.
 
 (* ========================================================== *)
 (* Progress, discharged (F1.3).                               *)
 (* ========================================================== *)
 
-(** ** Context lemmas for closed terms.
+(** ** Usage lemmas for closed terms.
 
-    The empty context splits only trivially: a sum is [Empty] only
-    when both summands are, and a scaling is [Empty] only when its
-    argument is. These let the progress induction recover [Empty]
-    sub-contexts, so the inductive hypotheses (stated for [Empty])
-    apply to the immediate subterms. *)
+    The empty usage splits only trivially: a sum is [UEmpty] only when
+    both summands are, and a scaling is [UEmpty] only when its argument
+    is. These let the progress induction recover [UEmpty] sub-usages,
+    so the inductive hypotheses (stated for [UEmpty]) apply to the
+    immediate subterms. The TYPE context is [TEmpty] throughout and is
+    shared verbatim, so no analogous type-context lemma is needed. *)
 
-Lemma ctx_scale_empty : forall q g, ctx_scale q g = Empty -> g = Empty.
-Proof. intros q g H. destruct g; simpl in H; [reflexivity | discriminate]. Qed.
+Lemma uscale_empty : forall q D, uscale q D = UEmpty -> D = UEmpty.
+Proof. intros q [| D qe] H; simpl in H; [reflexivity | discriminate]. Qed.
 
-Lemma ctx_add_empty :
-  forall g1 g2, ctx_add g1 g2 = Some Empty -> g1 = Empty /\ g2 = Empty.
+Lemma uadd_empty :
+  forall D1 D2, uadd D1 D2 = Some UEmpty -> D1 = UEmpty /\ D2 = UEmpty.
 Proof.
-  intros g1 g2 H. destruct g1; destruct g2; simpl in H; try discriminate.
+  intros [| D1 q1] [| D2 q2] H; simpl in H; try discriminate.
   - split; reflexivity.
-  - destruct (ctx_add g1 g2); discriminate.
+  - destruct (uadd D1 D2); discriminate.
 Qed.
 
-Ltac empty_ctx :=
+Ltac empty_uvec :=
   repeat match goal with
-  | [ H : ctx_add _ _ = Some Empty |- _ ] =>
-      apply ctx_add_empty in H; destruct H as [? ?]
-  | [ H : ctx_scale _ _ = Empty |- _ ] => apply ctx_scale_empty in H
+  | [ H : uadd _ _ = Some UEmpty |- _ ] =>
+      apply uadd_empty in H; destruct H as [? ?]
+  | [ H : uscale _ _ = UEmpty |- _ ] => apply uscale_empty in H
   end; subst.
 
 (** ** Canonical forms: a closed value's shape is fixed by its type. *)
 
 Lemma canon_arr : forall q a b v,
-  value v -> has_type Empty v (TArr q a b) ->
+  value v -> has_type TEmpty UEmpty v (TArr q a b) ->
   exists q' a' t, v = Lam q' a' t.
 Proof.
   intros q a b v Hv Ht.
@@ -159,7 +165,7 @@ Proof.
 Qed.
 
 Lemma canon_pair : forall a b v,
-  value v -> has_type Empty v (TPair a b) ->
+  value v -> has_type TEmpty UEmpty v (TPair a b) ->
   exists v1 v2, v = Pair v1 v2 /\ value v1 /\ value v2.
 Proof.
   intros a b v Hv Ht.
@@ -174,7 +180,7 @@ Proof.
 Qed.
 
 Lemma canon_sum : forall a b v,
-  value v -> has_type Empty v (TSum a b) ->
+  value v -> has_type TEmpty UEmpty v (TSum a b) ->
   (exists b' v', v = Inl b' v' /\ value v') \/
   (exists a' v', v = Inr a' v' /\ value v').
 Proof.
@@ -193,7 +199,7 @@ Qed.
     [MkEcho] with a value residue (and matching mode / domain /
     codomain). Drives the [Weaken] case of progress. *)
 Lemma canon_echo : forall m a b v,
-  value v -> has_type Empty v (TEcho m a b) ->
+  value v -> has_type TEmpty UEmpty v (TEcho m a b) ->
   exists v', v = MkEcho m a b v' /\ value v'.
 Proof.
   intros m a b v Hv Ht.
@@ -230,7 +236,7 @@ Proof.
 
   - (* Var n : no closed variable is well-typed *)
     inversion Ht; subst.
-    match goal with H : has_var Empty _ _ |- _ => inversion H end.
+    match goal with H : has_var TEmpty _ _ _ |- _ => inversion H end.
 
   - (* UnitT : a value *)
     left. constructor.
@@ -239,9 +245,9 @@ Proof.
     left. constructor.
 
   - (* App t1 t2 *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT1 : has_type Empty t1 _ |- _ =>
-      match goal with HT2 : has_type Empty t2 _ |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT1 : has_type TEmpty UEmpty t1 _ |- _ =>
+      match goal with HT2 : has_type TEmpty UEmpty t2 _ |- _ =>
         destruct (IHt1 _ HT1) as [Hv1 | [t1' Hs1]];
         [ destruct (IHt2 _ HT2) as [Hv2 | [t2' Hs2]];
           [ destruct (canon_arr _ _ _ _ Hv1 HT1) as [q' [a' [tb Heqv]]]; subst t1;
@@ -252,9 +258,9 @@ Proof.
     end.
 
   - (* Pair t1 t2 *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT1 : has_type Empty t1 _ |- _ =>
-      match goal with HT2 : has_type Empty t2 _ |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT1 : has_type TEmpty UEmpty t1 _ |- _ =>
+      match goal with HT2 : has_type TEmpty UEmpty t2 _ |- _ =>
         destruct (IHt1 _ HT1) as [Hv1 | [t1' Hs1]];
         [ destruct (IHt2 _ HT2) as [Hv2 | [t2' Hs2]];
           [ left; apply VPair; assumption
@@ -264,8 +270,8 @@ Proof.
     end.
 
   - (* Fst t1 *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT : has_type Empty t1 (TPair _ _) |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT : has_type TEmpty UEmpty t1 (TPair _ _) |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ destruct (canon_pair _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
         right; exists v1; apply S_Fst; [exact Hv1 | exact Hv2]
@@ -273,8 +279,8 @@ Proof.
     end.
 
   - (* Snd t1 *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT : has_type Empty t1 (TPair _ _) |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT : has_type TEmpty UEmpty t1 (TPair _ _) |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ destruct (canon_pair _ _ _ Hv HT) as [v1 [v2 [Heqv [Hv1 Hv2]]]]; subst t1;
         right; exists v2; apply S_Snd; [exact Hv1 | exact Hv2]
@@ -282,24 +288,24 @@ Proof.
     end.
 
   - (* Inl bAnn t1 *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT : has_type Empty t1 _ |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT : has_type TEmpty UEmpty t1 _ |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ left; apply VInl; exact Hv
       | right; exists (Inl bAnn t1'); apply S_Inl1; exact Hs ]
     end.
 
   - (* Inr aAnn t1 *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT : has_type Empty t1 _ |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT : has_type TEmpty UEmpty t1 _ |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ left; apply VInr; exact Hv
       | right; exists (Inr aAnn t1'); apply S_Inr1; exact Hs ]
     end.
 
   - (* Case t1 tL tR *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT : has_type Empty t1 (TSum _ _) |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT : has_type TEmpty UEmpty t1 (TSum _ _) |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ destruct (canon_sum _ _ _ Hv HT)
           as [[bb [v [Heqv Hv']]] | [aa [v [Heqv Hv']]]]; subst t1;
@@ -309,8 +315,8 @@ Proof.
     end.
 
   - (* Let q t1 t2 *)
-    inversion Ht; subst; empty_ctx.
-    match goal with HT : has_type Empty t1 _ |- _ =>
+    inversion Ht; subst; empty_uvec.
+    match goal with HT : has_type TEmpty UEmpty t1 _ |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ right; exists (subst0 t1 t2); apply S_Let; exact Hv
       | right; exists (Let q t1' t2); apply S_Let1; exact Hs ]
@@ -318,7 +324,7 @@ Proof.
 
   - (* MkEcho mE aE bE t1 : a value once its residue is a value *)
     inversion Ht; subst.
-    match goal with HT : has_type Empty t1 _ |- _ =>
+    match goal with HT : has_type TEmpty UEmpty t1 _ |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ left; apply VEcho; exact Hv
       | right; exists (MkEcho mE aE bE t1'); apply S_Echo1; exact Hs ]
@@ -326,7 +332,7 @@ Proof.
 
   - (* Weaken t1 : steps to the affine residue once t1 is a value *)
     inversion Ht; subst.
-    match goal with HT : has_type Empty t1 (TEcho Linear _ _) |- _ =>
+    match goal with HT : has_type TEmpty UEmpty t1 (TEcho Linear _ _) |- _ =>
       destruct (IHt1 _ HT) as [Hv | [t1' Hs]];
       [ destruct (canon_echo _ _ _ _ Hv HT) as [v' [Heqv Hv']]; subst t1;
         right; eexists; apply S_Weaken; exact Hv'
@@ -337,4 +343,5 @@ Qed.
 (* Track F1.4: Theorem preservation : Preservation.    Proof. ... Qed. *)
 (*             Theorem affine_pres  : AffinePreservation. Proof. ... Qed. *)
 (* Outstanding obligation: the QTT substitution lemma respecting       *)
-(* context splitting. See proofs/STATUS.md and proofs/ALIGNMENT-PLAN.md. *)
+(* usage splitting (uadd/uscale). See proofs/STATUS.md and             *)
+(* proofs/ALIGNMENT-PLAN.md.                                            *)
