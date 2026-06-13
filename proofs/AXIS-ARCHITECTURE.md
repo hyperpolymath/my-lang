@@ -116,7 +116,7 @@ my-lang is parametric over **both**, and identifies **neither**.
  R4 ✓ Tropical instance (cost) ── acceptance
       test: infinite carrier, analytic laws         TROPICAL  (tropical-resource-typing, Lean/Isabelle)
  R5 ✓ static-split ≡ usage-walk (F1.4 tail) ──       T1 ☐ independently re-verify Isabelle 2025-1
-      VERIFIED checker [check], axiom-free            T2 ☐ session ext: choice / recursion / multiparty
+      VERIFIED [check] + aff_type_dec, axiom-free     T2 ☐ session ext: choice / recursion / multiparty
  ──parity / surface──                                T3 ☐ firm the Lean↔Isabelle cross-links
  P1 ☐ Idris twin of solo (close ?todo) +             T4 ☐ WithTop ∞ (drop tcZero=1e6 hack)
       mirror subst2 fix + parametric design
@@ -203,11 +203,16 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   tail and **overtakes AffineScript**, whose solo-core states the same
   static-split≡usage-walk equivalence only as prose ("an explicit equivalence lemma
   is future work"). The checker decides the strictly-LINEAR `has_type`; the affine
-  *discard* (`aff_type`/`ule`, R3) is a separate budget layer, decidable on its own
-  (a possible R5b). Three `Compute`-backed examples pin non-vacuity: a linear binder
-  used once is accepted; one dropped (usage `Zero`) or duplicated multiplicatively
-  (usage `Omega`) is rejected — the latter accepted under an `Omega` binder, so the
-  rejection is exactly the linearity check.
+  *discard* (`aff_type`/`ule`, R3) is a separate budget layer, now also decided —
+  **R5b DONE:** `ule_dec` (the budget order), `aff_type_iff` (the `check`-characterisation
+  `aff_type G D t a ↔ ∃ D0, check G t = Some (a, D0) ∧ ule D0 D`) and `aff_type_dec`
+  (decidability of the affine judgement) are axiom-free and inherited free at the
+  tropical carrier too. Several `Compute`-backed examples pin non-vacuity: a linear
+  binder used once is accepted; one dropped (usage `Zero`) or duplicated
+  multiplicatively (usage `Omega`) is rejected — the latter accepted under an `Omega`
+  binder, so the rejection is exactly the linearity check. The affine *discard* is the
+  precise separator: the SAME `UnitT` at budget `One` is `aff_type`-accepted (realises
+  `Zero ≤ One`) yet `has_type`-rejected.
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without

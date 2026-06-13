@@ -121,9 +121,11 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   carrier for free. **This overtakes AffineScript**, whose solo-core
   states the same static-split≡usage-walk equivalence only as prose
   ("an explicit equivalence lemma is future work"). The checker decides
-  the strictly-**linear** `has_type`; deciding the affine *discard*
-  (`aff_type`/`ule`) is a separate budget-layer obligation (**R5b**,
-  not yet done).
+  the strictly-**linear** `has_type`; **R5b (2026-06-13) DONE** decides
+  the affine *discard* too: `aff_type_dec` (decidability of the affine
+  judgement `aff_type`/`ule`), via `aff_type_iff` (its `check`-character-
+  isation, the affine analogue of `check_correct`) and `ule_dec` — all
+  axiom-free, CI-guarded, inherited free at the tropical carrier.
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a

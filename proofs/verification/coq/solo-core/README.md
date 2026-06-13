@@ -40,8 +40,11 @@ three-point carrier. **R5 (F1.4 tail)** adds the *executable* usage-walk
 checker `check` and proves it sound + complete against `has_type`
 (`check_correct`, axiom-free), with usage/type determinacy as the
 corollary `typing_unique` — the decidability/adequacy of QTT typing, and
-the spec the Rust `dialects/solo` checker must meet. The authoritative
-state is `proofs/STATUS.md`.
+the spec the Rust `dialects/solo` checker must meet. **R5b** decides the
+affine layer too: `aff_type_dec` (the affine judgement `aff_type` is
+decidable), via `aff_type_iff` (its `check`-characterisation) and
+`ule_dec` (the budget order). The authoritative state is
+`proofs/STATUS.md`.
 
 ## Building
 

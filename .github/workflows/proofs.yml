@@ -63,9 +63,10 @@ jobs:
           # bare names, recovering the axiom-free concrete development.
           # R5: check_sound / check_complete / check_correct are the
           # executable usage-walk checker's adequacy (static-split ≡
-          # usage-walk) — also asserted axiom-free here.
+          # usage-walk); R5b: aff_type_dec decides the affine budget
+          # judgement — all asserted axiom-free here.
           for thm in progress preservation affine_pres \
-                     check_sound check_complete check_correct; do
+                     check_sound check_complete check_correct aff_type_dec; do
             echo "Require Import SoloCore. Print Assumptions ${thm}." \
               | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_${thm}.txt"
             grep -q "Closed under the global context" "/tmp/assum_${thm}.txt" \

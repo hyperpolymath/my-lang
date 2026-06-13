@@ -2483,6 +2483,55 @@ Proof.
   rewrite H1 in H2. injection H2 as Ha Hd. split; [exact Ha | exact Hd].
 Qed.
 
+(* ========================================================== *)
+(* R5b: decidability of the AFFINE judgement.                  *)
+(*                                                            *)
+(* [check] decides the strictly-LINEAR [has_type]. The affine *)
+(* layer [aff_type G D t a := exists D0, has_type G D0 t a /\  *)
+(* ule D0 D] (uses at most budget D, R3) adds the affine       *)
+(* DISCARD — realising LESS usage than the budget permits.     *)
+(* It too is decidable: by [typing_unique] the realised usage  *)
+(* [D0] is unique, so [aff_type] reduces to: [check] succeeds  *)
+(* at type [a] with some [D0], and that [D0] fits the budget   *)
+(* [D].  [ule] is decidable because [qle] is a [bool].         *)
+(* ========================================================== *)
+
+Definition ule_dec : forall D D', {ule D D'} + {~ ule D D'}.
+Proof.
+  intros D; induction D as [|D IH q]; intros [|D' q']; simpl.
+  - left. exact I.
+  - right. intro H. exact H.
+  - right. intro H. exact H.
+  - destruct (IH D') as [Hle|Hnle].
+    + destruct (qle q q') eqn:Hq.
+      * left. split; [reflexivity | exact Hle].
+      * right. intros [Hq' _]. discriminate.
+    + right. intros [_ Hle']. exact (Hnle Hle').
+Defined.
+
+(* The affine analogue of [check_correct]: [aff_type] holds exactly when
+   the UNIQUE synthesised usage fits the budget. *)
+Lemma aff_type_iff : forall G D t a,
+  aff_type G D t a <-> exists D0, check G t = Some (a, D0) /\ ule D0 D.
+Proof.
+  intros G D t a. split.
+  - intros [D0 [Hty Hle]]. exists D0. split; [apply check_complete; exact Hty | exact Hle].
+  - intros [D0 [Hc Hle]]. exists D0. split; [apply check_sound; exact Hc | exact Hle].
+Qed.
+
+Definition aff_type_dec : forall G D t a, {aff_type G D t a} + {~ aff_type G D t a}.
+Proof.
+  intros G D t a. destruct (check G t) as [[a0 D0]|] eqn:E.
+  - destruct (ty_eq_dec a0 a) as [Ha|Hna].
+    + subst a0. destruct (ule_dec D0 D) as [Hle|Hnle].
+      * left. apply aff_type_iff. exists D0. split; [exact E | exact Hle].
+      * right. intro Hn. apply aff_type_iff in Hn. destruct Hn as [D0' [Hc Hle']].
+        assert (HD : D0' = D0) by congruence. subst D0'. exact (Hnle Hle').
+    + right. intro Hn. apply aff_type_iff in Hn. destruct Hn as [D0' [Hc _]].
+      assert (Heq : a0 = a) by congruence. exact (Hna Heq).
+  - right. intro Hn. apply aff_type_iff in Hn. destruct Hn as [D0' [Hc _]]. congruence.
+Defined.
+
 
 End SoloCoreF.
 
@@ -2528,3 +2577,34 @@ Example check_correct_demo :
   has_type TEmpty UEmpty (Lam Quantity.One TUnit (Var 0))
            (TArr Quantity.One TUnit TUnit).
 Proof. apply check_correct. reflexivity. Qed.
+
+(* ----- R5b: the affine DISCARD is exactly what separates the layers ----- *)
+(* Same term, same budget [USnoc UEmpty One] (one Unit in scope): the
+   AFFINE judgement ACCEPTS dropping the linear unit (it realises usage
+   Zero <= One); the LINEAR judgement REJECTS it. *)
+Example aff_discard_ok :
+  aff_type (TSnoc TEmpty TUnit) (USnoc UEmpty Quantity.One) UnitT TUnit.
+Proof.
+  apply aff_type_iff. exists (USnoc UEmpty Quantity.Zero).
+  split; [ reflexivity | simpl; split; [reflexivity | exact I] ].
+Qed.
+
+Example lin_discard_bad :
+  ~ has_type (TSnoc TEmpty TUnit) (USnoc UEmpty Quantity.One) UnitT TUnit.
+Proof. intro H. apply check_correct in H. cbn in H. discriminate. Qed.
+
+(* over-budget (the linear var used twice -> Omega) is affine-rejected. *)
+Example aff_dup_bad :
+  ~ aff_type (TSnoc TEmpty TUnit) (USnoc UEmpty Quantity.One)
+             (Tensor (Var 0) (Var 0)) (TTensor TUnit TUnit).
+Proof.
+  intro H. apply aff_type_iff in H. destruct H as [D0 [Hc Hle]].
+  cbn in Hc. assert (HD : D0 = USnoc UEmpty Quantity.Omega) by congruence.
+  rewrite HD in Hle. cbn in Hle. destruct Hle as [Hq _]. discriminate.
+Qed.
+
+(* and the decision procedure agrees, by computation. *)
+Example aff_dec_discard :
+  if aff_type_dec (TSnoc TEmpty TUnit) (USnoc UEmpty Quantity.One) UnitT TUnit
+  then True else False.
+Proof. exact I. Qed.
