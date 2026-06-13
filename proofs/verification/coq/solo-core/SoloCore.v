@@ -2608,3 +2608,162 @@ Example aff_dec_discard :
   if aff_type_dec (TSnoc TEmpty TUnit) (USnoc UEmpty Quantity.One) UnitT TUnit
   then True else False.
 Proof. exact I. Qed.
+
+(* ========================================================== *)
+(* M1.0: the `me` surface dialect, and its elaboration into    *)
+(*       the solo core (the mechanised `translate`).           *)
+(*                                                            *)
+(* `me` is my-lang's visual / block-based pedagogic surface    *)
+(* (proofs/me/, ages 8-12). It has NO settled AST in code —    *)
+(* only the paper block grammar in                             *)
+(*   proofs/me/visual-semantics/formal-model.md                *)
+(* (V ::= eps | B | V o V | V (X) V ; B ::= PrintBlock |       *)
+(*  LetBlock | IfBlock | TokenBlock | ConsumeBlock | ...) and  *)
+(* a paper `translate : VisualProgram -> SoloProgram` whose    *)
+(* correctness (Theorem 1, Visual Soundness:                   *)
+(*   well_formed(V) ==> Gamma |- translate(V) : tau)           *)
+(* is sketched informally (ending in []), never mechanised.    *)
+(*                                                            *)
+(* M1 (proofs/AXIS-ARCHITECTURE.md axis-4 SURFACE, the open    *)
+(* box [ ]) mechanises that elaboration-correctness lemma OVER  *)
+(* the already-proven solo core (R0-R5b) — reusing soundness,  *)
+(* NOT a fresh progress/preservation. Here M1.0 pins a Coq     *)
+(* `me_tm` (the affine/token fragment of the block grammar)    *)
+(* and the elaboration `elab : me_tm -> tm` LANDING in the de  *)
+(* Bruijn solo `tm` (not the paper's Rust-ish surface), with   *)
+(* machine-checked witnesses that the elaboration is accepted  *)
+(* by the R5 usage-walk `check` (hence well-typed in solo by   *)
+(* `check_correct`). AffineScript has no `me`-like dialect and  *)
+(* no surface->core elaboration of any kind, so this OVERTAKES *)
+(* it (a clean overtake with no AS counterpart even on paper). *)
+(*                                                            *)
+(* Echo-types audit (mandatory, owner directive): NOT-RELEVANT *)
+(* — M1 is the axis-4 SURFACE elaboration obligation; echo is  *)
+(* the axis-3 MODALITY layer (Echo IS-NOT a resource           *)
+(* instance); the axes compose but must not be collapsed.      *)
+(* The reuse targets are core-internal: `has_type` / `check` /  *)
+(* `check_correct` and the affine `aff_type` / `aff_type_iff`. *)
+(* ========================================================== *)
+
+(** The `me` block fragment (de Bruijn). The colour/port apparatus and
+    the effectful blocks (Print/Input) of formal-model.md are denotational
+    decoration; the TYPING-relevant affine core is the resource fragment:
+    a unit token, token-consumption (a variable use), let-binding (consume
+    once), sequencing (run-and-discard = the affine drop), the two product
+    flavours, sum injections, and the echo residue + its weakening. *)
+Inductive me_tm : Type :=
+  | MeUnit    : me_tm                       (* the empty / done block; a unit token *)
+  | MeVar     : nat -> me_tm                (* ConsumeBlock: use the token at index n *)
+  | MeLet     : me_tm -> me_tm -> me_tm     (* LetBlock(x = e1; e2): bind, consume once in e2 *)
+  | MeSeq     : me_tm -> me_tm -> me_tm     (* V1 o V2: run e1, DISCARD it, then e2 (affine drop) *)
+  | MeTensor  : me_tm -> me_tm -> me_tm     (* V1 (X) V2: parallel composition = multiplicative pair *)
+  | MeWith    : me_tm -> me_tm -> me_tm     (* additive choice pair (shared resources) *)
+  | MeUsePair : me_tm -> me_tm -> me_tm     (* let (x,y) = e1 in e2: split a paired resource *)
+  | MeInl     : ty -> me_tm -> me_tm        (* IfBlock left injection (annot = right summand) *)
+  | MeInr     : ty -> me_tm -> me_tm        (* right injection (annot = left summand) *)
+  | MeEcho    : ty -> me_tm -> me_tm        (* keep a residue [a => a] at Linear mode *)
+  | MeWeaken  : me_tm -> me_tm.             (* weaken a linear echo residue to affine *)
+
+(** The elaboration — the mechanised `translate`, landing in the de Bruijn
+    solo `tm`. Token creation/consumption is a [One]-binder used once;
+    sequencing is a [Zero]-binder (the affine discard); the body of a
+    sequence is [shift]ed to skip the discarded binding. *)
+Fixpoint elab (e : me_tm) : tm :=
+  match e with
+  | MeUnit        => UnitT
+  | MeVar n       => Var n
+  | MeLet e1 e2   => Let Quantity.One (elab e1) (elab e2)
+  | MeSeq e1 e2   => Let Quantity.Zero (elab e1) (shift 0 (elab e2))
+  | MeTensor e1 e2 => Tensor (elab e1) (elab e2)
+  | MeWith e1 e2  => With (elab e1) (elab e2)
+  | MeUsePair e1 e2 => LetPair (elab e1) (elab e2)
+  | MeInl b e1    => Inl b (elab e1)
+  | MeInr a e1    => Inr a (elab e1)
+  | MeEcho a e1   => MkEcho Linear a a (elab e1)
+  | MeWeaken e1   => Weaken (elab e1)
+  end.
+
+(* ----- M1.0 non-vacuity: concrete elaborations the R5 checker accepts -----
+   These [reflexivity] proofs EXECUTE the elaboration AND the usage-walk on
+   the concrete three-point carrier; they are the machine-checked analogue of
+   formal-model.md's `translate` worked examples (Visual Soundness, concrete).
+   They are the first mechanised surface->core elaboration witnesses in either
+   sibling language. *)
+
+(* MeUnit elaborates to the unit value, accepted with empty usage. *)
+Example me_elab_unit :
+  check TEmpty (elab MeUnit) = Some (TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* LetBlock + ConsumeBlock: create a unit token and consume it EXACTLY ONCE
+   -> the linear judgement ACCEPTS. This is the heart of the visual token
+   discipline (Token Conservation + Single Consumption), machine-checked
+   straight through the elaboration. *)
+Example me_elab_let_consume :
+  check TEmpty (elab (MeLet MeUnit (MeVar 0))) = Some (TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* ...and it lands in the actual typing judgement, via check_correct. *)
+Example me_elab_let_consume_typed :
+  has_type TEmpty UEmpty (elab (MeLet MeUnit (MeVar 0))) TUnit.
+Proof. apply check_correct. reflexivity. Qed.
+
+(* Creating a linear token and DROPPING it (never consumed) is REJECTED by
+   the linear discipline -- a dropped token is not linearly well-typed. *)
+Example me_elab_let_drop_rejected :
+  check TEmpty (elab (MeLet MeUnit MeUnit)) = None.
+Proof. reflexivity. Qed.
+
+(* ...but SEQUENCING (V1 o V2) discards the first block's result via a
+   [Zero]-quantity binder -- the affine drop -- and IS accepted. *)
+Example me_elab_seq_discard :
+  check TEmpty (elab (MeSeq MeUnit MeUnit)) = Some (TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* parallel composition V1 (X) V2 is the multiplicative pair. *)
+Example me_elab_tensor :
+  check TEmpty (elab (MeTensor MeUnit MeUnit))
+    = Some (TTensor TUnit TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* additive choice pair (shared resources). *)
+Example me_elab_with :
+  check TEmpty (elab (MeWith MeUnit MeUnit))
+    = Some (TWith TUnit TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* an IfBlock injection (left), annotated with the right summand. *)
+Example me_elab_inl :
+  check TEmpty (elab (MeInl TUnit MeUnit))
+    = Some (TSum TUnit TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* split a paired resource: let (x,y) = (unit (X) unit) in (x (X) y),
+   consuming both halves exactly once. *)
+Example me_elab_usepair :
+  check TEmpty
+    (elab (MeUsePair (MeTensor MeUnit MeUnit) (MeTensor (MeVar 1) (MeVar 0))))
+    = Some (TTensor TUnit TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* keep a (unit) residue, then weaken it linear -> affine through the
+   elaboration -- the echo bridge, end-to-end. *)
+Example me_elab_echo :
+  check TEmpty (elab (MeEcho TUnit MeUnit))
+    = Some (TEcho Linear TUnit TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+Example me_elab_weaken :
+  check TEmpty (elab (MeWeaken (MeEcho TUnit MeUnit)))
+    = Some (TEcho Affine TUnit TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* a unit token sitting in scope may be DROPPED under the AFFINE judgement
+   (it realises usage Zero <= the budget One) -- the visual 'a token need
+   not be consumed' reading, landed in the R3 affine layer through elab. *)
+Example me_elab_affine_droppable :
+  aff_type (TSnoc TEmpty TUnit) (USnoc UEmpty Quantity.One) (elab MeUnit) TUnit.
+Proof.
+  apply aff_type_iff. exists (USnoc UEmpty Quantity.Zero).
+  split; [ reflexivity | simpl; split; [ reflexivity | exact I ] ].
+Qed.
