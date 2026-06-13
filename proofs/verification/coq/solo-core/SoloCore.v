@@ -1,6 +1,448 @@
 (* SPDX-License-Identifier: MPL-2.0 *)
 (* SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> *)
 
+(* ============================================================ *)
+(* my-lang Solo core — CONSOLIDATED functor over an abstract     *)
+(* resource algebra (Module Type SEMIRING, ResourceAlgebra.v).   *)
+(*                                                              *)
+(* Syntax + Usage + Typing + Soundness are merged into ONE       *)
+(* functor [SoloCoreF (M : SEMIRING)] so the carrier-bearing     *)
+(* inductives (ty, tm, has_type, ...) are SHARED across the      *)
+(* layers. Coq module functors are generative for inductives, so *)
+(* a per-file functor chain (each re-applying the previous)      *)
+(* would NOT share them — hence the single-functor form.         *)
+(*                                                              *)
+(* [Include SoloCoreF Linear3] then recovers the concrete        *)
+(* three-point development under bare names (axiom-free; the     *)
+(* SEMIRING parameters are discharged by Quantity's real Qed     *)
+(* lemmas via Linear3). Tropical / affine instances will reuse   *)
+(* [SoloCoreF] directly (R4). This is R2.                        *)
+(*                                                              *)
+(* Carrier handling: [Import M] resolves qadd/qmul/zero/one and  *)
+(* every law name to M's fields; [Local Notation Zero/One]       *)
+(* re-aliases the two literal tokens (identifiers like           *)
+(* uadd_uscaleZero_r are single tokens and are untouched).       *)
+(* ============================================================ *)
+
+(* external deps, hoisted (Require cannot appear inside a Module) *)
+Require Import Coq.Init.Nat.
+Require Import PeanoNat.
+Require Import Lia.
+Require Import EchoMode.
+Require Import ResourceAlgebra.
+
+Module SoloCoreF (M : SEMIRING).
+Import M.
+Local Notation Zero := M.zero.
+Local Notation One := M.one.
+
+(* ================= Syntax layer ================= *)
+
+(* ========================================================== *)
+(* my-lang Solo core: syntax (Coq twin of Syntax.idr)         *)
+(*                                                            *)
+(* Simply-typed lambda calculus + Unit + additive pairs (&) + *)
+(* sums + let,                                                *)
+(* every binder annotated by a QTT quantity. de Bruijn terms. *)
+(* ========================================================== *)
+
+
+(** * Types *)
+
+Inductive ty : Type :=
+  | TUnit : ty
+  | TWith   : ty -> ty -> ty        (* additive product  a & b
+                                       (shared usage, projected by Fst/Snd) *)
+  | TTensor : ty -> ty -> ty        (* multiplicative product  a (X) b
+                                       (split usage, eliminated by let-pair) *)
+  | TSum  : ty -> ty -> ty
+  | TArr  : Q -> ty -> ty -> ty     (* (q x : a) -> b *)
+  | TEcho : Mode -> ty -> ty -> ty. (* echo residue: [m] Echo<a => b> *)
+
+(** * Terms (de Bruijn) *)
+
+Inductive tm : Type :=
+  | Var   : nat -> tm
+  | UnitT : tm
+  | Lam   : Q -> ty -> tm -> tm
+  | App   : tm -> tm -> tm
+  | With  : tm -> tm -> tm    (* additive pair  <t1, t2> : a & b *)
+  | Fst   : tm -> tm
+  | Snd   : tm -> tm
+  | Tensor  : tm -> tm -> tm  (* multiplicative pair  (t1, t2) : a (X) b *)
+  | LetPair : tm -> tm -> tm  (* let (x, y) = e1 in e2  (e2 binds 2 vars) *)
+  | Inl   : ty -> tm -> tm    (* annotation = the other summand *)
+  | Inr   : ty -> tm -> tm
+  | Case  : tm -> tm -> tm -> tm   (* scrutinee, left (binds 1), right (binds 1) *)
+  | Let   : Q -> tm -> tm -> tm    (* let (q x) = e1 in e2 *)
+  (* echo-types residue (echo-types-integration.md slice 3):
+     [MkEcho m a b t] retains witness [t : a] as the proof-relevant
+     residue of an admissible collapse [a => b] at linearity mode [m];
+     [Weaken t] weakens a linear echo to an affine one (one-way). *)
+  | MkEcho : Mode -> ty -> ty -> tm -> tm
+  | Weaken : tm -> tm.
+
+(** * de Bruijn substitution
+
+    The operational semantics (Soundness.v) reduces redexes by
+    substituting a value for the bound variable. We give the standard
+    capture-avoiding de Bruijn substitution: [shift] renumbers free
+    variables when we push under a binder, [subst_at j u t] replaces
+    de Bruijn index [j] in [t] by [u] (renumbering the rest), and
+    [subst0] is the single-variable substitution for index 0 used by
+    the reduction rules. These are pure syntactic operations; the
+    *typing* content (the substitution lemma) lives in Soundness.v. *)
+
+
+(** [shift c t]: increment every free variable [>= c] by one. The
+    cutoff [c] grows by one under each binder so bound occurrences are
+    left untouched. *)
+Fixpoint shift (c : nat) (t : tm) : tm :=
+  match t with
+  | Var k        => if Nat.ltb k c then Var k else Var (S k)
+  | UnitT        => UnitT
+  | Lam q a t1   => Lam q a (shift (S c) t1)
+  | App t1 t2    => App (shift c t1) (shift c t2)
+  | With t1 t2   => With (shift c t1) (shift c t2)
+  | Fst t1       => Fst (shift c t1)
+  | Snd t1       => Snd (shift c t1)
+  | Tensor t1 t2  => Tensor (shift c t1) (shift c t2)
+  | LetPair t1 t2 => LetPair (shift c t1) (shift (S (S c)) t2)
+  | Inl b t1     => Inl b (shift c t1)
+  | Inr a t1     => Inr a (shift c t1)
+  | Case t1 tL tR => Case (shift c t1) (shift (S c) tL) (shift (S c) tR)
+  | Let q t1 t2  => Let q (shift c t1) (shift (S c) t2)
+  | MkEcho m a b t1 => MkEcho m a b (shift c t1)
+  | Weaken t1    => Weaken (shift c t1)
+  end.
+
+(** [subst_at j u t]: replace de Bruijn index [j] in [t] by [u],
+    decrementing every free variable [> j] (the binder [j] disappears).
+    Under each binder [j] increments and [u] is shifted to keep its
+    free variables pointing at the same things. *)
+Fixpoint subst_at (j : nat) (u : tm) (t : tm) : tm :=
+  match t with
+  | Var k =>
+      match Nat.compare k j with
+      | Lt => Var k
+      | Eq => u
+      | Gt => Var (Nat.pred k)
+      end
+  | UnitT        => UnitT
+  | Lam q a t1   => Lam q a (subst_at (S j) (shift 0 u) t1)
+  | App t1 t2    => App (subst_at j u t1) (subst_at j u t2)
+  | With t1 t2   => With (subst_at j u t1) (subst_at j u t2)
+  | Fst t1       => Fst (subst_at j u t1)
+  | Snd t1       => Snd (subst_at j u t1)
+  | Tensor t1 t2  => Tensor (subst_at j u t1) (subst_at j u t2)
+  | LetPair t1 t2 =>
+      LetPair (subst_at j u t1) (subst_at (S (S j)) (shift 0 (shift 0 u)) t2)
+  | Inl b t1     => Inl b (subst_at j u t1)
+  | Inr a t1     => Inr a (subst_at j u t1)
+  | Case t1 tL tR =>
+      Case (subst_at j u t1)
+           (subst_at (S j) (shift 0 u) tL)
+           (subst_at (S j) (shift 0 u) tR)
+  | Let q t1 t2  => Let q (subst_at j u t1) (subst_at (S j) (shift 0 u) t2)
+  | MkEcho m a b t1 => MkEcho m a b (subst_at j u t1)
+  | Weaken t1    => Weaken (subst_at j u t1)
+  end.
+
+(** Single-variable substitution for index 0 — the [(\x.t) v -> t[v/x]]
+    workhorse of the reduction rules. *)
+Definition subst0 (u : tm) (t : tm) : tm := subst_at 0 u t.
+
+(** Two-variable substitution for the let-pair eliminator: replace de
+    Bruijn index 1 by [u1] and index 0 by [u2], as two sequential single
+    substitutions. The inner pass substitutes index 0 by [u2]; because the
+    index-1 binder is still present during that pass, [u2]'s free variables
+    must skip it, so [u2] is pre-shifted with [shift 0]. The outer pass then
+    substitutes [u1] for the (now index-0) former index-1 binder. This is
+    correct for OPEN [u1] [u2] — needed by preservation, where the let-pair's
+    tensor components are values typed in a non-empty context (F1.4). For
+    CLOSED [u1] [u2] the [shift 0] is the identity, so evaluation of closed
+    programs is unchanged from the naive [subst0 u1 (subst0 u2 t)]. *)
+Definition subst2 (u1 u2 : tm) (t : tm) : tm :=
+  subst0 u1 (subst0 (shift 0 u2) t).
+
+(* ================= Usage layer ================= *)
+
+(* ========================================================== *)
+(* my-lang Solo core: separated QTT context (type ctx + usage)*)
+(*                                                            *)
+(* The standard QTT presentation, adopted for the F1.4        *)
+(* preservation track (design decision, 2026-06-12): the      *)
+(* TYPE context [tctx] (types only) is fixed across a         *)
+(* derivation's splits, while the USAGE vector [uvec]         *)
+(* (quantities only) is what gets added/scaled. Because       *)
+(* addition and scaling now act purely on quantities, the     *)
+(* algebra is genuinely clean — [uadd] is commutative and     *)
+(* associative with no type-shape asymmetry (the wart of the  *)
+(* old conflated `ctx`, where ctx_add took the type from its  *)
+(* first argument).                                           *)
+(* ========================================================== *)
+
+
+(** * Type context — types only. *)
+Inductive tctx : Type :=
+  | TEmpty : tctx
+  | TSnoc  : tctx -> ty -> tctx.
+
+Fixpoint tlen (G : tctx) : nat :=
+  match G with TEmpty => 0 | TSnoc G' _ => S (tlen G') end.
+
+(** * Usage vector — quantities only, shape-matched to a [tctx]. *)
+Inductive uvec : Type :=
+  | UEmpty : uvec
+  | USnoc  : uvec -> Q -> uvec.
+
+Fixpoint ulen (D : uvec) : nat :=
+  match D with UEmpty => 0 | USnoc D' _ => S (ulen D') end.
+
+(** The all-zero usage of a type context's shape ("nothing is used"). *)
+Fixpoint uzero (G : tctx) : uvec :=
+  match G with TEmpty => UEmpty | TSnoc G' _ => USnoc (uzero G') Zero end.
+
+(** Scalar multiplication of a usage vector. *)
+Fixpoint uscale (q : Q) (D : uvec) : uvec :=
+  match D with
+  | UEmpty => UEmpty
+  | USnoc D' qe => USnoc (uscale q D') (qmul q qe)
+  end.
+
+(** Pointwise addition of usage vectors — partial (defined on equal
+    shapes; in a derivation both summands range over the same [tctx]). *)
+Fixpoint uadd (D1 D2 : uvec) : option uvec :=
+  match D1, D2 with
+  | UEmpty, UEmpty => Some UEmpty
+  | USnoc D1' q1, USnoc D2' q2 =>
+      match uadd D1' D2' with
+      | None => None
+      | Some D => Some (USnoc D (qadd q1 q2))
+      end
+  | _, _ => None
+  end.
+
+(* ========================================================== *)
+(* The clean algebra (the payoff of separation).              *)
+(* ========================================================== *)
+
+Lemma uzero_len : forall G, ulen (uzero G) = tlen G.
+Proof. induction G as [| G IH a]; simpl; [reflexivity | rewrite IH; reflexivity]. Qed.
+
+Lemma uscale_len : forall q D, ulen (uscale q D) = ulen D.
+Proof. intros q. induction D as [| D IH qe]; simpl; [reflexivity | rewrite IH; reflexivity]. Qed.
+
+(** Scaling is a monoid action of (Q, qmul, One). *)
+Lemma uscale_one : forall D, uscale One D = D.
+Proof. induction D as [| D IH qe]; simpl; [reflexivity | rewrite IH, qmul_one_l; reflexivity]. Qed.
+
+Lemma uscale_compose : forall q1 q2 D,
+  uscale q1 (uscale q2 D) = uscale (qmul q1 q2) D.
+Proof.
+  intros q1 q2. induction D as [| D IH qe]; simpl.
+  - reflexivity.
+  - rewrite IH, qmul_assoc. reflexivity.
+Qed.
+
+(** Scaling absorbs the zero usage. *)
+Lemma uscale_zero : forall q G, uscale q (uzero G) = uzero G.
+Proof.
+  intros q. induction G as [| G IH a]; simpl.
+  - reflexivity.
+  - rewrite IH, qmul_zero_r. reflexivity.
+Qed.
+
+(** Addition is COMMUTATIVE — clean, no type-shape caveat (the win). *)
+Lemma uadd_comm : forall D1 D2, uadd D1 D2 = uadd D2 D1.
+Proof.
+  induction D1 as [| D1 IH q1]; destruct D2 as [| D2 q2]; simpl; try reflexivity.
+  rewrite IH. destruct (uadd D2 D1) as [D |]; [rewrite qadd_comm |]; reflexivity.
+Qed.
+
+(** Addition is ASSOCIATIVE (on the partial operation). *)
+Lemma uadd_assoc : forall D1 D2 D3 D12 D123,
+  uadd D1 D2 = Some D12 ->
+  uadd D12 D3 = Some D123 ->
+  exists D23, uadd D2 D3 = Some D23 /\ uadd D1 D23 = Some D123.
+Proof.
+  induction D1 as [| D1 IH q1]; intros D2 D3 D12 D123 H12 H123.
+  - (* D1 = UEmpty *)
+    destruct D2 as [| D2 q2]; simpl in H12; try discriminate.
+    injection H12 as <-.
+    destruct D3 as [| D3 q3]; simpl in H123; try discriminate.
+    injection H123 as <-. exists UEmpty. split; reflexivity.
+  - (* D1 = USnoc D1 q1 *)
+    destruct D2 as [| D2 q2]; simpl in H12; try discriminate.
+    destruct (uadd D1 D2) as [d12 |] eqn:E12; try discriminate.
+    injection H12 as <-.
+    destruct D3 as [| D3 q3]; simpl in H123; try discriminate.
+    destruct (uadd d12 D3) as [d123 |] eqn:E123; try discriminate.
+    injection H123 as <-.
+    destruct (IH D2 D3 d12 d123 E12 E123) as [d23 [E23 E1_23]].
+    exists (USnoc d23 (qadd q2 q3)). split.
+    + simpl. rewrite E23. reflexivity.
+    + simpl. rewrite E1_23, qadd_assoc. reflexivity.
+Qed.
+
+(** [uzero] is a left identity for addition (on matching shapes). *)
+Lemma uadd_zero_l : forall G D, ulen D = tlen G -> uadd (uzero G) D = Some D.
+Proof.
+  induction G as [| G IH a]; intros [| D q] Hlen; simpl in *; try discriminate.
+  - reflexivity.
+  - (* abstract carrier: cite qadd_zero_l by name (simpl no longer
+       reduces `qadd zero q`, which it did on the concrete carrier) *)
+    injection Hlen as Hlen. rewrite (IH D Hlen), qadd_zero_l. reflexivity.
+Qed.
+
+(** Scaling distributes over addition:  q·(D1+D2) = q·D1 + q·D2. *)
+Lemma uscale_add : forall q D1 D2 D,
+  uadd D1 D2 = Some D ->
+  uadd (uscale q D1) (uscale q D2) = Some (uscale q D).
+Proof.
+  intros q. induction D1 as [| D1 IH q1]; intros [| D2 q2] D H; simpl in *; try discriminate.
+  - injection H as <-. reflexivity.
+  - destruct (uadd D1 D2) as [d |] eqn:E; try discriminate.
+    injection H as <-. simpl. rewrite (IH D2 d E), qmul_distrib_l. reflexivity.
+Qed.
+
+(* ================= Typing layer ================= *)
+
+(* ========================================================== *)
+(* my-lang Solo core: QTT typing (Coq twin of Typing.idr)     *)
+(*                                                            *)
+(* [has_type G D t a]: term [t] has type [a] in type context  *)
+(* [G] under usage vector [D], with [D]'s quantities          *)
+(* accounting exactly for the variable uses in [t].           *)
+(*                                                            *)
+(* SEPARATED-CONTEXT presentation (Usage.v, design decision   *)
+(* 2026-06-12): the TYPE context [G] is SHARED across every    *)
+(* premise of a rule; only the USAGE vector [D] is split (via  *)
+(* [uadd] at App/Pair/Let/Case) or scaled (via [uscale] at     *)
+(* App/Let). Because splitting is now pure quantity algebra,   *)
+(* [uadd] is genuinely commutative and associative — the clean *)
+(* algebra the F1.4 substitution lemma / preservation depends  *)
+(* on (the old conflated [ctx] took the type from [ctx_add]'s  *)
+(* first argument, so it was not commutative in the types).    *)
+(* ========================================================== *)
+
+
+(** * Variable lookup: [One] at position [n], [Zero] elsewhere.
+
+    [has_var G D n a]: in type context [G], the usage [D] spends [One]
+    at de Bruijn index [n] (whose type is [a]) and [Zero] everywhere
+    else. The type context is arbitrary; only the usage is pinned. *)
+
+Inductive has_var : tctx -> uvec -> nat -> ty -> Prop :=
+  | HVHere  : forall G a,
+      has_var (TSnoc G a) (USnoc (uzero G) One) 0 a
+  | HVThere : forall G D n a b,
+      has_var G D n a ->
+      has_var (TSnoc G b) (USnoc D Zero) (S n) a.
+
+(** * The QTT typing judgement.
+
+    Every rule shares the TYPE context [G]; the USAGE vector [D] adds
+    up (App/Pair/Let/Case) or scales (App/Let) exactly as the affine
+    accounting demands. *)
+
+Inductive has_type : tctx -> uvec -> tm -> ty -> Prop :=
+
+  | T_Var : forall G D n a,
+      has_var G D n a ->
+      has_type G D (Var n) a
+
+  | T_Unit : forall G,
+      has_type G (uzero G) UnitT TUnit
+
+  | T_Lam : forall G D q a b t,
+      has_type (TSnoc G a) (USnoc D q) t b ->
+      has_type G D (Lam q a t) (TArr q a b)
+
+  | T_App : forall G D D1 D2 q a b t1 t2,
+      has_type G D1 t1 (TArr q a b) ->
+      has_type G D2 t2 a ->
+      uadd D1 (uscale q D2) = Some D ->
+      has_type G D (App t1 t2) b
+
+  (* Additive product  a & b  (the coherent additive pair). Both
+     components are typed under the SAME usage [D] — NOT split — because
+     only one component ever survives elimination (Fst / Snd), so reusing
+     a linear resource across the two components is safe. This is the
+     genuine `&`; the earlier conflated `Pair` split usage at intro yet
+     projected at elim, making it neither `&` nor `(X)` and strictly
+     weaker than both. *)
+  | T_With : forall G D a b t1 t2,
+      has_type G D t1 a ->
+      has_type G D t2 b ->
+      has_type G D (With t1 t2) (TWith a b)
+
+  | T_Fst : forall G D a b t,
+      has_type G D t (TWith a b) ->
+      has_type G D (Fst t) a
+
+  | T_Snd : forall G D a b t,
+      has_type G D t (TWith a b) ->
+      has_type G D (Snd t) b
+
+  (* Multiplicative product  a (X) b  (the genuine tensor). Introduction
+     SPLITS usage (uadd D1 D2): both halves are paid for separately,
+     because elimination delivers BOTH components. Eliminated by LetPair
+     (let (x,y) = e1 in e2): the body e2 binds two variables — x:a at de
+     Bruijn index 1, y:b at index 0 — each used linearly (One). *)
+  | T_Tensor : forall G D D1 D2 a b t1 t2,
+      has_type G D1 t1 a ->
+      has_type G D2 t2 b ->
+      uadd D1 D2 = Some D ->
+      has_type G D (Tensor t1 t2) (TTensor a b)
+
+  | T_LetPair : forall G D D1 D2 a b c t1 t2,
+      has_type G D1 t1 (TTensor a b) ->
+      has_type (TSnoc (TSnoc G a) b) (USnoc (USnoc D2 One) One) t2 c ->
+      uadd D1 D2 = Some D ->
+      has_type G D (LetPair t1 t2) c
+
+  | T_Inl : forall G D a b t,
+      has_type G D t a ->
+      has_type G D (Inl b t) (TSum a b)
+
+  | T_Inr : forall G D a b t,
+      has_type G D t b ->
+      has_type G D (Inr a t) (TSum a b)
+
+  | T_Case : forall G D D1 D2 a b c t tL tR,
+      has_type G D1 t (TSum a b) ->
+      has_type (TSnoc G a) (USnoc D2 One) tL c ->
+      has_type (TSnoc G b) (USnoc D2 One) tR c ->
+      uadd D1 D2 = Some D ->
+      has_type G D (Case t tL tR) c
+
+  | T_Let : forall G D D1 D2 q a b t1 t2,
+      has_type G D1 t1 a ->
+      has_type (TSnoc G a) (USnoc D2 q) t2 b ->
+      uadd (uscale q D1) D2 = Some D ->
+      has_type G D (Let q t1 t2) b
+
+  (* echo-types residue (echo-types-integration.md slice 3).
+     T_Echo introduces a residue retaining a witness [t : a] of an
+     admissible collapse [a => b] at mode [m]; the codomain [b] is a
+     phantom annotation (the non-dependent approximation, design §1).
+     The residue does not split the usage — it just records what was
+     kept, so [D] is threaded unchanged. *)
+  | T_Echo : forall G D m a b t,
+      has_type G D t a ->
+      has_type G D (MkEcho m a b t) (TEcho m a b)
+
+  (* T_Weaken is [EchoLinear.weaken]: a Linear echo may be weakened to
+     an Affine one. One-way (the reverse is barred — no-section-weaken,
+     EchoMode.no_section_weaken). Usage [D] is unchanged: weakening
+     spends no resources, it only drops a distinction. *)
+  | T_Weaken : forall G D a b t,
+      has_type G D t (TEcho Linear a b) ->
+      has_type G D (Weaken t) (TEcho Affine a b).
+
+(* ================= Soundness layer ================= *)
+
 (* ========================================================== *)
 (* my-lang Solo core: operational semantics + soundness       *)
 (* (Coq twin of Soundness.idr)                                *)
@@ -24,14 +466,6 @@
 (* proved (proofs/STATUS.md vocabulary).                      *)
 (* ========================================================== *)
 
-Require Import Coq.Init.Nat.
-Require Import Quantity.
-Require Import EchoMode.
-Require Import Syntax.
-Require Import Usage.
-Require Import Typing.
-Require Import PeanoNat.
-Require Import Lia.
 
 (** * Values: canonical forms of closed terms *)
 
@@ -560,7 +994,7 @@ Lemma uadd_ushift : forall Ag AI Bg BI Cg CI,
      = Some (uappend (USnoc Cg Zero) CI).
 Proof.
   intros Ag AI Bg BI Cg CI HG HI.
-  apply uadd_uappend; [exact HI | simpl; rewrite HG; reflexivity].
+  apply uadd_uappend; [exact HI | simpl; rewrite HG, qadd_zero_r; reflexivity].
 Qed.
 
 Lemma uadd_split_boundary : forall Dg1 DI1 Dg2 DI2 Dg DI,
@@ -924,7 +1358,24 @@ Qed.
 Lemma q_reassoc : forall dg1 dg2 du q' q1 q2,
   qadd (qadd dg1 (qmul q' dg2)) (qmul (qadd q1 (qmul q' q2)) du)
   = qadd (qadd dg1 (qmul q1 du)) (qmul q' (qadd dg2 (qmul q2 du))).
-Proof. intros; destruct dg1, dg2, du, q', q1, q2; reflexivity. Qed.
+Proof.
+  (* De-concretised: derived from the named Quantity semiring laws
+     (qmul_distrib_l/r, qmul_assoc, qadd_assoc, qadd_comm) instead of
+     a 3^6 = 729-case `destruct ...; reflexivity` over the concrete
+     carrier, so this step of the substitution accounting no longer
+     depends on |Q| = 3. (The Quantity.v laws it cites are themselves
+     still carrier-enumerations; full carrier-abstraction is the
+     separate Module-Type lift — see ResourceAlgebra.v.) *)
+  intros dg1 dg2 du q' q1 q2.
+  rewrite qmul_distrib_r.
+  rewrite qmul_assoc.
+  rewrite qmul_distrib_l.
+  rewrite !qadd_assoc.
+  f_equal.
+  rewrite <- !qadd_assoc.
+  f_equal.
+  apply qadd_comm.
+Qed.
 
 (* its lifting to usage vectors: the two reassociations agree as options *)
 Lemma vec_reassoc : forall Du Dg1 Dg2 q' q1 q2 Dgr1 Dgr2 Dg,
@@ -1007,7 +1458,10 @@ Lemma uadd_uscaleZero_r : forall D E,
 Proof.
   induction D as [|D IH qd]; intros [|E qe] H; simpl in *; try discriminate.
   - reflexivity.
-  - injection H as H. rewrite (IH E H), qadd_zero_r. reflexivity.
+  - (* abstract carrier: uscale Zero leaves a LEFT product qmul zero qe;
+       name qmul_zero_l (the 10th law) before qadd_zero_r. On the finite
+       carrier simpl computed qmul Zero qe = Zero, hiding the need. *)
+    injection H as H. rewrite (IH E H), qmul_zero_l, qadd_zero_r. reflexivity.
 Qed.
 
 (* substituting at a deeper index commutes with one extra weakening shift *)
@@ -1417,7 +1871,9 @@ Proof.
   rewrite uscale_one in Hadd1.
   destruct (uadd_total D2 Dv2 ltac:(rewrite LD2, Lv2; reflexivity)) as [Dr1g HDr1g].
   assert (Dr1 = USnoc Dr1g One)
-    by (simpl in Hadd1; rewrite HDr1g in Hadd1; congruence).
+    by (simpl in Hadd1; rewrite HDr1g in Hadd1;
+        (* abstract carrier: qadd One Zero no longer computes to One *)
+        rewrite qadd_zero_r in Hadd1; congruence).
   subst Dr1.
   destruct (subst_lemma0 G a Dr1g One (subst0 (shift 0 u2) t) Dv1 u1 c Hht1 Hu1)
     as [Dr [Hadd2 Hht2]].
@@ -1533,3 +1989,9 @@ Qed.
 Theorem affine_pres : AffinePreservation.
 Proof. exact preservation. Qed.
 
+
+End SoloCoreF.
+
+(* Concrete default instance: recovers the axiom-free three-point
+   development under bare names. *)
+Include SoloCoreF Linear3.

@@ -15,7 +15,7 @@
 (* ========================================================== *)
 
 Require Import Quantity.
-Require Import Syntax.
+Require Import SoloCore.  (* was Syntax — merged into the consolidated functor *)
 Require Import Context.
 
 (** ** Scaling is a monoid action of (Q, qmul, One) on contexts. *)

@@ -50,13 +50,23 @@ jobs:
           coq_makefile -f _CoqProject -o CoqMakefile
           make -f CoqMakefile
 
-      - name: Assert `progress` is axiom-free (no Admitted/Axiom in the trusted base)
+      - name: Assert progress + preservation + affine_pres are axiom-free
         working-directory: proofs/verification/coq/solo-core
         run: |
-          echo 'Require Import Soundness. Print Assumptions progress.' \
-            | coqtop -R . SoloCore 2>/dev/null | tee /tmp/assum.txt
-          grep -q "Closed under the global context" /tmp/assum.txt \
-            || { echo "::error::progress is NOT axiom-free"; exit 1; }
+          # The F1.4 headline: every soundness theorem must rest on the
+          # bare global context — no Admitted/Axiom anywhere in its
+          # dependency cone. A future regression that slips an `admit`
+          # into the substitution/preservation chain fails the build here,
+          # not silently at review time.
+          # Theorems now live in the consolidated parametric functor
+          # (SoloCore.v); `Include SoloCoreF Linear3` re-exports them under
+          # bare names, recovering the axiom-free concrete development.
+          for thm in progress preservation affine_pres; do
+            echo "Require Import SoloCore. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_${thm}.txt" \
+              || { echo "::error::${thm} is NOT axiom-free"; exit 1; }
+          done
 
   idris:
     name: Idris2 solo-core

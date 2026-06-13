@@ -10,7 +10,7 @@
 (* ========================================================== *)
 
 Require Import Quantity.
-Require Import Syntax.
+Require Import SoloCore.  (* was Syntax — merged into the consolidated functor *)
 
 (** * Context representation *)
 

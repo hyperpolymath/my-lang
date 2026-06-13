@@ -14,20 +14,26 @@ the other.
 
 | File | Contents | Status |
 |------|----------|--------|
-| `Quantity.v` | Three-point QTT semiring + semiring/ordering laws | **proved** (`destruct; reflexivity`, real `Qed`) |
-| `Syntax.v`   | Solo-kernel types and de Bruijn terms | definitions |
-| `Context.v`  | QTT contexts: `ctx_add`, `ctx_scale`, `ctx_zero` | definitions |
-| `Typing.v`   | `has_type` / `has_var` (context-splitting QTT rules) | rules |
-| `Soundness.v`| `value`, `step` (declared), `Progress` / `Preservation` | **statement-only** (named `Prop`s) |
+| `Quantity.v` | Three-point QTT semiring + semiring/ordering laws | **machine-checked** (`destruct; reflexivity`, real `Qed`) |
+| `EchoMode.v` | Two-point linearity poset (`Linear ⊑ Affine`) + no-section | **machine-checked** |
+| `ResourceAlgebra.v` | `Module Type SEMIRING` — the 10-law resource-algebra boundary — plus the `Linear3` instance and an inert `ORDERED_SEMIRING` | **machine-checked** |
+| `SoloCore.v` | **Consolidated functor** `SoloCoreF (M : SEMIRING)`: syntax + de Bruijn terms, usage vectors, context-splitting QTT typing, CBV operational semantics, and `progress` / `preservation` / `affine_pres`. `Include SoloCoreF Linear3` recovers the concrete development under bare names. | **machine-checked, axiom-free** |
+| `Context.v` / `ContextProps.v` | Alternative conflated-`ctx` algebra (a parallel presentation; *not* on the soundness path) | **machine-checked** |
+| `EchoResidue.v` | Echo residue object + the subtyping facts the Rust checker relies on | **machine-checked** |
 
-The soundness theorems are stated as named **propositions**
-(`Definition Progress : Prop := ...`), *not* as incomplete theorems.
-A bare `Prop` definition asserts nothing and introduces no proof hole
-or unproved assumption into the trusted base — it just records the
-obligation, which is discharged later as
-`Theorem progress : Progress. Proof. ... Qed.` (Track F1.3 / F1.4).
-The honest current state is recorded in `proofs/STATUS.md`; nothing
-here is "proved" until those Theorems land.
+> **R2 (2026-06-13):** the former per-layer files `Syntax.v` / `Usage.v` /
+> `Typing.v` / `Soundness.v` are merged into the single functor `SoloCore.v`.
+> Coq functors are generative for inductives, so a per-file functor chain
+> could not share the carrier-bearing `ty` / `tm` / `has_type` — hence one
+> functor, instantiated once. See [`../../../AXIS-ARCHITECTURE.md`](../../../AXIS-ARCHITECTURE.md) §4.1.
+
+The soundness theorems are **proved**: `Theorem progress : Progress.`,
+`Theorem preservation : Preservation.` and `affine_pres` are real `Qed`
+(Tracks F1.3 / F1.4), and `Print Assumptions` is closed for all three —
+*no* `Admitted`/`Axiom` in their dependency cone. As of R2 they are
+proved **parametrically** over `Module Type SEMIRING` inside `SoloCoreF`;
+`Include SoloCoreF Linear3` recovers them axiom-free for the concrete
+three-point carrier. The authoritative state is `proofs/STATUS.md`.
 
 ## Building
 
@@ -39,8 +45,10 @@ coq_makefile -f _CoqProject -o CoqMakefile && make -f CoqMakefile
 coqc -R . SoloCore Quantity.v
 ```
 
-Requires Coq 8.17+. No `coqc` is wired into CI yet — adding a
-`coqc`/`dune` proof leg is a Track F1 deliverable (`proofs/STATUS.md`).
+Requires Coq 8.17+ (CI uses the Ubuntu `coq` package, 8.18). The `coqc`
+proof leg **is** wired into CI: `.github/workflows/proofs.yml` builds this
+package via `_CoqProject` and asserts `progress` / `preservation` /
+`affine_pres` are axiom-free on every PR touching `proofs/verification/**`.
 
 ## Relationship to the existing Coq development
 

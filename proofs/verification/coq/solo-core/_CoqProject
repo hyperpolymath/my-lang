@@ -2,10 +2,8 @@
 
 Quantity.v
 EchoMode.v
-Syntax.v
+ResourceAlgebra.v
+SoloCore.v
 Context.v
 ContextProps.v
-Usage.v
-Typing.v
-Soundness.v
 EchoResidue.v

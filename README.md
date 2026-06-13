@@ -57,21 +57,24 @@ mirroring `affinescript`'s solo-core approach.
 [`proofs/STATUS.md`](proofs/STATUS.md) is the single authoritative source — no
 proof is described as "proved" there until a proof assistant accepts it.
 
-**Current state (2026-06-05):**
+**Current state (2026-06-13):**
 
 | Artefact | Status |
 |----------|--------|
-| QTT semiring + laws (Coq + Idris2) | *locally-checked* — all laws proved by exhaustive case analysis |
+| QTT semiring + laws (Coq + Idris2) | *machine-checked* — all laws proved by exhaustive case analysis; run in CI (`proofs.yml`) |
 | Solo syntax, contexts, typing (Coq + Idris2) | *locally-checked* |
 | Operational semantics (CBV small-step) | *locally-checked* — Phase **F1.1 done** (both tracks) |
-| **Progress** | *locally-checked* — Phase **F1.3 done**: Coq `Theorem … Qed.` (axiom-free); Idris total, hole-free |
-| Preservation | *locally-checked (Coq)* — Phase **F1.4 done** on the Coq track: `Theorem preservation : Preservation.` and `affine_pres` are real `Qed.` (axiom-free, `Print Assumptions` closed), via the open-context QTT substitution lemma `ht_subst`. Product/elimination decision settled (additive `&` + multiplicative `⊗` both coherent). Idris twin pending (Phase F5 parity). |
+| **Progress** | *machine-checked (Coq)* — Phase **F1.3 done**: Coq `Theorem progress : Progress.` real `Qed.` (axiom-free), CI-guarded (`proofs.yml`); Idris `progress` hole-free/total (only `preservation` carries a `?todo`) |
+| Preservation | *machine-checked (Coq)* — Phase **F1.4 done** on the Coq track: `Theorem preservation : Preservation.` and `affine_pres` are real `Qed.` (axiom-free, `Print Assumptions` closed), via the open-context QTT substitution lemma `ht_subst`. Product/elimination decision settled (additive `&` + multiplicative `⊗` both coherent). Idris twin pending (Phase F5 parity). |
 | Echo in the type system (`TEcho`, `MkEcho`/`Weaken`, `THEcho`/`THWeaken`, `EchoMode`, `EchoResidue`) | *locally-checked* — Echo is a first-class type former in the formal kernel; `EchoResidue` backs the Rust `Ty::Echo` (5/5 unit tests are its laws) |
 | Paper proofs (~6.3k lines) | *proved-on-paper* |
-| Proof CI | *absent* — Phase F5 (wiring `coqc` + `idris2 --build`) |
+| Proof CI | *present* — `proofs.yml` machine-checks the Coq + Idris2 solo-cores (`coqc` + `idris2 --build`) on every PR touching `proofs/verification/**`, and asserts `progress`/`preservation`/`affine_pres` axiom-free |
 
-See [`proofs/ALIGNMENT-PLAN.md`](proofs/ALIGNMENT-PLAN.md) for the phased
-roadmap toward AffineScript parity.
+See [`proofs/AXIS-ARCHITECTURE.md`](proofs/AXIS-ARCHITECTURE.md) for how the proof
+effort factors (resource / structure / modality / surface axes, and the
+resource↔echo non-identification invariant), and
+[`proofs/ALIGNMENT-PLAN.md`](proofs/ALIGNMENT-PLAN.md) for the phased roadmap
+toward AffineScript parity.
 
 ## Echo type integration
 
@@ -103,8 +106,8 @@ Consult these before opening a feature request.
 
 - **Licence**: MPL-2.0
 - **Maturity**: design-iteration / early alpha. Working Rust compiler core exists (137+ passing tests); surface syntax and semantics still settling.
-- **Proof phase**: F1.0 complete — QTT semiring proved on dual Coq + Idris2 tracks; soundness statements committed.
-- **Governance**: CI green on all shipped checks; proof CI (Phase F5) pending.
+- **Proof phase**: F1.4 done on the Coq track — QTT semiring + `progress` + `preservation` machine-checked (axiom-free, CI-guarded); Idris twin pending (Phase F5 parity). **R2 done**: the Coq solo core is now one functor `SoloCoreF (M : SEMIRING)` parametric over a resource-algebra interface — `Include SoloCoreF Linear3` recovers the axiom-free result, and tropical/affine instances fall out (R4).
+- **Governance**: CI green on all shipped checks; proof CI **live** (`proofs.yml` machine-checks the solo-cores).
 
 ## Contributing
 
