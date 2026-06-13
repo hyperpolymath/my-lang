@@ -113,7 +113,7 @@ my-lang is parametric over **both**, and identifies **neither**.
  R3 ✓ ORDERED_SEMIRING + subusage rule →             E4 ☐ SEAM: Measure : Residue E → R,
       Affine4 (affine_pres becomes DISTINCT,               echo core proven measure-INDEP
       not an alias) ── makes "affine" real           E5 ☐ Pillar E paper write-up
- R4 ☐ Tropical instance (cost) ── acceptance
+ R4 ✓ Tropical instance (cost) ── acceptance
       test: infinite carrier, analytic laws         TROPICAL  (tropical-resource-typing, Lean/Isabelle)
  R5 ☐ static-split ≡ usage-walk (F1.4 tail)          T1 ☐ independently re-verify Isabelle 2025-1
       ── linchpin for a VERIFIED checker             T2 ☐ session ext: choice / recursion / multiparty

@@ -106,7 +106,7 @@ Consult these before opening a feature request.
 
 - **Licence**: MPL-2.0
 - **Maturity**: design-iteration / early alpha. Working Rust compiler core exists (137+ passing tests); surface syntax and semantics still settling.
-- **Proof phase**: F1.4 done on the Coq track — QTT semiring + `progress` + `preservation` machine-checked (axiom-free, CI-guarded); Idris twin pending (Phase F5 parity). **R2 done**: the Coq solo core is now one functor `SoloCoreF (M : SEMIRING)` parametric over a resource-algebra interface — `Include SoloCoreF Linear3` recovers the axiom-free result, and tropical/affine instances fall out (R4). **R3 done**: `affine_pres` is now a *distinct* theorem — affine budget-preservation over `ule` (pointwise `qle`), not an alias of `preservation` — with the functor parameter widened to `ORDERED_SEMIRING`.
+- **Proof phase**: F1.4 done on the Coq track — QTT semiring + `progress` + `preservation` machine-checked (axiom-free, CI-guarded); Idris twin pending (Phase F5 parity). **R2 done**: the Coq solo core is now one functor `SoloCoreF (M : SEMIRING)` parametric over a resource-algebra interface — `Include SoloCoreF Linear3` recovers the axiom-free result, and tropical/affine instances fall out (**R4 done**: `SoloCoreF Tropical` is verified axiom-free at an *infinite* min-plus carrier). **R3 done**: `affine_pres` is now a *distinct* theorem — affine budget-preservation over `ule` (pointwise `qle`), not an alias of `preservation` — with the functor parameter widened to `ORDERED_SEMIRING`.
 - **Governance**: CI green on all shipped checks; proof CI **live** (`proofs.yml` machine-checks the solo-cores).
 
 ## Contributing
