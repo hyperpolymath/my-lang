@@ -111,7 +111,19 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   respects context splitting; prove the **affine-accounting**
   corollary. Then state & prove the equivalence between static
   context-splitting and the post-hoc usage-walk the future
-  `dialects/solo` checker will use.
+  `dialects/solo` checker will use. **DONE (Coq, 2026-06-13).**
+  Preservation + `affine_pres` are axiom-free `Qed`; the **F1.4 tail
+  (R5)** is closed by an *executable* one-pass checker `check : tctx →
+  tm → option (ty × uvec)` with `check_sound` / `check_complete` /
+  `check_correct : has_type G D t a ↔ check G t = Some (a, D)` — real
+  `Qed`, axiom-free, CI-guarded, and the corollary `typing_unique`
+  (usage/type determinacy). It inherits to the infinite tropical
+  carrier for free. **This overtakes AffineScript**, whose solo-core
+  states the same static-split≡usage-walk equivalence only as prose
+  ("an explicit equivalence lemma is future work"). The checker decides
+  the strictly-**linear** `has_type`; deciding the affine *discard*
+  (`aff_type`/`ule`) is a separate budget-layer obligation (**R5b**,
+  not yet done).
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a

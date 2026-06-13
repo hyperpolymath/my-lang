@@ -115,8 +115,8 @@ my-lang is parametric over **both**, and identifies **neither**.
       not an alias) ── makes "affine" real           E5 ☐ Pillar E paper write-up
  R4 ✓ Tropical instance (cost) ── acceptance
       test: infinite carrier, analytic laws         TROPICAL  (tropical-resource-typing, Lean/Isabelle)
- R5 ☐ static-split ≡ usage-walk (F1.4 tail)          T1 ☐ independently re-verify Isabelle 2025-1
-      ── linchpin for a VERIFIED checker             T2 ☐ session ext: choice / recursion / multiparty
+ R5 ✓ static-split ≡ usage-walk (F1.4 tail) ──       T1 ☐ independently re-verify Isabelle 2025-1
+      VERIFIED checker [check], axiom-free            T2 ☐ session ext: choice / recursion / multiparty
  ──parity / surface──                                T3 ☐ firm the Lean↔Isabelle cross-links
  P1 ☐ Idris twin of solo (close ?todo) +             T4 ☐ WithTop ∞ (drop tcZero=1e6 hack)
       mirror subst2 fix + parametric design
@@ -188,6 +188,26 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   realised usage. `Quantity.qle_trans` was added and `ORDERED_SEMIRING` is now a live preorder
   (`qle_refl`/`qle_trans`/`qle_zero`). The Affine4 4-point semiring stays available through the
   same functor as a future R4 instance.
+- **R5 DONE — verified usage-walk checker, executed 2026-06-13.** The static
+  context-splitting judgement `has_type` is proved equivalent to an EXECUTABLE
+  one-pass synthesiser `check : tctx → tm → option (ty × uvec)`: `check_sound`
+  (only well-typed terms accepted), `check_complete` (every derivation recovered
+  with EXACTLY its usage — usage determinacy internalised, corollary
+  `typing_unique`), and `check_correct : has_type G D t a ↔ check G t = Some (a, D)`
+  — all real `Qed`, axiom-free (`Print Assumptions` closed, CI-guarded). The
+  calculus is synthesis-directed (every former carries its annotations), so a single
+  bottom-up walk decides typing; it needs only `Q_eq_dec` (added to
+  `ORDERED_SEMIRING`, discharged by both instances), which the soundness proofs do
+  not. `Module SoloTropical := SoloCoreF Tropical` inherits the verified checker at
+  the INFINITE min-plus carrier for free (R4-style acceptance test). This is the F1.4
+  tail and **overtakes AffineScript**, whose solo-core states the same
+  static-split≡usage-walk equivalence only as prose ("an explicit equivalence lemma
+  is future work"). The checker decides the strictly-LINEAR `has_type`; the affine
+  *discard* (`aff_type`/`ule`, R3) is a separate budget layer, decidable on its own
+  (a possible R5b). Three `Compute`-backed examples pin non-vacuity: a linear binder
+  used once is accepted; one dropped (usage `Zero`) or duplicated multiplicatively
+  (usage `Omega`) is rejected — the latter accepted under an `Omega` binder, so the
+  rejection is exactly the linearity check.
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without

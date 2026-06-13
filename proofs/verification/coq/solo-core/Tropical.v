@@ -115,6 +115,11 @@ Module Tropical <: ORDERED_SEMIRING.
   Lemma qle_zero  : forall q, qle zero q = true.
   Proof. intros q; reflexivity. Qed.
 
+  (* --- decidable equality (R5): the infinite carrier still decides
+     equality, via Nat.eq_dec on the Fin payload. --- *)
+  Definition Q_eq_dec : forall x y : Q, {x = y} + {x <> y}.
+  Proof. unfold Q; decide equality; apply Nat.eq_dec. Defined.
+
 End Tropical.
 
 (* ============================================================ *)

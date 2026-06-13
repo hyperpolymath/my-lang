@@ -2041,9 +2041,490 @@ Proof.
   exists D0. split; [ exact (preservation G D0 t t' a Hty Hstep) | exact Hle ].
 Qed.
 
+(* ========================================================== *)
+(* R5: static context-splitting  ==  usage-walk.              *)
+(*                                                            *)
+(* The declarative judgement [has_type] splits the usage      *)
+(* vector NONDETERMINISTICALLY (the existential [uadd D1 D2 =  *)
+(* Some D] / [uscale] premises at App/Tensor/Let/Case/LetPair, *)
+(* and the SHARED [D] at With). A real checker cannot guess   *)
+(* the split: it WALKS the term once, bottom-up, and          *)
+(* SYNTHESISES both the type and the usage it actually spends. *)
+(* Because every former carries enough annotation ([Lam q a], *)
+(* [Inl b], [Inr a], [MkEcho m a b]), the calculus is         *)
+(* synthesis-directed, so a single function                   *)
+(*                                                            *)
+(*    check : tctx -> tm -> option (ty * uvec)                *)
+(*                                                            *)
+(* decides typing, and is SOUND and COMPLETE wrt [has_type]:  *)
+(*                                                            *)
+(*    has_type G D t a  <->  check G t = Some (a, D).         *)
+(*                                                            *)
+(* This is the decidability/adequacy of QTT typing — the SPEC *)
+(* the Rust [dialects/solo] usage-walk checker must meet       *)
+(* (Phase F1.4 tail). It needs DECIDABLE carrier equality      *)
+(* [Q_eq_dec] (ResourceAlgebra.v); the soundness proofs above  *)
+(* do not. Completeness internalises USAGE DETERMINACY — the   *)
+(* existential splits are forced, so the walk recovers the     *)
+(* unique [D] of any derivation (corollary [typing_unique]).   *)
+(*                                                            *)
+(* Echo-types audit (estate policy): NOT RELEVANT. R5 is a    *)
+(* RESOURCE/STRUCTURE-axis result about the QTT typing        *)
+(* judgement; echo-types is the loss-grading MODALITY axis.   *)
+(* Per AXIS-ARCHITECTURE.md Echo IS-NOT a resource/Soundness  *)
+(* instance and never yields a typing result, so no           *)
+(* echo-types material is reusable here (its nearest hit,     *)
+(* EchoDecidable.agda, decides FIBRE existence — a different  *)
+(* axis). Audited and recorded as not applicable.            *)
+(* ========================================================== *)
+
+(* ----- decidable equality on the syntax (from M.Q_eq_dec) ----- *)
+
+Definition Mode_eq_dec (m1 m2 : Mode) : {m1 = m2} + {m1 <> m2}.
+Proof. decide equality. Defined.
+
+Definition ty_eq_dec (x y : ty) : {x = y} + {x <> y}.
+Proof. decide equality; (first [ apply Q_eq_dec | apply Mode_eq_dec ]). Defined.
+
+Definition uvec_eq_dec (D1 D2 : uvec) : {D1 = D2} + {D1 <> D2}.
+Proof. decide equality; apply Q_eq_dec. Defined.
+
+(* ----- variable lookup as a function, and its one-hot usage ----- *)
+
+Fixpoint tnth (G : tctx) (n : nat) : option ty :=
+  match G, n with
+  | TEmpty,     _    => None
+  | TSnoc _  a, O    => Some a
+  | TSnoc G' _, S n' => tnth G' n'
+  end.
+
+Fixpoint onehot (G : tctx) (n : nat) : uvec :=
+  match G, n with
+  | TEmpty,     _    => UEmpty
+  | TSnoc G' _, O    => USnoc (uzero G') One
+  | TSnoc G' _, S n' => USnoc (onehot G' n') Zero
+  end.
+
+Lemma has_var_det : forall G D n a,
+  has_var G D n a -> tnth G n = Some a /\ D = onehot G n.
+Proof.
+  intros G D n a H. induction H as [G0 a0 | G0 D0 n0 a0 b Hv IH].
+  - simpl. split; reflexivity.
+  - simpl. destruct IH as [Ht Hd]. rewrite Hd. split; [exact Ht | reflexivity].
+Qed.
+
+Lemma has_var_onehot : forall G n a,
+  tnth G n = Some a -> has_var G (onehot G n) n a.
+Proof.
+  induction G as [|G0 IH c]; intros n a Ht.
+  - simpl in Ht. discriminate.
+  - destruct n as [|n0]; simpl in Ht |- *.
+    + injection Ht as <-. apply HVHere.
+    + apply HVThere. apply IH. exact Ht.
+Qed.
+
+(* ----- the usage-walk checker ----- *)
+
+Fixpoint check (G : tctx) (t : tm) : option (ty * uvec) :=
+  match t with
+  | Var n =>
+      match tnth G n with
+      | Some a => Some (a, onehot G n)
+      | None   => None
+      end
+  | UnitT => Some (TUnit, uzero G)
+  | Lam q a t1 =>
+      match check (TSnoc G a) t1 with
+      | Some (b, USnoc D qb) => if Q_eq_dec qb q then Some (TArr q a b, D) else None
+      | _ => None
+      end
+  | App t1 t2 =>
+      match check G t1, check G t2 with
+      | Some (TArr q a b, D1), Some (a', D2) =>
+          if ty_eq_dec a' a
+          then match uadd D1 (uscale q D2) with
+               | Some D => Some (b, D)
+               | None   => None
+               end
+          else None
+      | _, _ => None
+      end
+  | With t1 t2 =>
+      match check G t1, check G t2 with
+      | Some (a, D1), Some (b, D2) =>
+          if uvec_eq_dec D1 D2 then Some (TWith a b, D1) else None
+      | _, _ => None
+      end
+  | Fst t1 =>
+      match check G t1 with
+      | Some (TWith a b, D) => Some (a, D)
+      | _ => None
+      end
+  | Snd t1 =>
+      match check G t1 with
+      | Some (TWith a b, D) => Some (b, D)
+      | _ => None
+      end
+  | Tensor t1 t2 =>
+      match check G t1, check G t2 with
+      | Some (a, D1), Some (b, D2) =>
+          match uadd D1 D2 with
+          | Some D => Some (TTensor a b, D)
+          | None   => None
+          end
+      | _, _ => None
+      end
+  | LetPair t1 t2 =>
+      match check G t1 with
+      | Some (TTensor a b, D1) =>
+          match check (TSnoc (TSnoc G a) b) t2 with
+          | Some (c, USnoc (USnoc D2 q2) q1) =>
+              if Q_eq_dec q1 One
+              then if Q_eq_dec q2 One
+                   then match uadd D1 D2 with
+                        | Some D => Some (c, D)
+                        | None   => None
+                        end
+                   else None
+              else None
+          | _ => None
+          end
+      | _ => None
+      end
+  | Inl b t1 =>
+      match check G t1 with
+      | Some (a, D) => Some (TSum a b, D)
+      | None => None
+      end
+  | Inr a t1 =>
+      match check G t1 with
+      | Some (b, D) => Some (TSum a b, D)
+      | None => None
+      end
+  | Case t1 tL tR =>
+      match check G t1 with
+      | Some (TSum a b, D1) =>
+          match check (TSnoc G a) tL, check (TSnoc G b) tR with
+          | Some (cL, USnoc D2L qL), Some (cR, USnoc D2R qR) =>
+              if Q_eq_dec qL One
+              then if Q_eq_dec qR One
+                   then if ty_eq_dec cL cR
+                        then if uvec_eq_dec D2L D2R
+                             then match uadd D1 D2L with
+                                  | Some D => Some (cL, D)
+                                  | None   => None
+                                  end
+                             else None
+                        else None
+                   else None
+              else None
+          | _, _ => None
+          end
+      | _ => None
+      end
+  | Let q t1 t2 =>
+      match check G t1 with
+      | Some (a, D1) =>
+          match check (TSnoc G a) t2 with
+          | Some (b, USnoc D2 qb) =>
+              if Q_eq_dec qb q
+              then match uadd (uscale q D1) D2 with
+                   | Some D => Some (b, D)
+                   | None   => None
+                   end
+              else None
+          | _ => None
+          end
+      | None => None
+      end
+  | MkEcho m a b t1 =>
+      match check G t1 with
+      | Some (a', D) => if ty_eq_dec a' a then Some (TEcho m a b, D) else None
+      | None => None
+      end
+  | Weaken t1 =>
+      match check G t1 with
+      | Some (TEcho Linear a b, D) => Some (TEcho Affine a b, D)
+      | _ => None
+      end
+  end.
+
+(* ----- soundness: the walk only accepts well-typed terms ----- *)
+
+Lemma check_sound : forall t G a D, check G t = Some (a, D) -> has_type G D t a.
+Proof.
+  induction t as
+    [ n
+    |
+    | q tyL t1 IHt1
+    | t1 IHt1 t2 IHt2
+    | t1 IHt1 t2 IHt2
+    | t1 IHt1
+    | t1 IHt1
+    | t1 IHt1 t2 IHt2
+    | t1 IHt1 t2 IHt2
+    | bAnn t1 IHt1
+    | aAnn t1 IHt1
+    | t1 IHt1 tL IHtL tR IHtR
+    | q t1 IHt1 t2 IHt2
+    | mE aE bE t1 IHt1
+    | t1 IHt1 ];
+    intros G a D H; simpl in H.
+
+  - (* Var n *)
+    destruct (tnth G n) as [a0|] eqn:Et; [|discriminate].
+    injection H as Ha Hd; subst.
+    apply T_Var. apply has_var_onehot. exact Et.
+
+  - (* UnitT *)
+    injection H as Ha Hd; subst. apply T_Unit.
+
+  - (* Lam q tyL t1 *)
+    destruct (check (TSnoc G tyL) t1) as [[b0 D0]|] eqn:E1; [|discriminate].
+    destruct D0 as [|D0 qb]; [discriminate|].
+    destruct (Q_eq_dec qb q) as [Hq|]; [|discriminate].
+    injection H as Ha Hd; subst.
+    apply T_Lam. apply IHt1. exact E1.
+
+  - (* App t1 t2 *)
+    destruct (check G t1) as [[ta1 D1]|] eqn:E1; [|discriminate].
+    destruct ta1 as [ | | | | q a0 b0 | ]; try discriminate.
+    destruct (check G t2) as [[ta2 D2]|] eqn:E2; [|discriminate].
+    destruct (ty_eq_dec ta2 a0) as [Heq|]; [|discriminate]. subst ta2.
+    destruct (uadd D1 (uscale q D2)) as [Dr|] eqn:Ea; [|discriminate].
+    injection H as Ha Hd; subst.
+    eapply T_App;
+      [ apply IHt1; exact E1 | apply IHt2; exact E2 | exact Ea ].
+
+  - (* With t1 t2 *)
+    destruct (check G t1) as [[a1 D1]|] eqn:E1; [|discriminate].
+    destruct (check G t2) as [[b1 D2]|] eqn:E2; [|discriminate].
+    destruct (uvec_eq_dec D1 D2) as [Hd12|]; [|discriminate]. subst D2.
+    injection H as Ha Hd; subst.
+    apply T_With; [ apply IHt1; exact E1 | apply IHt2; exact E2 ].
+
+  - (* Fst t1 *)
+    destruct (check G t1) as [[ta1 D1]|] eqn:E1; [|discriminate].
+    destruct ta1 as [ | a0 b0 | | | | ]; try discriminate.
+    injection H as Ha Hd; subst.
+    eapply T_Fst. apply IHt1. exact E1.
+
+  - (* Snd t1 *)
+    destruct (check G t1) as [[ta1 D1]|] eqn:E1; [|discriminate].
+    destruct ta1 as [ | a0 b0 | | | | ]; try discriminate.
+    injection H as Ha Hd; subst.
+    eapply T_Snd. apply IHt1. exact E1.
+
+  - (* Tensor t1 t2 *)
+    destruct (check G t1) as [[a1 D1]|] eqn:E1; [|discriminate].
+    destruct (check G t2) as [[b1 D2]|] eqn:E2; [|discriminate].
+    destruct (uadd D1 D2) as [Dr|] eqn:Ea; [|discriminate].
+    injection H as Ha Hd; subst.
+    eapply T_Tensor;
+      [ apply IHt1; exact E1 | apply IHt2; exact E2 | exact Ea ].
+
+  - (* LetPair t1 t2 *)
+    destruct (check G t1) as [[ta1 D1]|] eqn:E1; [|discriminate].
+    destruct ta1 as [ | | a0 b0 | | | ]; try discriminate.
+    destruct (check (TSnoc (TSnoc G a0) b0) t2) as [[c0 D0]|] eqn:E2; [|discriminate].
+    destruct D0 as [|D0 q1]; [discriminate|].
+    destruct D0 as [|D2 q2]; [discriminate|].
+    destruct (Q_eq_dec q1 One) as [Hq1|]; [|discriminate].
+    destruct (Q_eq_dec q2 One) as [Hq2|]; [|discriminate].
+    destruct (uadd D1 D2) as [Dr|] eqn:Ea; [|discriminate].
+    injection H as Ha Hd; subst.
+    eapply T_LetPair;
+      [ apply IHt1; exact E1 | apply IHt2; exact E2 | exact Ea ].
+
+  - (* Inl bAnn t1 *)
+    destruct (check G t1) as [[a1 D1]|] eqn:E1; [|discriminate].
+    injection H as Ha Hd; subst.
+    apply T_Inl. apply IHt1. exact E1.
+
+  - (* Inr aAnn t1 *)
+    destruct (check G t1) as [[b1 D1]|] eqn:E1; [|discriminate].
+    injection H as Ha Hd; subst.
+    apply T_Inr. apply IHt1. exact E1.
+
+  - (* Case t1 tL tR *)
+    destruct (check G t1) as [[ta1 D1]|] eqn:E1; [|discriminate].
+    destruct ta1 as [ | | | a0 b0 | | ]; try discriminate.
+    destruct (check (TSnoc G a0) tL) as [[cL D0L]|] eqn:EL; [|discriminate].
+    destruct D0L as [|D2L qL]; [discriminate|].
+    destruct (check (TSnoc G b0) tR) as [[cR D0R]|] eqn:ER; [|discriminate].
+    destruct D0R as [|D2R qR]; [discriminate|].
+    destruct (Q_eq_dec qL One) as [HqL|]; [|discriminate]. subst qL.
+    destruct (Q_eq_dec qR One) as [HqR|]; [|discriminate]. subst qR.
+    destruct (ty_eq_dec cL cR) as [Hc|]; [|discriminate]. subst cR.
+    destruct (uvec_eq_dec D2L D2R) as [HD|]; [|discriminate]. subst D2R.
+    destruct (uadd D1 D2L) as [Dr|] eqn:Ea; [|discriminate].
+    injection H as Ha Hd; subst.
+    eapply T_Case;
+      [ apply IHt1; exact E1
+      | apply IHtL; exact EL
+      | apply IHtR; exact ER
+      | exact Ea ].
+
+  - (* Let q t1 t2 *)
+    destruct (check G t1) as [[a1 D1]|] eqn:E1; [|discriminate].
+    destruct (check (TSnoc G a1) t2) as [[b1 D0]|] eqn:E2; [|discriminate].
+    destruct D0 as [|D2 qb]; [discriminate|].
+    destruct (Q_eq_dec qb q) as [Hq|]; [|discriminate].
+    destruct (uadd (uscale q D1) D2) as [Dr|] eqn:Ea; [|discriminate].
+    injection H as Ha Hd; subst.
+    eapply T_Let;
+      [ apply IHt1; exact E1 | apply IHt2; exact E2 | exact Ea ].
+
+  - (* MkEcho mE aE bE t1 *)
+    destruct (check G t1) as [[a1 D1]|] eqn:E1; [|discriminate].
+    destruct (ty_eq_dec a1 aE) as [Heq|]; [|discriminate]. subst a1.
+    injection H as Ha Hd; subst.
+    apply T_Echo. apply IHt1. exact E1.
+
+  - (* Weaken t1 *)
+    destruct (check G t1) as [[ta1 D1]|] eqn:E1; [|discriminate].
+    destruct ta1 as [ | | | | | m0 a0 b0 ]; try discriminate.
+    destruct m0; [|discriminate].
+    injection H as Ha Hd; subst.
+    apply T_Weaken. apply IHt1. exact E1.
+Qed.
+
+(* ----- completeness: every derivation is recovered by the walk,
+   with EXACTLY its usage (usage determinacy is internalised) ----- *)
+
+Lemma check_complete : forall G D t a, has_type G D t a -> check G t = Some (a, D).
+Proof.
+  intros G D t a H.
+  induction H as
+    [ G D n a Hv
+    | G
+    | G D q a b t Ht IH
+    | G D D1 D2 q a b t1 t2 Ht1 IH1 Ht2 IH2 Hadd
+    | G D a b t1 t2 Ht1 IH1 Ht2 IH2
+    | G D a b t Ht IH
+    | G D a b t Ht IH
+    | G D D1 D2 a b t1 t2 Ht1 IH1 Ht2 IH2 Hadd
+    | G D D1 D2 a b c t1 t2 Ht1 IH1 Ht2 IH2 Hadd
+    | G D a b t Ht IH
+    | G D a b t Ht IH
+    | G D D1 D2 a b c t tL tR Ht IH HtL IHL HtR IHR Hadd
+    | G D D1 D2 q a b t1 t2 Ht1 IH1 Ht2 IH2 Hadd
+    | G D m a b t Ht IH
+    | G D a b t Ht IH ].
+
+  - (* T_Var *)
+    simpl. destruct (has_var_det _ _ _ _ Hv) as [Ht Hd].
+    rewrite Ht, Hd. reflexivity.
+
+  - (* T_Unit *) reflexivity.
+
+  - (* T_Lam *)
+    simpl. rewrite IH. simpl.
+    destruct (Q_eq_dec q q) as [_|ne]; [|congruence]. reflexivity.
+
+  - (* T_App *)
+    simpl. rewrite IH1, IH2. simpl.
+    destruct (ty_eq_dec a a) as [_|ne]; [|congruence].
+    rewrite Hadd. reflexivity.
+
+  - (* T_With *)
+    simpl. rewrite IH1, IH2. simpl.
+    destruct (uvec_eq_dec D D) as [_|ne]; [|congruence]. reflexivity.
+
+  - (* T_Fst *) simpl. rewrite IH. reflexivity.
+  - (* T_Snd *) simpl. rewrite IH. reflexivity.
+
+  - (* T_Tensor *)
+    simpl. rewrite IH1, IH2. simpl. rewrite Hadd. reflexivity.
+
+  - (* T_LetPair *)
+    simpl. rewrite IH1. simpl. rewrite IH2. simpl.
+    destruct (Q_eq_dec One One) as [_|n1]; [|congruence].
+    destruct (Q_eq_dec One One) as [_|n2]; [|congruence].
+    rewrite Hadd. reflexivity.
+
+  - (* T_Inl *) simpl. rewrite IH. reflexivity.
+  - (* T_Inr *) simpl. rewrite IH. reflexivity.
+
+  - (* T_Case *)
+    simpl. rewrite IH. simpl. rewrite IHL, IHR. simpl.
+    destruct (Q_eq_dec One One) as [_|n1]; [|congruence].
+    destruct (Q_eq_dec One One) as [_|n2]; [|congruence].
+    destruct (ty_eq_dec c c) as [_|n3]; [|congruence].
+    destruct (uvec_eq_dec D2 D2) as [_|n4]; [|congruence].
+    rewrite Hadd. reflexivity.
+
+  - (* T_Let *)
+    simpl. rewrite IH1. simpl. rewrite IH2. simpl.
+    destruct (Q_eq_dec q q) as [_|ne]; [|congruence].
+    rewrite Hadd. reflexivity.
+
+  - (* T_Echo *)
+    simpl. rewrite IH. simpl.
+    destruct (ty_eq_dec a a) as [_|ne]; [|congruence]. reflexivity.
+
+  - (* T_Weaken *)
+    simpl. rewrite IH. reflexivity.
+Qed.
+
+(* ----- the equivalence, and usage/type determinacy as a corollary ----- *)
+
+Theorem check_correct : forall G D t a,
+  has_type G D t a <-> check G t = Some (a, D).
+Proof.
+  intros G D t a. split; [ apply check_complete | apply check_sound ].
+Qed.
+
+Corollary typing_unique : forall G t a D a' D',
+  has_type G D t a -> has_type G D' t a' -> a = a' /\ D = D'.
+Proof.
+  intros G t a D a' D' H1 H2.
+  apply check_complete in H1. apply check_complete in H2.
+  rewrite H1 in H2. injection H2 as Ha Hd. split; [exact Ha | exact Hd].
+Qed.
+
 
 End SoloCoreF.
 
 (* Concrete default instance: recovers the axiom-free three-point
    development under bare names. *)
 Include SoloCoreF Linear3.
+
+(* ========================================================== *)
+(* R5 non-vacuity: the usage-walk is not the trivial relation. *)
+(* On the concrete three-point carrier [check] EXECUTES (these *)
+(* are [reflexivity], i.e. closed computations) and genuinely  *)
+(* DISCRIMINATES on the affine accounting — it accepts a       *)
+(* linear binder used exactly once and rejects one dropped or  *)
+(* duplicated.                                                 *)
+(* ========================================================== *)
+
+(* identity on Unit: the [One]-binder is used exactly once -> accepted,
+   synthesising both the type AND the (empty, closed) usage. *)
+Example check_id_unit :
+  check TEmpty (Lam Quantity.One TUnit (Var 0))
+    = Some (TArr Quantity.One TUnit TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
+(* a [One]-annotated binder left UNUSED (usage Zero) -> rejected. *)
+Example check_drop_linear :
+  check TEmpty (Lam Quantity.One TUnit UnitT) = None.
+Proof. reflexivity. Qed.
+
+(* a [One]-annotated binder used TWICE under the multiplicative tensor
+   (usage Omega) -> rejected; the same body under an [Omega] binder is
+   accepted, so the rejection is exactly the linearity check. *)
+Example check_dup_linear :
+  check TEmpty (Lam Quantity.One TUnit (Tensor (Var 0) (Var 0))) = None.
+Proof. reflexivity. Qed.
+
+Example check_dup_omega :
+  check TEmpty (Lam Quantity.Omega TUnit (Tensor (Var 0) (Var 0)))
+    = Some (TArr Quantity.Omega TUnit (TTensor TUnit TUnit), UEmpty).
+Proof. reflexivity. Qed.
+
+(* round-trip through the proved equivalence on a concrete term. *)
+Example check_correct_demo :
+  has_type TEmpty UEmpty (Lam Quantity.One TUnit (Var 0))
+           (TArr Quantity.One TUnit TUnit).
+Proof. apply check_correct. reflexivity. Qed.

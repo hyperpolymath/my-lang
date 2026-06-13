@@ -50,7 +50,7 @@ jobs:
           coq_makefile -f _CoqProject -o CoqMakefile
           make -f CoqMakefile
 
-      - name: Assert progress + preservation + affine_pres are axiom-free
+      - name: Assert soundness + the usage-walk checker are axiom-free
         working-directory: proofs/verification/coq/solo-core
         run: |
           # The F1.4 headline: every soundness theorem must rest on the
@@ -61,7 +61,11 @@ jobs:
           # Theorems now live in the consolidated parametric functor
           # (SoloCore.v); `Include SoloCoreF Linear3` re-exports them under
           # bare names, recovering the axiom-free concrete development.
-          for thm in progress preservation affine_pres; do
+          # R5: check_sound / check_complete / check_correct are the
+          # executable usage-walk checker's adequacy (static-split ≡
+          # usage-walk) — also asserted axiom-free here.
+          for thm in progress preservation affine_pres \
+                     check_sound check_complete check_correct; do
             echo "Require Import SoloCore. Print Assumptions ${thm}." \
               | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_${thm}.txt"
             grep -q "Closed under the global context" "/tmp/assum_${thm}.txt" \

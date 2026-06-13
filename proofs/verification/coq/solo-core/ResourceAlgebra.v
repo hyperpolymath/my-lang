@@ -165,6 +165,16 @@ Module Type ORDERED_SEMIRING.
   Axiom qle_trans : forall a b c, qle a b = true -> qle b c = true -> qle a c = true.
   Axiom qle_zero  : forall q, qle zero q = true.
 
+  (* Decidable carrier equality (R5). The executable usage-walk checker
+     [check] (SoloCore.v) compares quantities — a lambda/let body must
+     use its binder with EXACTLY the declared quantity, additive pairs
+     must share one usage, case branches must agree — so the algorithmic
+     presentation needs to DECIDE [Q] equality. The declarative
+     soundness proofs (R2/R3/R4) never use it; it is consumed only by
+     the checker. Both concrete carriers discharge it trivially
+     (three-point by [decide equality]; tropical via [Nat.eq_dec]). *)
+  Parameter Q_eq_dec : forall x y : Q, {x = y} + {x <> y}.
+
 End ORDERED_SEMIRING.
 
 (* ============================================================ *)
@@ -213,6 +223,10 @@ Module Linear3 <: ORDERED_SEMIRING.
   Definition qle_refl  := Quantity.qle_refl.
   Definition qle_trans := Quantity.qle_trans.
   Definition qle_zero  := Quantity.qle_zero.
+
+  (* --- decidable equality (R5) --- *)
+  Definition Q_eq_dec : forall x y : Q, {x = y} + {x <> y}.
+  Proof. unfold Q; decide equality. Defined.
 
 End Linear3.
 

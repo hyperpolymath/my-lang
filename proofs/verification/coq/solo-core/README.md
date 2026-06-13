@@ -19,8 +19,8 @@ by choice.
 |------|----------|--------|
 | `Quantity.v` | Three-point QTT semiring + semiring/ordering laws | **machine-checked** (`destruct; reflexivity`, real `Qed`) |
 | `EchoMode.v` | Two-point linearity poset (`Linear ⊑ Affine`) + no-section | **machine-checked** |
-| `ResourceAlgebra.v` | `Module Type SEMIRING` — the 10-law resource-algebra boundary — plus the `Linear3` instance and an inert `ORDERED_SEMIRING` | **machine-checked** |
-| `SoloCore.v` | **Consolidated functor** `SoloCoreF (M : SEMIRING)`: syntax + de Bruijn terms, usage vectors, context-splitting QTT typing, CBV operational semantics, and `progress` / `preservation` / `affine_pres`. `Include SoloCoreF Linear3` recovers the concrete development under bare names. | **machine-checked, axiom-free** |
+| `ResourceAlgebra.v` | `Module Type SEMIRING` (10-law resource-algebra boundary) + the live `ORDERED_SEMIRING` (preorder `qle`, R3) with decidable carrier equality `Q_eq_dec` (R5); the `Linear3` instance and the sealed boundary-check `Linear3_Sealed` | **machine-checked** |
+| `SoloCore.v` | **Consolidated functor** `SoloCoreF (M : ORDERED_SEMIRING)`: syntax + de Bruijn terms, usage vectors, context-splitting QTT typing, CBV operational semantics, `progress` / `preservation` / `affine_pres`, **and the R5 usage-walk checker** `check` with `check_correct : has_type ↔ check` (sound + complete — decidability/adequacy of QTT typing). `Include SoloCoreF Linear3` recovers the concrete development under bare names. | **machine-checked, axiom-free** |
 | `Context.v` / `ContextProps.v` | Alternative conflated-`ctx` algebra (a parallel presentation; *not* on the soundness path) | **machine-checked** |
 | `EchoResidue.v` | Echo residue object + the subtyping facts the Rust checker relies on | **machine-checked** |
 
@@ -36,7 +36,12 @@ The soundness theorems are **proved**: `Theorem progress : Progress.`,
 *no* `Admitted`/`Axiom` in their dependency cone. As of R2 they are
 proved **parametrically** over `Module Type SEMIRING` inside `SoloCoreF`;
 `Include SoloCoreF Linear3` recovers them axiom-free for the concrete
-three-point carrier. The authoritative state is `proofs/STATUS.md`.
+three-point carrier. **R5 (F1.4 tail)** adds the *executable* usage-walk
+checker `check` and proves it sound + complete against `has_type`
+(`check_correct`, axiom-free), with usage/type determinacy as the
+corollary `typing_unique` — the decidability/adequacy of QTT typing, and
+the spec the Rust `dialects/solo` checker must meet. The authoritative
+state is `proofs/STATUS.md`.
 
 ## Building
 
