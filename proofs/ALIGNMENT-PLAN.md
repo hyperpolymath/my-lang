@@ -89,7 +89,8 @@ listed for completeness but are explicitly *after* the proof phases.
 ### Phase F1 — Mechanised affine/QTT solo-core  ← **commenced in this PR**
 Closes **G1** and scaffolds **G2**. Dual-track by decision: **both Coq
 and Idris2** (sibling-parity with AS *and* reuse of the existing Coq
-investment).
+investment). *(Parity relaxed 2026-06-13 — see D1: Coq is now the
+canonical track; Idris2 is a definitions + `progress` cross-check only.)*
 
 - **F1.0** — Scaffold both tracks with the QTT semiring, syntax,
   contexts, typing judgement, and soundness *statements*. **DONE** —
@@ -143,7 +144,16 @@ phases per the user's "starting with proofs" directive.
 
 - **D1 — Dual mechanisation (Coq + Idris2).** Reuse my-lang's Coq
   investment *and* mirror AS's Idris2 solo-core for cross-repo parity.
-  The two tracks are kept structurally parallel.
+  **Amended 2026-06-13 (owner, option A):** the tracks are NOT kept at
+  full structural parity. **Coq is the canonical mechanisation of
+  record** — axiom-free `progress`/`preservation`/`affine_pres` plus the
+  R2 functor (`SoloCoreF`), R3 affine layer, and R4 tropical instance.
+  **Idris2 is a cheap definitions + `progress` second-source** whose
+  `?todo_preservation` is deliberately left open. Coq-module-functor work
+  (R2/R4) is *not* mirrored — Idris2 has no functor system, so it would be
+  a different design, not a translation. The Idris CI leg stays (it only
+  rebuilds the package). Do not auto-create matching Idris work when the
+  Coq core advances.
 - **D2 — Statements-first.** Soundness theorems are committed as
   statements before proof, matching AS's methodology — as named `Prop`s
   on the Coq track (no `Admitted`/`Axiom`, to keep the trusted base

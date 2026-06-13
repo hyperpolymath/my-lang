@@ -6,9 +6,12 @@
 The Coq half of the dual-track mechanised QTT kernel for my-lang's
 **solo** dialect. The Idris2 twin lives in
 [`../../idris/solo-core/`](../../idris/solo-core/). Both tracks are
-intentional (see `proofs/ALIGNMENT-PLAN.md`); the modules are kept
-structurally parallel so a change to one signals the work needed in
-the other.
+intentional (see `proofs/ALIGNMENT-PLAN.md`). **As of 2026-06-13 (D1,
+option A) the tracks are NOT kept at full parity:** this Coq track is the
+canonical mechanisation of record (axiom-free soundness + the `SEMIRING`
+functor / affine layer / tropical instance); the Idris2 twin is a cheaper
+definitions + `progress` cross-check whose `?todo_preservation` stays open
+by choice.
 
 ## Modules
 
