@@ -135,49 +135,35 @@ Module Type SEMIRING.
 End SEMIRING.
 
 (* ============================================================ *)
-(* 2. ORDERED_SEMIRING — the (currently inert) ordering         *)
-(*    extension.                                                *)
+(* 2. ORDERED_SEMIRING — ordering extension (LIVE as of R3:      *)
+(*    the affine layer consumes qle).                           *)
 (* ============================================================ *)
 
 (** [ORDERED_SEMIRING] extends [SEMIRING] with the subquantity
-    ordering [qle] and its compatibility laws (mirroring
-    Quantity.v's [qle], [qle_zero], [qle_omega], [qle_refl]).
+    ordering [qle] and the PREORDER laws the affine layer consumes.
 
-    WHY THIS EXISTS, AND WHY IT IS INERT:
+    LIVE AS OF R3 (no longer inert). The consolidated functor
+    [SoloCoreF] is now parameterised by [ORDERED_SEMIRING], and the
+    affine budget order [ule] (pointwise [qle]) drives the DISTINCT
+    [affine_pres] theorem — "a term that fits a usage budget still
+    fits it after a step". The LINEAR soundness proofs
+    ([progress]/[preservation]) use only the [SEMIRING] laws; [qle]
+    is consumed exclusively by the affine layer, so widening the
+    parameter does not disturb them.
 
-    The current soundness proof never reaches [qle] (verified by
-    the citation audit). This extension is therefore CURRENTLY
-    INERT — nothing in Soundness.v depends on it.
-
-    Its purpose is forward-looking. The ordering is the gate at
-    which a FUTURE subusage / weakening typing rule attaches: the
-    point where "affine" becomes a DISTINCT theorem (a value of
-    quantity [a] may stand in where [b] is expected exactly when
-    [qle a b]). Until such a rule is added to Typing.v and a
-    weakening case is added to the preservation/progress argument,
-    [ORDERED_SEMIRING] carries no proof obligation that soundness
-    consumes. It is documented here so the seam is named, not so
-    it does work today. *)
+    Laws: [qle] is a PREORDER ([qle_refl], [qle_trans]) with [zero]
+    a bottom element ([qle_zero]). No top-element law — [Omega] is
+    concrete and outside the abstract signature, and the affine
+    layer does not need a top. *)
 Module Type ORDERED_SEMIRING.
 
   Include SEMIRING.
 
   Parameter qle : Q -> Q -> bool.
 
-  (* Compatibility / sanity laws, mirroring Quantity.v. These are
-     the laws a future weakening rule would cite; none is reached
-     by the present proof. *)
   Axiom qle_refl  : forall q, qle q q = true.
+  Axiom qle_trans : forall a b c, qle a b = true -> qle b c = true -> qle a c = true.
   Axiom qle_zero  : forall q, qle zero q = true.
-  Axiom qle_omega : forall q, qle q one = true \/ qle q one = false.
-  (* ^ Deliberately written as a tautology-shaped placeholder for
-     the "top element" law: Quantity.v's qle_omega is
-     [qle q Omega = true], but [Omega] is concrete and not part of
-     the abstract SEMIRING signature (which exposes only zero/one).
-     A real ordered-semiring extension would either add a [top]
-     parameter or specialise this module to the concrete carrier.
-     Kept inert and total here so the module type is inhabitable
-     without committing to a top element. *)
 
 End ORDERED_SEMIRING.
 
@@ -187,19 +173,19 @@ End ORDERED_SEMIRING.
 
 Require Import Quantity.
 
-(** [Linear3] realises [SEMIRING] over the concrete three-point
-    quantity semiring {Zero, One, Omega}. Every field maps to the
-    existing Quantity.v definition, and every law is discharged by
-    the existing Quantity lemma of the same name. This is the
-    VALIDATION that the boundary in [SEMIRING] is drawn correctly:
-    if the soundness proof's citation closure were wider than the
-    nine laws above, this module would still typecheck — but the
-    audit (not this module) is what bounds it from above.
+(** [Linear3] realises [ORDERED_SEMIRING] over the concrete
+    three-point quantity semiring {Zero, One, Omega}. Every field
+    maps to the existing Quantity.v definition, and every law is
+    discharged by the existing Quantity lemma of the same name.
+    This is the VALIDATION that the boundary is drawn correctly: if
+    the soundness proof's citation closure were wider than the law
+    set above, this module would still typecheck — but the audit
+    (not this module) is what bounds it from above.
 
-    [<: SEMIRING] (transparent ascription) keeps [Q := Quantity.Q]
-    etc. definitionally available, which is what a downstream
-    consumer wiring this into Soundness.v would want. *)
-Module Linear3 <: SEMIRING.
+    [<: ORDERED_SEMIRING] (transparent ascription) keeps
+    [Q := Quantity.Q] etc. definitionally available, which is what
+    a downstream consumer wiring this into SoloCore.v would want. *)
+Module Linear3 <: ORDERED_SEMIRING.
 
   Definition Q : Type := Quantity.Q.
 
@@ -221,6 +207,12 @@ Module Linear3 <: SEMIRING.
 
   Definition qmul_distrib_l := Quantity.qmul_distrib_l.
   Definition qmul_distrib_r := Quantity.qmul_distrib_r.
+
+  (* --- order (ORDERED_SEMIRING, R3) --- *)
+  Definition qle       := Quantity.qle.
+  Definition qle_refl  := Quantity.qle_refl.
+  Definition qle_trans := Quantity.qle_trans.
+  Definition qle_zero  := Quantity.qle_zero.
 
 End Linear3.
 

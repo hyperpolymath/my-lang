@@ -31,7 +31,7 @@ Require Import Lia.
 Require Import EchoMode.
 Require Import ResourceAlgebra.
 
-Module SoloCoreF (M : SEMIRING).
+Module SoloCoreF (M : ORDERED_SEMIRING).
 Import M.
 Local Notation Zero := M.zero.
 Local Notation One := M.one.
@@ -560,9 +560,58 @@ Definition Preservation : Prop :=
     step t t' ->
     has_type G D t' a.
 
-(** Affine preservation: identical to [Preservation] for the Solo
-    kernel (the preserved usage already carries the accounting). *)
-Definition AffinePreservation : Prop := Preservation.
+(* ===== Affine layer (R3): usage subsumption over the ordered carrier ===== *)
+
+(** Pointwise usage ordering, lifted from the carrier order [qle].
+    [ule D D'] holds when the shapes agree and every component of [D]
+    is [qle] the matching component of [D']. This is the affine BUDGET
+    order: [D] realises no more usage than [D'] permits. *)
+Fixpoint ule (D D' : uvec) : Prop :=
+  match D, D' with
+  | UEmpty,     UEmpty       => True
+  | USnoc D0 q, USnoc D0' q' => qle q q' = true /\ ule D0 D0'
+  | _,          _            => False
+  end.
+
+Lemma ule_refl : forall D, ule D D.
+Proof. induction D as [| D IH q]; simpl; [ exact I | split; [ apply qle_refl | exact IH ] ]. Qed.
+
+Lemma ule_trans : forall D1 D2 D3, ule D1 D2 -> ule D2 D3 -> ule D1 D3.
+Proof.
+  induction D1 as [| D1 IH q1]; intros [| D2 q2] [| D3 q3] H12 H23; simpl in *;
+    try exact I; try contradiction.
+  destruct H12 as [Hq12 H12']; destruct H23 as [Hq23 H23'].
+  split; [ exact (qle_trans _ _ _ Hq12 Hq23) | exact (IH _ _ H12' H23') ].
+Qed.
+
+(** Affine typing: [t] fits within the usage BUDGET [D] when it realises
+    some tighter usage [D0] with [ule D0 D] — "uses at most [D]". The
+    linear judgement is the [ule]-reflexive case ([has_type_aff]); a
+    term realising [Zero] where the budget permits [One] is the affine
+    DISCARD that strictly-linear typing forbids. *)
+Definition aff_type (G : tctx) (D : uvec) (t : tm) (a : ty) : Prop :=
+  exists D0, has_type G D0 t a /\ ule D0 D.
+
+(** Linear <= affine: every linear derivation is affine at its own usage. *)
+Lemma has_type_aff : forall G D t a, has_type G D t a -> aff_type G D t a.
+Proof. intros G D t a H. exists D. split; [ exact H | apply ule_refl ]. Qed.
+
+(** Affine budgets relax upward — the surplus is discarded. *)
+Lemma aff_weaken : forall G D D' t a, aff_type G D t a -> ule D D' -> aff_type G D' t a.
+Proof.
+  intros G D D' t a [D0 [H Hle]] Hle'.
+  exists D0. split; [ exact H | exact (ule_trans _ _ _ Hle Hle') ].
+Qed.
+
+(** Affine preservation — DISTINCT from [Preservation], no longer an
+    alias: a term that fits a usage budget [D] still fits [D] after a
+    step. The affine content is carried by [ule]; the proof rides on
+    the LINEAR [preservation] at the realised usage [D0] (R3). *)
+Definition AffinePreservation : Prop :=
+  forall G D t t' a,
+    aff_type G D t a ->
+    step t t' ->
+    aff_type G D t' a.
 
 (* ========================================================== *)
 (* Progress, discharged (F1.3).                               *)
@@ -1987,7 +2036,10 @@ Proof.
 Qed.
 
 Theorem affine_pres : AffinePreservation.
-Proof. exact preservation. Qed.
+Proof.
+  unfold AffinePreservation. intros G D t t' a [D0 [Hty Hle]] Hstep.
+  exists D0. split; [ exact (preservation G D0 t t' a Hty Hstep) | exact Hle ].
+Qed.
 
 
 End SoloCoreF.

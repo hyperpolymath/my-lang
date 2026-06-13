@@ -110,7 +110,7 @@ my-lang is parametric over **both**, and identifies **neither**.
  R1 ✓ q_reassoc de-concretise (now SoloCore.v)        E2 ☐ (epi,mono) image factorisation —
  R2 ✓ SEMIRING functor; Include Linear3 =                 decide the 1 truncation postulate
       R0, axiom-free (consolidated)                  E3 ☐ proof-CI gate (agda --safe)
- R3 ☐ ORDERED_SEMIRING + subusage rule →             E4 ☐ SEAM: Measure : Residue E → R,
+ R3 ✓ ORDERED_SEMIRING + subusage rule →             E4 ☐ SEAM: Measure : Residue E → R,
       Affine4 (affine_pres becomes DISTINCT,               echo core proven measure-INDEP
       not an alias) ── makes "affine" real           E5 ☐ Pillar E paper write-up
  R4 ☐ Tropical instance (cost) ── acceptance
@@ -177,6 +177,17 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   branch, kept concrete on `Quantity`) and `EchoResidue.v` were repointed to `SoloCore`; the
   *transparent* `Linear3` (never `Linear3_Sealed`) keeps the concrete re-export compatible.
   `SoloCoreF` is now ready to instantiate at tropical/affine algebras (R4).
+- **R3 DONE — affine layer, executed 2026-06-13.** `affine_pres` is no longer an alias of
+  `preservation`. Realisation (the **budget-wrapper**, chosen over the Affine4-instance and the
+  in-judgement subusage-rule options): the functor parameter widened to `ORDERED_SEMIRING` —
+  the linear proofs still cite only `SEMIRING`, so they are untouched and stay axiom-free.
+  `ule` = pointwise `qle`; `aff_type G D t a := ∃ D0, has_type G D0 t a ∧ ule D0 D` ("uses at
+  most budget `D`"). `has_type_aff` embeds linear ⊆ affine; `aff_weaken` relaxes the budget
+  upward (the affine *discard* a strictly-linear system forbids); `AffinePreservation`
+  (budget-stable preservation) is proved axiom-free by riding the linear `preservation` at the
+  realised usage. `Quantity.qle_trans` was added and `ORDERED_SEMIRING` is now a live preorder
+  (`qle_refl`/`qle_trans`/`qle_zero`). The Affine4 4-point semiring stays available through the
+  same functor as a future R4 instance.
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without
