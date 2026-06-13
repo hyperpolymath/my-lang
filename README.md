@@ -65,7 +65,7 @@ proof is described as "proved" there until a proof assistant accepts it.
 | Solo syntax, contexts, typing (Coq + Idris2) | *locally-checked* |
 | Operational semantics (CBV small-step) | *locally-checked* — Phase **F1.1 done** (both tracks) |
 | **Progress** | *locally-checked* — Phase **F1.3 done**: Coq `Theorem … Qed.` (axiom-free); Idris total, hole-free |
-| Preservation | *statement-only* — Phase F1.4, **gated on the product/elimination decision** ([#93](https://github.com/hyperpolymath/my-lang/issues/93)) |
+| Preservation | *locally-checked (Coq)* — Phase **F1.4 done** on the Coq track: `Theorem preservation : Preservation.` and `affine_pres` are real `Qed.` (axiom-free, `Print Assumptions` closed), via the open-context QTT substitution lemma `ht_subst`. Product/elimination decision settled (additive `&` + multiplicative `⊗` both coherent). Idris twin pending (Phase F5 parity). |
 | Echo in the type system (`TEcho`, `MkEcho`/`Weaken`, `THEcho`/`THWeaken`, `EchoMode`, `EchoResidue`) | *locally-checked* — Echo is a first-class type former in the formal kernel; `EchoResidue` backs the Rust `Ty::Echo` (5/5 unit tests are its laws) |
 | Paper proofs (~6.3k lines) | *proved-on-paper* |
 | Proof CI | *absent* — Phase F5 (wiring `coqc` + `idris2 --build`) |

@@ -34,10 +34,12 @@ Last verified: 2026-06-02.
 | QTT semiring + laws | Idris2 `idris/solo-core/Quantity.idr` | **locally-checked** | Semiring + ordering laws by exhaustive `Refl`, `%default total`. CI leg pending (Phase F5). |
 | QTT semiring + laws | Coq `coq/solo-core/Quantity.v` | **locally-checked** | Laws by `destruct; reflexivity`, real `Qed`. CI leg pending (F5). |
 | Solo syntax / contexts / typing | Idris2 + Coq `solo-core/` | **definitions-only** | de Bruijn terms, QTT context split/scale/zero, context-splitting typing judgement. |
-| `progress` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Coq `Definition Progress : Prop`; Idris `?todo_progress`. Proof = Phase F1.3. |
-| `preservation` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Coq `Definition Preservation : Prop`; Idris `?todo_preservation`. Proof = Phase F1.4. |
-| `affine_preservation` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Corollary of preservation. |
-| Small-step `Step`/`step` | Idris2 + Coq `solo-core/Soundness` | **statement-only** | Relation declared with no constructors yet; committed in F1.1. |
+| `progress` | Coq `solo-core/Soundness` | **locally-checked** | `Theorem progress : Progress.` real `Qed`, axiom-free (`Print Assumptions` closed). Phase F1.3. CI leg pending (F5). |
+| `progress` | Idris2 `solo-core/Soundness` | **statement-only** | `?todo_progress`. Proof = Phase F1.3 (Idris track). |
+| `preservation` / `affine_pres` | Coq `solo-core/Soundness` | **locally-checked** | `Theorem preservation : Preservation.` and `affine_pres : AffinePreservation.`, real `Qed`, axiom-free, via the open-context QTT substitution lemma `ht_subst`. Phase F1.4. CI leg pending (F5). |
+| `preservation` | Idris2 `solo-core/Soundness` | **statement-only** | `?todo_preservation`. Proof = Phase F1.4 (Idris track). |
+| Small-step `step` | Coq `solo-core/Soundness` | **definitions-only** | CBV left-to-right relation, all redex + congruence constructors. Committed in F1.1. |
+| Small-step `Step` | Idris2 `solo-core/Soundness` | **statement-only** | Idris twin (unverified on this track). |
 | General core typing + substitution | Coq `coq/Typing.v` | **locally-checked** | Pre-existing: 9 `Qed`, 0 `Admitted`. Non-quantitative; substitution lemma proved. |
 
 ## Paper proofs (`proofs/**.md`)
@@ -59,7 +61,7 @@ Last verified: 2026-06-02.
 | Topic AS has | my-lang status | Plan phase |
 |--------------|----------------|-----------|
 | Mechanised QTT solo-core | **commenced** (this PR) | F1 |
-| Mechanised progress/preservation | statement-only | F1.3 / F1.4 |
+| Mechanised progress/preservation | Coq **locally-checked** (axiom-free `Qed`); Idris twin pending | F1.3 / F1.4 |
 | Quantitative-types (dedicated doc) | folded into solo affine doc | F4 |
 | Row-polymorphism proof | absent | F4 |
 | Dependent/refinement types proof | absent | F4 |

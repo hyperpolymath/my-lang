@@ -120,8 +120,14 @@ Fixpoint subst_at (j : nat) (u : tm) (t : tm) : tm :=
 Definition subst0 (u : tm) (t : tm) : tm := subst_at 0 u t.
 
 (** Two-variable substitution for the let-pair eliminator: replace de
-    Bruijn index 1 by [u1] and index 0 by [u2]. For CLOSED [u1] [u2]
-    (the operational use — both are values), the two sequential single
-    substitutions suffice: substituting index 0 first collapses the
-    former index 1 down to index 0 for the second pass. *)
-Definition subst2 (u1 u2 : tm) (t : tm) : tm := subst0 u1 (subst0 u2 t).
+    Bruijn index 1 by [u1] and index 0 by [u2], as two sequential single
+    substitutions. The inner pass substitutes index 0 by [u2]; because the
+    index-1 binder is still present during that pass, [u2]'s free variables
+    must skip it, so [u2] is pre-shifted with [shift 0]. The outer pass then
+    substitutes [u1] for the (now index-0) former index-1 binder. This is
+    correct for OPEN [u1] [u2] — needed by preservation, where the let-pair's
+    tensor components are values typed in a non-empty context (F1.4). For
+    CLOSED [u1] [u2] the [shift 0] is the identity, so evaluation of closed
+    programs is unchanged from the naive [subst0 u1 (subst0 u2 t)]. *)
+Definition subst2 (u1 u2 : tm) (t : tm) : tm :=
+  subst0 u1 (subst0 (shift 0 u2) t).
