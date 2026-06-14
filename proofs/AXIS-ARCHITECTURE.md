@@ -105,13 +105,13 @@ my-lang is parametric over **both**, and identifies **neither**.
  LANGUAGE THREAD (this repo)                        FOUNDATIONS THREAD(S) (sibling repos)
  ─────────────────────────────────────             ──────────────────────────────────────
  R0 ✓ solo progress + preservation (Coq,            ECHO  (echo-types, Agda)
-      axiom-free)                                     E1 ☐ Buchholz ordinal global WF (10/13
+      axiom-free)                                     E1 ☐ Buchholz ordinal global WF (11/13
  ──bridge──                                                → close or fence)
  R1 ✓ q_reassoc de-concretise (now SoloCore.v)        E2 ☐ (epi,mono) image factorisation —
  R2 ✓ SEMIRING functor; Include Linear3 =                 decide the 1 truncation postulate
       R0, axiom-free (consolidated)                  E3 ☐ proof-CI gate (agda --safe)
- R3 ✓ ORDERED_SEMIRING + subusage rule →             E4 ☐ SEAM: Measure : Residue E → R,
-      Affine4 (affine_pres becomes DISTINCT,               echo core proven measure-INDEP
+ R3 ✓ ORDERED_SEMIRING + subusage rule →             E4 ◑ SEAM: Measure : Residue E → R,
+      Affine4 (affine_pres becomes DISTINCT,               Coq mirror ✓ (indep upstream-cited)
       not an alias) ── makes "affine" real           E5 ☐ Pillar E paper write-up
  R4 ✓ Tropical instance (cost) ── acceptance
       test: infinite carrier, analytic laws         TROPICAL  (tropical-resource-typing, Lean/Isabelle)
@@ -374,10 +374,27 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
-  `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without
-  disturbing the resource layer. *Seam prerequisite:* `EchoResidue.v` currently exposes
-  residues *operationally* (via the `Weaken` rule), not as an algebra with a composition
-  operator — naming that algebra is the gating step before `Measure : Residue → R`.
+  `TEcho` are already **`Quantity`-independent**, so the measure seam attaches without
+  disturbing the resource layer.
+- **E4 SEAM — Coq mirror DONE, axiom-free 2026-06-14.** The gating step ("name the residue
+  algebra with a composition operator") is satisfied **upstream**: the echo-types audit found
+  the seam already mechanised on both foundations — tropical-resource-typing
+  `Resource/EchoBridge.lean` (`structure ResidueMeasure` with `combine`/`empty` +
+  `measure_empty`/`measure_combine` monoid-hom laws) and echo-types
+  `Echo/Measure/Interface.agda` (`ResidueMeasure` record) + `Echo/Separation/NotResourceInstance.agda`
+  (the `equal-measure-does-not-imply-equal-echo` measure-INDEPENDENCE theorems, `--safe --without-K`).
+  Per the echo-types-audit directive the move is **reuse, not re-invent**: the former PENDING prose
+  sketch in `ResourceAlgebra.v` is now the real `Module Type RESIDUE_MEASURE (S : SEMIRING)`
+  (`measure : Residue → S.Q`, `measure_empty`/`measure_combine` — a monoid homomorphism, needs only
+  the DONE R2 SEMIRING), and `EchoMeasure.v` **inhabits** it at the DONE R4 Tropical cost carrier
+  (`EchoTraceTropical`: residue = echo reindexing trace, measure = accumulated Affine-collapse cost)
+  + witnesses measure-independence on the Coq side (`echo_measure_not_injective`). **Fences:** the
+  Coq mirror carries the measure HOMOMORPHISM + residue-level non-injectivity; the full
+  measure-independence over the degrade-compose modality (b: `ECHO_MODALITY` `act`) is upstream-CITED,
+  not re-derived — hence E4 is `◑` (Coq mirror ✓, full seam upstream). **Hard IS-NOT invariant kept:**
+  Echo is NOT a resource/SEMIRING instance; `measure` is a one-directional E→R decoration; the echo
+  modules stay `Quantity`-independent. (E3 `agda --safe` gate is already green upstream + mirrored by
+  my-lang's Coq `proofs.yml` — the ladder `☐` is stale.) **Echo-types audit: RELEVANT (axis-3 ECHO).**
 
 ---
 

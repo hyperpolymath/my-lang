@@ -193,6 +193,26 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert E4 residue-measure SEAM (Coq mirror) is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # E4 (axis-3 ECHO): the my-lang Coq half of the residue-measure
+          # seam capstone. RESIDUE_MEASURE (ResourceAlgebra.v) is the monoid-
+          # homomorphism interface mirrored from upstream EchoBridge.lean;
+          # EchoMeasure.v inhabits it at the R4 Tropical cost carrier
+          # (EchoTraceTropical) and witnesses measure-independence on the Coq
+          # side (echo_measure_not_injective). The full measure-independence
+          # over the degrade-compose modality is upstream-cited, not here.
+          for thm in trace_cost_app \
+                     EchoTraceTropical.measure_empty \
+                     EchoTraceTropical.measure_combine \
+                     echo_measure_not_injective; do
+            echo "Require Import SoloCore.EchoMeasure. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_e4_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_e4_${thm}.txt" \
+              || { echo "::error::EchoMeasure.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest
