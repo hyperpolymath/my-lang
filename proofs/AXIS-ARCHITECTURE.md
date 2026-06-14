@@ -136,7 +136,9 @@ my-lang is parametric over **both**, and identifies **neither**.
       {wf, subj.red., fidelity, progress};
       S2.2 ✓ choice GBra + μ GMu/GVar, PARTIAL
       proj + merge/merge_idem, option-form
-      duality; all axiom-free. S3 n≥3 = open)
+      duality; S3a ✓ n≥3 projection_total
+      (projectable_wf, first n-party theorem);
+      all axiom-free. S3b config/S3c union = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -310,6 +312,27 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   progress not re-proved for `GBra`/`GMu`; the bridge transports binary metatheory only where both
   projections are `Some`); (4) `dual_unfold` NOT consumed (the `GMu` case uses only structural
   `dual(SMu x)=SMu(dual x)`). OUT → S3: n≥3 coherence / full-UNION merge / projection-existence.
+  **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
+- **S3a DONE — n-party projection totality, axiom-free 2026-06-14.** The **FIRST theorem quantifying
+  over a genuine n≥3 role space** — it breaks the standing fence that no prior theorem quantified over
+  a real n-party system. Design-panel-validated (4 lenses, empirically compiled on Coq 8.18; the panel
+  forced the honest scope). Keystone **`projection_total : projectable_wf G → ∀ r:role, ∃ s,
+  proj G r = Some s`** (via mutual `projectable_wf_mut`): every role of a well-branched global type
+  projects. **`projectable_wf`** (mutual `projectable_wf_br`) = the restricted projectability predicate
+  — at every `GBra`: `p≠q`, non-empty choice, inductive body coherence, and the **merge-existence
+  clause** (`∀ r∉{p,q}, ∃ s, proj_uninv bs r = Some s`); `μ` permitted, handled by the keystone.
+  Witnesses pin **non-vacuity at n=3**: a 3-party **ring** (`g_ring`) projects on all 3 roles and is
+  not `two_party`; an **agreeing** 3-party choice (`g_choice3`) projects its uninvolved role via a
+  non-trivial `merge`; and the plain-merge **boundary** is witnessed — a same-direction different-payload
+  choice (`g_excluded`) is a SAFE protocol full-union admits but plain merge **rejects** (`~ projectable_wf`).
+  **Honest scope (panel-mandated renames + fences):** `projectable_wf` asserts projection EXISTENCE,
+  **NOT** safety (the name is deliberately not "coherent"); no n-party SR / progress / fidelity.
+  **Fences:** (1) projection-existence only, no safety; (2) plain / identity-meet merge — divergent-
+  uninvolved choices EXCLUDED (full-UNION = **S3c**); (3) `μ` projection unpruned (guardedness not
+  imposed); (4) the general `two_party → projectable_wf` is **NOT proved and is FALSE** (`two_party`
+  admits empty choices + μ-divergent branches that break the absent-role merge) — n=2 collapse
+  witnessed BY EXAMPLE (`projectable_gpingpong`); (5) no n-party config / operational semantics —
+  static role-assignment tuple (**S3b**) and full-union merge + n-party metatheory (**S3c**) deferred.
   **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)

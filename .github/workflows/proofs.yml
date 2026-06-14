@@ -148,6 +148,28 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S3a n-party projection totality is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3a (axis-2 STRUCTURE): the FIRST theorem quantifying over a
+          # genuine n>=3 role space. projection_total (projectable_wf G ->
+          # forall r, exists s, proj G r = Some s) breaks the standing
+          # "no theorem quantifies over a genuine n-party system" fence.
+          # projectable_wf = the restricted (plain-merge) projectability
+          # predicate; witnesses pin non-vacuity at n=3 (a 3-party ring +
+          # an agreeing 3-party choice projected via a non-trivial merge)
+          # and the plain-merge boundary (a same-direction different-payload
+          # choice is NOT projectable). All must rest on the bare global ctx.
+          for thm in projection_total proj_msg_total \
+                     projectable_g_ring projectable_g_choice3 \
+                     g_ring_projects_all g_ring_not_two_party \
+                     g_excluded_not_projectable; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3a_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3a_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest

@@ -1749,3 +1749,197 @@ Proof.
   match goal with G : guarded _ (SVar _) |- _ => inversion G; subst end.
   lia.
 Qed.
+
+(* ============================================================ *)
+(* S3a — n-party PROJECTION TOTALITY (restricted / plain merge). *)
+(*                                                              *)
+(* The FIRST theorem that genuinely quantifies over an n>=3     *)
+(* role space, breaking the standing fence that no prior        *)
+(* theorem quantified over a genuine n-party system. The        *)
+(* keystone `projection_total` says: every role of a well-      *)
+(* branched global type projects to SOME local type.            *)
+(*                                                              *)
+(* HONEST NAME: the predicate is `projectable_wf` — it asserts  *)
+(* projection EXISTENCE only, NOT session safety. It is NOT     *)
+(* MPST "coherence" (which would imply n-party subject          *)
+(* reduction + progress); no such safety theorem attaches.      *)
+(*                                                              *)
+(* FENCES (S3a — each literally true vs the code):              *)
+(*  (1) projectable_wf = every-role-projects, NOT session-      *)
+(*      safety. No n-party SR / progress / fidelity.            *)
+(*  (2) The uninvolved-role MERGE is the PLAIN / identity-meet  *)
+(*      merge: choices where an uninvolved role behaves         *)
+(*      DIFFERENTLY across branches are EXCLUDED (the SAFE MPST  *)
+(*      pattern admitted by full label-UNION merge — deferred   *)
+(*      to S3c). Witnessed both ways below.                     *)
+(*  (3) Non-empty choice REQUIRED: projectable_wf forbids       *)
+(*      `GBra _ _ GBnil` (proj_uninv GBnil = None).             *)
+(*  (4) mu IS allowed in the predicate (PW_Mu) and T1 handles   *)
+(*      it, but projection stays UNPRUNED — see the S2.2        *)
+(*      fence (b); guardedness-of-projection is NOT imposed.    *)
+(*  (5) The general `two_party p q G -> projectable_wf G` is    *)
+(*      NOT proved — and is in fact FALSE: two_party is         *)
+(*      strictly MORE permissive (it admits empty choices and   *)
+(*      branches with DIVERGENT mu-structure, on which an       *)
+(*      absent role's unpruned projections (mu X.end vs end)    *)
+(*      fail to merge). The n=2 collapse is witnessed BY        *)
+(*      EXAMPLE instead (gpingpong is projectable_wf).          *)
+(*  (6) No n-party config / no operational semantics (S3b/S3c). *)
+(*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE).          *)
+(* ============================================================ *)
+
+(* projectable_wf : the restricted (plain-merge) projectability *)
+(* well-formedness. mutual with projectable_wf_br over branches.*)
+Inductive projectable_wf : gty -> Prop :=
+| PW_End : projectable_wf GEnd
+| PW_Var : forall n, projectable_wf (GVar n)
+| PW_Msg : forall p q t G,
+    p <> q -> projectable_wf G -> projectable_wf (GMsg p q t G)
+| PW_Bra : forall p q bs,
+    p <> q ->
+    bs <> GBnil ->                                   (* non-empty choice *)
+    projectable_wf_br bs ->                           (* body coherence (inductive) *)
+    (forall r, r <> p -> r <> q ->                    (* MERGE-EXISTENCE clause: *)
+       exists s, proj_uninv bs r = Some s) ->         (* every uninvolved role merges *)
+    projectable_wf (GBra p q bs)
+| PW_Mu : forall G, projectable_wf G -> projectable_wf (GMu G)
+with projectable_wf_br : gbranch -> Prop :=
+| PWb_nil  : projectable_wf_br GBnil
+| PWb_cons : forall l G rest,
+    projectable_wf G -> projectable_wf_br rest ->
+    projectable_wf_br (GBcons l G rest).
+
+Scheme projectable_wf_mut := Induction for projectable_wf Sort Prop
+  with projectable_wf_br_mut := Induction for projectable_wf_br Sort Prop.
+
+(* A message node is ALWAYS projectable when its tail is        *)
+(* (used to discharge the merge-existence clause in witnesses). *)
+Lemma proj_msg_total : forall p q t G r,
+  (exists s, proj G r = Some s) -> exists s, proj (GMsg p q t G) r = Some s.
+Proof.
+  intros p q t G r [s Hs]. cbn [proj].
+  destruct (r =? p). { exists (SSend t s). rewrite Hs. reflexivity. }
+  destruct (r =? q). { exists (SRecv t s). rewrite Hs. reflexivity. }
+  exists s. exact Hs.
+Qed.
+
+Lemma proj_msg_end_total : forall p q t r,
+  exists s, proj (GMsg p q t GEnd) r = Some s.
+Proof. intros. apply proj_msg_total. exists SEnd. reflexivity. Qed.
+
+(* ===== T1 — THE KEYSTONE: n-party projection totality ===== *)
+(* Every role of a projectable_wf global type projects. The    *)
+(* `forall r : role` genuinely quantifies over ALL roles —     *)
+(* this is the first n>=3 statement in the development.        *)
+Theorem projection_total :
+  forall G, projectable_wf G -> forall r : role, exists s, proj G r = Some s.
+Proof.
+  intros G Hwf.
+  induction Hwf as
+    [ | n | p q t G0 Hpq Hsub IH | p q bs Hpq Hne Hsub IHbr Hmerge
+    | G0 Hsub IH | | l G0 rest Hsg IHg Hsr IHr ]
+    using projectable_wf_mut
+    with (P0 := fun bs (_ : projectable_wf_br bs) =>
+                  forall r, exists sb, proj_br bs r = Some sb).
+  - (* PW_End *) intro r. exists SEnd. reflexivity.
+  - (* PW_Var *) intro r. exists (SVar n). reflexivity.
+  - (* PW_Msg *) intro r. destruct (IH r) as [s' Hs'].
+    cbn [proj]. destruct (r =? p).
+    + exists (SSend t s'). rewrite Hs'. reflexivity.
+    + destruct (r =? q).
+      * exists (SRecv t s'). rewrite Hs'. reflexivity.
+      * exists s'. exact Hs'.
+  - (* PW_Bra *) intro r. cbn [proj]. destruct (r =? p) eqn:Ep.
+    + destruct (IHbr r) as [sb Hsb]. exists (SSelect sb). rewrite Hsb. reflexivity.
+    + destruct (r =? q) eqn:Eq.
+      * destruct (IHbr r) as [sb Hsb]. exists (SBranch sb). rewrite Hsb. reflexivity.
+      * apply Nat.eqb_neq in Ep. apply Nat.eqb_neq in Eq.
+        exact (Hmerge r Ep Eq).
+  - (* PW_Mu *) intro r. destruct (IH r) as [s' Hs'].
+    exists (SMu s'). cbn [proj]. rewrite Hs'. reflexivity.
+  - (* PWb_nil *) intro r. exists SBnil. reflexivity.
+  - (* PWb_cons *) intro r.
+    destruct (IHg r) as [s Hs]. destruct (IHr r) as [sb Hsb].
+    exists (SBcons l s sb). cbn [proj_br]. rewrite Hs, Hsb. reflexivity.
+Qed.
+
+(* ===== witnesses: NON-VACUITY at n>=3 + the merge boundary ===== *)
+
+(* n=2 collapse BY EXAMPLE: a binary choreography is in-domain.  *)
+Example projectable_gpingpong : projectable_wf gpingpong.
+Proof. apply PW_Msg; [ discriminate | apply PW_End ]. Qed.
+
+(* W1 — a genuine 3-party RING: projects on all three roles and  *)
+(* is provably NOT two_party (three distinct directed pairs).    *)
+Definition g_ring : gty :=
+  GMsg 0 1 VTNat (GMsg 1 2 VTNat (GMsg 2 0 VTNat GEnd)).
+Example projectable_g_ring : projectable_wf g_ring.
+Proof.
+  apply PW_Msg; [ discriminate | ].
+  apply PW_Msg; [ discriminate | ].
+  apply PW_Msg; [ discriminate | apply PW_End ].
+Qed.
+Example g_ring_proj0 : proj g_ring 0 = Some (SSend VTNat (SRecv VTNat SEnd)).
+Proof. reflexivity. Qed.
+(* T1 INSTANTIATED at n=3: every role of the ring projects.      *)
+Example g_ring_projects_all : forall r, exists s, proj g_ring r = Some s.
+Proof. apply projection_total. apply projectable_g_ring. Qed.
+Example g_ring_not_two_party : ~ two_party 0 1 g_ring.
+Proof.
+  unfold g_ring. intro H. inversion H; subst.
+  match goal with Hi : two_party _ _ (GMsg 1 2 _ _) |- _ => inversion Hi end.
+Qed.
+
+(* W2 — the REAL non-vacuity witness: a 3-party CHOICE whose     *)
+(* uninvolved role 2 AGREES across branches, so it projects via  *)
+(* a NON-trivial (non-SEnd) merge (merge_idem on identical       *)
+(* branches). Provably not two_party (role 2 is in the bodies).  *)
+Definition g_choice3 : gty :=
+  GBra 0 1 (GBcons 0 (GMsg 0 2 VTNat GEnd)
+           (GBcons 1 (GMsg 0 2 VTNat GEnd) GBnil)).
+Example projectable_g_choice3 : projectable_wf g_choice3.
+Proof.
+  apply PW_Bra.
+  - discriminate.
+  - discriminate.
+  - apply PWb_cons; [ apply PW_Msg; [ discriminate | apply PW_End ] | ].
+    apply PWb_cons; [ apply PW_Msg; [ discriminate | apply PW_End ] | apply PWb_nil ].
+  - intros r Hr0 Hr1.
+    destruct (proj_msg_end_total 0 2 VTNat r) as [v Hv].
+    exists v. cbn [proj_uninv]. rewrite Hv. apply merge_idem.
+Qed.
+Example g_choice3_proj2 : proj g_choice3 2 = Some (SRecv VTNat SEnd).
+Proof. reflexivity. Qed.
+Example g_choice3_not_two_party : ~ two_party 0 1 g_choice3.
+Proof.
+  unfold g_choice3. intro H. inversion H; subst.
+  match goal with Hb : two_party_br 0 1 _ |- _ => inversion Hb; subst end.
+  match goal with Hm : two_party 0 1 (GMsg 0 2 _ _) |- _ => inversion Hm end.
+Qed.
+
+(* W3 — EXCLUDED-but-LEGITIMATE (the honesty witness): SAME      *)
+(* direction, DIFFERENT PAYLOAD across branches — a SAFE         *)
+(* protocol that full-UNION merge admits but plain merge         *)
+(* EXCLUDES. proj fails (None) and it is NOT projectable_wf.     *)
+Definition g_excluded : gty :=
+  GBra 0 1 (GBcons 0 (GMsg 0 2 VTNat  GEnd)
+           (GBcons 1 (GMsg 0 2 VTBool GEnd) GBnil)).
+Example g_excluded_proj2_none : proj g_excluded 2 = None.
+Proof. reflexivity. Qed.
+Example g_excluded_not_projectable : ~ projectable_wf g_excluded.
+Proof.
+  intro H. inversion H; subst.
+  match goal with Hm : forall r, r <> 0 -> r <> 1 -> _ |- _ =>
+    destruct (Hm 2 ltac:(congruence) ltac:(congruence)) as [s Hs] end.
+  cbn in Hs. discriminate.
+Qed.
+
+(* The S2.2 disagree witness, recast from below the new          *)
+(* predicate: a direction-divergent uninvolved role => excluded. *)
+Example gchoice_disagree_not_projectable : ~ projectable_wf gchoice_disagree.
+Proof.
+  intro H. inversion H; subst.
+  match goal with Hm : forall r, r <> 0 -> r <> 1 -> _ |- _ =>
+    destruct (Hm 2 ltac:(congruence) ltac:(congruence)) as [s Hs] end.
+  cbn in Hs. discriminate.
+Qed.

@@ -144,7 +144,7 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   (closed via the F1.4 `ht_shift0` weakening lemma), so `me_wt` spans the whole `me_tm`. **M1
   (axis-4 SURFACE) is complete.**
 
-  **Structure (S1 + S2, axis-2) — S1.0–S1.3 + S2.0–S2.2 done 2026-06-14.** The
+  **Structure (S1 + S2, axis-2) — S1.0–S1.3 + S2.0–S2.2 + S3a done 2026-06-14.** The
   structure climb (`AXIS-ARCHITECTURE.md` axis 2: solo ⊂ duet ⊂ ensemble, done
   *ensemble-first* on the process side since `solo ⊄ ensemble`). A standalone Coq
   development `proofs/verification/coq/solo-core/SessionPi.v` (module
@@ -184,10 +184,21 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   empirically compiled the fixpoints on Coq 8.18 and caught a real None-erasure soundness
   bug before implementation). Fences: **plain** (not full label-union) merge, **unpruned**
   μ projection (a non-participating role's `μX.X` is non-theorematic, never shown as a
-  type), **no** global-level metatheory. **Remaining:** μ typing/SR up-to-unfolding
-  (**S1.3b-meta**, deferred — needs a `PT_Unfold` rule + soundness); n≥3 coherence /
-  full-union merge / projection-existence (**S3** — where "duet" stops and "ensemble"
-  begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
+  type), **no** global-level metatheory. **S3a done (2026-06-14):** the **first theorem
+  quantifying over a genuine n≥3 role space** — `projection_total : projectable_wf G →
+  ∀ r:role, ∃ s, proj G r = Some s` (every role of a well-branched global type projects,
+  via the mutual `projectable_wf_mut` scheme), breaking the standing "no theorem quantifies
+  over a genuine n-party system" fence. Design-panel-validated (4 lenses; forced the honest
+  rename `projectable_wf` — projection EXISTENCE, NOT safety — and the non-empty-choice +
+  inductive-body fixes). Non-vacuity pinned at n=3 (a 3-party ring + an agreeing 3-party
+  choice merged via `merge_idem`); plain-merge boundary witnessed (a same-direction
+  different-payload choice is a SAFE protocol plain merge rejects). Fences: projection
+  EXISTENCE only (no n-party safety); plain (not full-union) merge; μ unpruned; the general
+  `two_party → projectable_wf` NOT proved (it is false — n=2 collapse witnessed by example);
+  no n-party config / operational semantics. **Remaining:** μ typing/SR up-to-unfolding
+  (**S1.3b-meta**, deferred — needs a `PT_Unfold` rule + soundness); static n-party config
+  tuple (**S3b**); full-union merge + n-party SR/progress/coherence (**S3c** — where "duet"
+  stops and "ensemble" begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
