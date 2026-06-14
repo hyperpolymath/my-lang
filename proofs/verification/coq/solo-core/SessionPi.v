@@ -2982,3 +2982,254 @@ Qed.
 (*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE -- nstep is   *)
 (*  a located reduction relation, emits no obligation / residue).  *)
 (* ============================================================ *)
+
+(* ============================================================ *)
+(* S3c.3-msg -- HEAD-COUPLED n-party MESSAGE SUBJECT REDUCTION.  *)
+(*   The FIRST EARNED n-party safety half.  S3c.2 proved nstep   *)
+(*   does NOT preserve wf_assignment_f at a FIXED G              *)
+(*   (nstep_breaks_wf_at_fixed_G is a PROVED refutation).        *)
+(*   S3c.3-msg proves the TRUE statement: the HEAD communication  *)
+(*   sanctioned by a head GMsg p q t G' carries wf from G to its  *)
+(*   continuation G'.  3-way role case-split (sender p /          *)
+(*   receiver q / uninvolved r).  The COUPLING: the SAME value v  *)
+(*   at the SAME payload type t that the sender's pty_send_inv    *)
+(*   yields is what the receiver substitutes via pty_subst0.      *)
+(*   The head pair (p,q) is forced to be G's head GMsg pair by    *)
+(*   the wf hypothesis being stated at (GMsg p q t G') -- no      *)
+(*   separate `p,q is the head pair` hypothesis is needed.        *)
+(*   Strictly ADDITIVE; touches nothing prior.                   *)
+(* ============================================================ *)
+
+(* ===== CORE: head-coupled message SR, 3-way LOCATED role split ===== *)
+Theorem nstep_sr_msg_head :
+  forall p q t G' ra v P Q,
+    p <> q ->
+    wf_assignment_f (GMsg p q t G') ra ->
+    ra_get ra p = Some (QSend v P) ->
+    ra_get ra q = Some (QRecv Q) ->
+    wf_assignment_f G' (ra_set (ra_set ra p P) q (open_party v Q)).
+Proof.
+  intros p q t G' ra v P Q Hpq Hwf HgetP HgetQ.
+  assert (Hqne : (q =? p) = false) by (apply Nat.eqb_neq; auto).
+  (* sender p: proj(GMsg p q t G')p = SSend t (proj G' p); get v:t *)
+  destruct (Hwf p (QSend v P) HgetP) as [sp [Hprojp Htp]].
+  cbn [proj] in Hprojp. rewrite Nat.eqb_refl in Hprojp.
+  destruct (proj G' p) as [spc|] eqn:EpG; cbn [option_map] in Hprojp;
+    [ | discriminate ].
+  injection Hprojp as Esp. subst sp.
+  apply pty_send_inv in Htp. destruct Htp as (t0 & s0 & Es & Hv & HPc).
+  injection Es as Et Es0. subst t0 s0.
+  (* receiver q: proj(GMsg p q t G')q = SRecv t (proj G' q) *)
+  destruct (Hwf q (QRecv Q) HgetQ) as [sq [Hprojq Htq]].
+  cbn [proj] in Hprojq. rewrite Hqne, Nat.eqb_refl in Hprojq.
+  destruct (proj G' q) as [sqc|] eqn:EqG; cbn [option_map] in Hprojq;
+    [ | discriminate ].
+  injection Hprojq as Esq. subst sq.
+  apply pty_recv_inv in Htq. destruct Htq as (t1 & s1 & Es' & HQc).
+  injection Es' as Et1 Es1. subst t1 s1.
+  (* 3-way role case-split on the stepped ra *)
+  intros r R Hget.
+  destruct (Nat.eqb r p) eqn:Erp.
+  - (* r = p (sender) *)
+    apply Nat.eqb_eq in Erp. subst r.
+    rewrite ra_set_get_neq in Hget by auto.
+    erewrite ra_set_get_eq in Hget by exact HgetP.
+    injection Hget as ER. subst R.
+    exists spc. split; [ exact EpG | exact HPc ].
+  - apply Nat.eqb_neq in Erp.
+    destruct (Nat.eqb r q) eqn:Erq.
+    + (* r = q (receiver): SAME v:t substituted via pty_subst0 *)
+      apply Nat.eqb_eq in Erq. subst r.
+      assert (Hgetq' : ra_get (ra_set ra p P) q = Some (QRecv Q)).
+      { rewrite ra_set_get_neq by auto. exact HgetQ. }
+      erewrite ra_set_get_eq in Hget by exact Hgetq'.
+      injection Hget as ER. subst R.
+      exists sqc. split; [ exact EqG | eapply pty_subst0; eassumption ].
+    + (* r uninvolved: ra_get unchanged; proj(GMsg..)r = proj G' r *)
+      apply Nat.eqb_neq in Erq.
+      rewrite ra_set_get_neq in Hget by auto.
+      rewrite ra_set_get_neq in Hget by auto.
+      destruct (Hwf r R Hget) as [s [Hprojr Htr]].
+      exists s. split; [ | exact Htr ].
+      cbn [proj] in Hprojr.
+      assert (Hrp : (r =? p) = false) by (apply Nat.eqb_neq; exact Erp).
+      assert (Hrq : (r =? q) = false) by (apply Nat.eqb_neq; exact Erq).
+      rewrite Hrp, Hrq in Hprojr. exact Hprojr.
+Qed.
+
+(* ===== COUPLED COROLLARY: gstep + nstep + wf together =====
+   NOTE: use `split; [|split]`, NOT `repeat split` -- gstep is a
+   single-constructor inductive, so `repeat split` would greedily
+   APPLY GStep_Msg and desync the bullets.  The gstep premise is the
+   head-consume tag (GStep_Msg is the sole message gstep); the nstep
+   is the head fire (NStep_Comm output config).  Both are PINNED to
+   the SAME head (p,q,t,G') and the SAME ra_set output, so this is
+   the HEAD wrapper -- it does NOT state general gstep/nstep SR
+   (FALSE for a run-ahead nstep -- see the fence). *)
+Corollary nstep_gstep_sr_msg_head :
+  forall p q t G' ra ra' v P Q,
+    p <> q ->
+    wf_assignment_f (GMsg p q t G') ra ->
+    ra_get ra p = Some (QSend v P) ->
+    ra_get ra q = Some (QRecv Q) ->
+    ra' = ra_set (ra_set ra p P) q (open_party v Q) ->
+    gstep (GMsg p q t G') G' /\ nstep ra ra' /\ wf_assignment_f G' ra'.
+Proof.
+  intros p q t G' ra ra' v P Q Hpq Hwf HgetP HgetQ Hra'.
+  subst ra'. split; [ | split ].
+  - apply GStep_Msg.
+  - apply NStep_Comm; assumption.
+  - eapply nstep_sr_msg_head; eassumption.
+Qed.
+
+(* ===== NON-VACUITY: ra_ring1 IS wf at the STEPPED g_ring ===== *)
+(* g_ring = GMsg 0 1 VTNat g_ring_stepped definitionally; the head  *)
+(* 0->1 message gsteps g_ring to g_ring_stepped.                    *)
+Definition g_ring_stepped : gty :=
+  GMsg 1 2 VTNat (GMsg 2 0 VTNat GEnd).
+
+Example g_ring_head_gsteps : gstep g_ring g_ring_stepped.
+Proof. unfold g_ring, g_ring_stepped. apply GStep_Msg. Qed.
+
+(* projection sanity at the stepped choreography (cheap corroboration):
+   role 0 has FLIPPED from a SEND (at g_ring) to a RECV (at the
+   stepped g) -- which is exactly why ra_ring1's QRecv at role 0 is
+   now well-typed where S3c.2 refuted it. *)
+Example proj_stepped_0 : proj g_ring_stepped 0 = Some (SRecv VTNat SEnd).
+Proof. reflexivity. Qed.
+Example proj_stepped_1 : proj g_ring_stepped 1 = Some (SSend VTNat SEnd).
+Proof. reflexivity. Qed.
+Example proj_stepped_2 :
+  proj g_ring_stepped 2 = Some (SRecv VTNat (SSend VTNat SEnd)).
+Proof. reflexivity. Qed.
+
+(* the witness the S3c.2 fence demanded: proved as a DIRECT
+   corollary of the core SR (ra_ring1 = the located 0->1 head
+   post-state of ra_ring), no re-derivation by hand. *)
+Example ra_ring1_wf_at_stepped_g :
+  wf_assignment_f g_ring_stepped ra_ring1.
+Proof.
+  replace ra_ring1 with
+    (ra_set (ra_set ra_ring 0 (QRecv QEnd)) 1
+            (open_party (VNat 1) (QSend (VNat 2) QEnd)))
+    by reflexivity.
+  eapply nstep_sr_msg_head with (t := VTNat).
+  - discriminate.
+  - (* GMsg 0 1 VTNat g_ring_stepped is DEFINITIONALLY g_ring *)
+    exact wf_ra_ring_f.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+(* THE HEADLINE side-by-side: SAME ra_ring1, refuted at g_ring,
+   earned at the stepped g_ring, paid for by the matching gstep.
+   Left conjunct = S3c.2 (proj2 nstep_breaks_wf_at_fixed_G);
+   middle = S3c.3 (earned); right = the step that pays for it. *)
+Example sr_earns_safety_across_step :
+  ~ wf_assignment_f g_ring ra_ring1
+  /\ wf_assignment_f g_ring_stepped ra_ring1
+  /\ gstep g_ring g_ring_stepped.
+Proof.
+  split; [ | split ].
+  - exact (proj2 nstep_breaks_wf_at_fixed_G).
+  - exact ra_ring1_wf_at_stepped_g.
+  - exact g_ring_head_gsteps.
+Qed.
+
+(* ============================================================ *)
+(* S3c.3-msg FENCE (each clause literally true vs the code above): *)
+(*  (1) HEAD-COMMUNICATION SR ONLY. nstep_sr_msg_head covers the   *)
+(*      located comm that fires on the pair (p,q) sanctioned by    *)
+(*      G's HEAD GMsg p q t G'.  The wf hypothesis is stated at    *)
+(*      (GMsg p q t G'), which structurally PINS the firing pair   *)
+(*      to the head pair -- there is no over-general `any pair`     *)
+(*      claim, and the conclusion is wf at the head-CONTINUATION   *)
+(*      G'.  This is the honest, EARNED n-party SR half.           *)
+(*  (2) RUN-AHEAD / NON-HEAD nstep is NOT covered = an HONEST       *)
+(*      FENCE, not a gap.  A non-head (run-ahead) nstep -- a        *)
+(*      comm on a causally-independent pair deeper in G -- has NO   *)
+(*      matching head gstep and would NOT be wf at the head        *)
+(*      continuation G'.  Covering it needs a gstep-with-           *)
+(*      permutation / swap (commutation) relation = a strictly      *)
+(*      bigger (asynchronous / causal-order) theory.  Out of scope. *)
+(*  (3) MESSAGE FRAGMENT ONLY. gstep here is GStep_Msg (head        *)
+(*      message) only; the proof uses pty_send_inv / pty_recv_inv / *)
+(*      pty_subst0.  The SELECT/BRANCH fragment (NStep_Sel coupled  *)
+(*      to a choice-gstep that consumes a GBra and picks a label)   *)
+(*      is S3c.3-choice -- separate, NOT proved here.               *)
+(*  (4) COUPLED COROLLARY nstep_gstep_sr_msg_head is a HEAD         *)
+(*      WRAPPER, NOT general SR.  Its gstep + nstep are PINNED to   *)
+(*      the SAME head (p,q,t,G') and the SAME ra_set output; it     *)
+(*      does NOT assert the unrestricted form [gstep G G1 and       *)
+(*      nstep ra ra1 and wf G ra ==> wf G1 ra1] for arbitrary       *)
+(*      G,G1,ra,ra1 (FALSE for run-ahead).  It is the forward       *)
+(*      coupling for ONE head step -- NOT a bisimulation /          *)
+(*      operational correspondence / multi-step.                   *)
+(*  (5) FUNCTIONAL wf only (wf_assignment_f, ra_get-based).         *)
+(*      wf_assignment (S3b, In) => wf_assignment_f                 *)
+(*      (wf_assignment_to_f); the converse needs NoDup, NOT used.   *)
+(*      ra_set is FIRST-MATCH / duplicate-tolerant; the theorem is  *)
+(*      about the first-match endpoint, consistent with ra_get.     *)
+(*  (6) plain merge + unpruned mu + p<>q-as-hypothesis inherited    *)
+(*      from S3a/S3b/S3c.1/S3c.2; proj (NOT proj_u, the S3c.1       *)
+(*      widening) used.  The payload soundness is genuine: the      *)
+(*      SAME v:t the sender ships (Hv : vtype [] v t from p's       *)
+(*      send-typing) is what the receiver substitutes -- both       *)
+(*      projections read the head GMsg's t.                         *)
+(*  (7) NO PROGRESS / NO DEADLOCK-FREEDOM / NO FIDELITY here        *)
+(*      (those remain S3c.4 and beyond).  This is type             *)
+(*      PRESERVATION (subject reduction) only.                     *)
+(*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE -- a located   *)
+(*  reduction relation emits no obligation / residue / attestation; *)
+(*  matches the S3c.2 verdict).                                     *)
+(* ============================================================ *)
+
+(* ===== SELF-WITNESS of FENCE clause (2): run-ahead is REAL ===== *)
+(* The fence above ASSERTS that a non-head (run-ahead) nstep is not  *)
+(* covered by head-coupled SR; here it is DEMONSTRATED by example    *)
+(* (the estate boundary-by-example discipline, cf. g_excluded /      *)
+(* nstep_breaks_wf_at_fixed_G).  g_runahead's head is 0->1, but the  *)
+(* INDEPENDENT pair (2,3) can fire ahead of it; the resulting config *)
+(* is NOT wf at the head continuation (GMsg 2 3 VTNat GEnd) -- role 2 *)
+(* has run to QEnd while that continuation still expects it to SEND.  *)
+(* So head-coupled SR genuinely CANNOT cover a non-head step: the     *)
+(* fence is a real boundary, not conservatism.  Lifting it needs a    *)
+(* gstep-with-permutation/swap relation = S3c.3-perm (a bigger        *)
+(* asynchronous/causal-order theory).                                *)
+Definition g_runahead : gty := GMsg 0 1 VTNat (GMsg 2 3 VTNat GEnd).
+Definition ra_runahead : role_assignment :=
+  [(0, QSend (VNat 1) QEnd); (1, QRecv QEnd);
+   (2, QSend (VNat 5) QEnd); (3, QRecv QEnd)].
+
+Example wf_ra_runahead : wf_assignment g_runahead ra_runahead.
+Proof.
+  intros r P Hin. cbn [In ra_runahead] in Hin.
+  destruct Hin as [E | [E | [E | [E | F]]]].
+  - injection E as Er EP. subst r P. exists (SSend VTNat SEnd).
+    split; [ reflexivity | apply PT_Send; [ apply VT_Nat | apply PT_End ] ].
+  - injection E as Er EP. subst r P. exists (SRecv VTNat SEnd).
+    split; [ reflexivity | apply PT_Recv; apply PT_End ].
+  - injection E as Er EP. subst r P. exists (SSend VTNat SEnd).
+    split; [ reflexivity | apply PT_Send; [ apply VT_Nat | apply PT_End ] ].
+  - injection E as Er EP. subst r P. exists (SRecv VTNat SEnd).
+    split; [ reflexivity | apply PT_Recv; apply PT_End ].
+  - contradiction.
+Qed.
+
+(* The non-head (2->3) step fires from a wf config, yet its post-     *)
+(* state is NOT wf at the head continuation -- head-coupled SR cannot *)
+(* reach it.  (Contrast nstep_sr_msg_head, which is about the HEAD    *)
+(* 0->1 step.)                                                        *)
+Example runahead_breaks_head_coupling :
+  wf_assignment_f g_runahead ra_runahead
+  /\ nstep ra_runahead
+       (ra_set (ra_set ra_runahead 2 QEnd) 3 (open_party (VNat 5) QEnd))
+  /\ ~ wf_assignment_f (GMsg 2 3 VTNat GEnd)
+        (ra_set (ra_set ra_runahead 2 QEnd) 3 (open_party (VNat 5) QEnd)).
+Proof.
+  split; [ | split ].
+  - apply wf_assignment_to_f. apply wf_ra_runahead.
+  - apply NStep_Comm; [ discriminate | reflexivity | reflexivity ].
+  - intro H. destruct (H 2 QEnd eq_refl) as [s [Hp Ht]].
+    cbn in Hp. injection Hp as Hs. subst s. inversion Ht.
+Qed.

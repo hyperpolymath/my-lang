@@ -7,7 +7,7 @@ project = "my-lang"
 version = "0.1.0"
 last-updated = "2026-06-14"
 status = "active"
-session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.2 (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection, n-ary located operational semantics) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
+session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.3-msg (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection, n-ary located operational semantics, head-coupled message subject reduction = first earned n-party safety half) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
 
 [project-context]
 name = "My Lang"
@@ -36,7 +36,7 @@ affine-pres = "machine-checked"                 # R3 — distinct affine budget-
 tropical-instance = "machine-checked"           # R4 — SoloCoreF Tropical, infinite min-plus carrier, axiom-free
 usage-walk-checker = "machine-checked"          # R5 — check + check_correct (sound+complete); R5b aff_type_dec
 me-elaboration = "machine-checked"              # M1.0/1.1/1.1b — elab + me_wt_sound over the whole me_tm, axiom-free
-session-pi = "machine-checked"                  # S1.0–S3c.2 — subject reduction / fidelity / progress / duet-by-projection / n-party projection totality / static n-party config / label-union merge / union-projection / n-ary located operational semantics, all axiom-free
+session-pi = "machine-checked"                  # S1.0–S3c.3-msg — subject reduction / fidelity / progress / duet-by-projection / n-party projection totality / static n-party config / label-union merge / union-projection / n-ary located operational semantics / head-coupled message subject reduction, all axiom-free
 echo-measure-seam = "machine-checked"           # E4 (Coq mirror) — RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective, axiom-free
 echo-type-former = "machine-checked"           # Rust checker Ty::Echo + EchoMode/THEcho/THWeaken; kernel mechanised
 echo-residue = "machine-checked"               # EchoResidue.v backs Ty::is_assignable_from
@@ -74,7 +74,8 @@ milestones = [
   { id = "S3c.0", description = "Full label-union merge umerge/umerge_br + keystone umerge_idem (Honda-Yoshida-Carbone), added ALONGSIDE plain merge; type-algebra only, axiom-free", status = "done", date = "2026-06-14" },
   { id = "S3c.1", description = "Union-projection proj_u/projectable_u_wf + keystone existence theorem projection_total_u + one-directional monotonicity bridge projectable_wf_implies_u (on keystone merge_forces_eq: plain merge is the identity-meet); SEPARATE proj_u added ALONGSIDE proj (canonical proj byte-identical, NOT re-pointed); projection-EXISTENCE only, non-vacuity g_union3 in union-projectable minus plain-projectable; axiom-free", status = "done", date = "2026-06-14" },
   { id = "S3c.2", description = "n-ary LOCATED operational semantics: nstep (located mirror of fused cstep; one comm ra_set-updates exactly the two roles) + ra_set + global gstep + nstar/gstar closures + functional wf_assignment_f (wf_assignment_to_f keeps S3b green); 3-party ring run 0->1->2->0 witnessed both sides (ring_runs_to_end, g_ring_gsteps); ADEQUACY-only, nstep_breaks_wf_at_fixed_G PROVES no fixed-G subject reduction; axiom-free", status = "done", date = "2026-06-14" },
-  { id = "S3c.3-4", description = "n-party safety: message-fragment n-party subject reduction (S3c.3 = first earned n-party safety half, coupled gstep/nstep vs a STEPPING G) + choice SR (S3c.3-choice), n-party progress (S3c.4 = coherence ⇒ safety, research-hard — fence)", status = "pending", note = "S3c.0/S3c.1/S3c.2 landed (type-algebra + union-projection + located opsem); the SR/progress rungs are the remaining structure-climb work, solo" },
+  { id = "S3c.3-msg", description = "Head-coupled message subject reduction nstep_sr_msg_head (the FIRST EARNED n-party safety half): the head communication sanctioned by GMsg p q t G' carries wf_assignment_f from G to its continuation G' (3-way located role split; same v:t sender ships = receiver substitutes via pty_subst0); coupled corollary nstep_gstep_sr_msg_head; earned-safety headline sr_earns_safety_across_step (same ra_ring1 S3c.2 refuted at fixed g is wf at stepped g); run-ahead fence SELF-WITNESSED (runahead_breaks_head_coupling). Design-panel-validated + independently adversary-verified (sound-and-honest). HEAD message fragment, preservation only; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.3-choice/perm + S3c.4", description = "remaining n-party safety: select/branch SR (S3c.3-choice, couple NStep_Sel with a choice-gstep), run-ahead/permutation SR (S3c.3-perm, needs gstep-with-swap relation), n-party progress (S3c.4 = coherence ⇒ safety, research-hard — fence; wf_assignment ra -> deadlock-free is FALSE)", status = "pending", note = "S3c.0/.1/.2/.3-msg landed; the message-HEAD safety half is earned; choice/permutation/progress remain, solo" },
   { id = "E4", description = "Echo residue-measure SEAM (Coq mirror): RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective; full measure-independence upstream-cited", status = "done", date = "2026-06-14" },
   { id = "F2", description = "Effects metatheory mechanised", status = "pending" },
   { id = "F3", description = "Memory model mechanised", status = "pending" },
@@ -106,4 +107,4 @@ ci-governance = "pass"
 ci-security-scan = "pass"
 ci-rust-tests = "pass"
 ci-pr = "PR #92 — all 18 checks green (governance, scans, SPARK, Hypatia success, CodeQL neutral)"
-proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3c.2, E4)"
+proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3c.3-msg, E4)"

@@ -145,8 +145,10 @@ my-lang is parametric over **both**, and identifies **neither**.
       (proj_u, projection_total_u, projectable_wf
       _implies_u); S3c.2 ✓ n-ary located opsem
       (nstep/gstep, ring run, adequacy-only);
-      all axiom-free. S3c.3-4 n-party SR/progress
-      = open)
+      S3c.3-msg ✓ head-coupled message subject
+      reduction (nstep_sr_msg_head, first EARNED
+      n-party safety half); all axiom-free.
+      S3c.3-choice/perm + S3c.4 progress = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -424,6 +426,33 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   first-match (duplicate-tolerant); uses plain `proj` (independent of the S3c.1 widening). **Remaining S3c
   (solo):** S3c.3 message-fragment n-party SR (coupled `gstep`/`nstep` vs a stepping G — the first *earned*
   n-party safety half); S3c.3-choice; S3c.4 n-party progress (research-hard — fence). **Echo-types audit:
+  NOT-RELEVANT** (axis-2 STRUCTURE).
+- **S3c.3-msg DONE — head-coupled message subject reduction, axiom-free 2026-06-14.** The fourth S3c
+  sub-rung and **the first EARNED n-party safety half** — design-panel-validated + **independently
+  adversary-verified** (4 design lenses on Coq 8.18 → coq-mechanic build → a separate adversary that
+  re-instantiated the premises, re-derived the payload coupling, and compiled its own run-ahead refutation;
+  verdict *sound-and-honest, land as-is*). S3c.2 proved `nstep` does **not** preserve `wf_assignment_f` at
+  a *fixed* `G`; S3c.3-msg proves the TRUE statement — the **head** communication carries wf to the
+  continuation: **`nstep_sr_msg_head : p≠q → wf_assignment_f (GMsg p q t G') ra → ra_get ra p = Some
+  (QSend v P) → ra_get ra q = Some (QRecv Q) → wf_assignment_f G' (ra_set (ra_set ra p P) q (open_party v
+  Q))`**. Proved by a 3-way located role case-split (sender `p` / receiver `q` / uninvolved `r`), the
+  **coupling** being that the SAME value `v` at the SAME payload type `t` the sender ships (`pty_send_inv`)
+  is what the receiver substitutes (`pty_subst0`); uninvolved roles transfer because `proj (GMsg p q t G')
+  r = proj G' r` is *definitional* for `r∉{p,q}`. The firing pair is **structurally pinned** to `G`'s head
+  by stating wf at `GMsg p q t G'` — no separate hypothesis needed. A coupled corollary
+  **`nstep_gstep_sr_msg_head`** puts `gstep`+`nstep`+`wf'` in one conclusion for the head step. **Earned-safety
+  headline:** the SAME `ra_ring1` that S3c.2's `nstep_breaks_wf_at_fixed_G` refuted at the fixed `g_ring`
+  **is** wf at the *stepped* `g_ring` — `ra_ring1_wf_at_stepped_g` (proved **through** the core SR), sealed
+  by `sr_earns_safety_across_step` (¬wf-at-`g_ring` ∧ wf-at-stepped ∧ the paying `gstep`). The
+  **run-ahead fence is self-witnessed**: `runahead_breaks_head_coupling` proves a non-head `nstep` fires
+  from a wf config yet is **not** wf at the head continuation — so head-coupled SR genuinely *cannot* cover
+  it (boundary-by-example, cf. `g_excluded`). **Honest fences:** HEAD communication only (run-ahead /
+  permutation = a bigger swap theory, S3c.3-perm); MESSAGE fragment only (select = S3c.3-choice); the
+  coupled corollary is a head *wrapper*, NOT general SR / bisimulation; functional wf (`wf_assignment_f`);
+  PRESERVATION only — NO progress / deadlock-freedom / fidelity (S3c.4+). The naming deliberately avoids the
+  M1/S3a overclaim trap (`_msg_head`, not `n_party_safety`). **Remaining S3c (solo):** S3c.3-choice
+  (select/branch SR, reusing `pty_sel_inv`/`pty_bra_inv`/`pget`); S3c.3-perm (run-ahead, needs a
+  gstep-with-swap relation); S3c.4 n-party progress (research-hard — fence). **Echo-types audit:
   NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)

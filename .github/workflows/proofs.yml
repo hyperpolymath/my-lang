@@ -287,6 +287,35 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S3c.3-msg head-coupled message subject reduction is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.3-msg (axis-2 STRUCTURE): the FIRST EARNED n-party safety half.
+          # S3c.2 proved nstep does NOT preserve wf_assignment_f at a FIXED G
+          # (nstep_breaks_wf_at_fixed_G). S3c.3-msg proves the TRUE statement:
+          # the HEAD communication sanctioned by a head GMsg p q t G' carries
+          # wf from G to its continuation G' (nstep_sr_msg_head, 3-way located
+          # role case-split; the SAME value v:t the sender ships is what the
+          # receiver substitutes via pty_subst0). The coupled corollary puts
+          # gstep+nstep+wf' in one conclusion for the head step. Non-vacuity:
+          # the SAME ra_ring1 that S3c.2 refuted at the fixed g_ring IS wf at
+          # the stepped g_ring (ra_ring1_wf_at_stepped_g, proved THROUGH the
+          # core SR), sealed by sr_earns_safety_across_step. The run-ahead
+          # FENCE is self-witnessed (runahead_breaks_head_coupling): a non-head
+          # nstep fires from a wf config but is NOT wf at the head continuation
+          # -- so head-coupled SR genuinely cannot cover it (= S3c.3-perm, a
+          # bigger swap theory). HEAD message fragment only; NO progress (S3c.4),
+          # NO choice (S3c.3-choice), NO run-ahead/permutation SR.
+          for thm in nstep_sr_msg_head nstep_gstep_sr_msg_head \
+                     g_ring_head_gsteps ra_ring1_wf_at_stepped_g \
+                     sr_earns_safety_across_step \
+                     wf_ra_runahead runahead_breaks_head_coupling; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c3msg_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c3msg_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest
