@@ -235,6 +235,32 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S3c.1 union-projection is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.1 (axis-2 STRUCTURE): the union-projection rung -- a SEPARATE
+          # proj_u (plain proj with the uninvolved fold's merge replaced by
+          # umerge) ADDED ALONGSIDE proj (proj/merge/projectable_wf untouched,
+          # NOT re-pointed at umerge -- S3c.0 fence 5). Keystone existence
+          # theorem projection_total_u; the keystone merge_forces_eq (plain
+          # merge is the identity-meet) carries the one-directional monotonicity
+          # bridge projectable_wf_implies_u (DOMAIN-INCLUSION, converse FALSE).
+          # Non-vacuity g_union3 (different-LABEL uninvolved choice: plain proj
+          # rejects, proj_u unions) is genuinely in union-projectable MINUS
+          # plain-projectable; the fence g_excluded_u (different-PAYLOAD) is
+          # STILL rejected by proj_u -- union projection widens labels not
+          # payloads. EXISTENCE only: NO n-party SR/progress/safety (= S3c.3+).
+          for thm in merge_forces_eq projection_total_u projectable_wf_implies_u \
+                     proj_agrees_u proj_uninv_agrees_u \
+                     proj_union3_role2_plain_none proj_u_union3_role2_some \
+                     g_union3_not_plain_projectable projectable_u_g_union3 \
+                     proj_u_g_excluded_still_none g_excluded_u_not_u_projectable; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c1_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c1_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest

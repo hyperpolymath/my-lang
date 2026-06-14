@@ -141,8 +141,10 @@ my-lang is parametric over **both**, and identifies **neither**.
       S3b ✓ static n-party config (role_assignment,
       wf_assignment, conf_is_role_assignment2);
       S3c.0 ✓ full label-union merge (umerge,
-      umerge_idem); all axiom-free. S3c.1-4
-      union-proj/coherence/n-ary opsem/SR/progress = open)
+      umerge_idem); S3c.1 ✓ union-projection
+      (proj_u, projection_total_u, projectable_wf
+      _implies_u); all axiom-free. S3c.2-4 n-ary
+      opsem/SR/progress = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -376,6 +378,29 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   `nstep` (operational adequacy); S3c.3 message-fragment n-party subject reduction (the first *earned*
   n-party safety half); S3c.4 n-party progress (research-hard — fence, witness binary collapse +
   3-cycle deadlock by example). **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
+- **S3c.1 DONE — union-projection, axiom-free 2026-06-14.** The second S3c sub-rung,
+  design-panel-validated (4 lenses, empirically compiled on Coq 8.18; the panel found the keystone
+  and corrected the agreement-lemma structure before any code landed). A **separate** union-projection
+  `proj_u`/`proj_br_u`/`proj_uninv_u` (the plain `proj` with the uninvolved fold's `merge` replaced by
+  `umerge`) is **added ALONGSIDE** `proj` — `proj`/`merge`/`projectable_wf`/`projection_total` and all
+  binary metatheory stay **byte-identical** (`proj` is **NOT** re-pointed at `umerge` — S3c.0 fence 5).
+  Keystone existence theorem **`projection_total_u : projectable_u_wf G → ∀ r, ∃ s, proj_u G r = Some s`**
+  (the union analogue of `projection_total`, same mutual-scheme proof; `umerge`'s partiality never
+  inspected — the merge-existence is a `PWu_Bra` hypothesis). The **monotonicity bridge**
+  **`projectable_wf_implies_u : projectable_wf G → projectable_u_wf G`** (one-directional DOMAIN-INCLUSION;
+  with `proj_agrees_u` the two projections coincide on the plain-projectable subset) rides on the keystone
+  **`merge_forces_eq : merge s₁ s₂ = Some s → s₁ = s₂`** (plain merge is the identity-meet — exactly the
+  invariant already asserted in the `merge` fence comment). **Non-vacuity** `g_union3` (uninvolved role 2
+  sees `&{3:end}` vs `&{4:end}` — different **labels**, same direction) is genuinely in
+  *union-projectable minus plain-projectable*: `proj g_union3 2 = None` ∧ `~projectable_wf g_union3` but
+  `proj_u g_union3 2 = Some &{3:end,4:end}` ∧ `projectable_u_wf g_union3`. **Fences:** EXISTENCE only —
+  NO n-party SR/progress/safety (= S3c.3+); strictly ADDITIVE; `umerge` unions **labels not payloads** —
+  the different-PAYLOAD class is STILL rejected (`proj_u g_excluded 2 = None`, `g_excluded_u`); monotonicity
+  is DOMAIN-INCLUSION not behavioural refinement (converse FALSE via `g_union3`; provable-cheap ONLY because
+  this `merge` is positional-same-label — a regression pin on `merge_forces_eq`); `SSelect ⊕` asymmetry +
+  order-dependence + unpruned `μ` inherited from S3c.0. **Remaining S3c (solo):** S3c.2 n-ary located
+  config + `nstep`; S3c.3 message-fragment n-party subject reduction (first *earned* n-party safety half);
+  S3c.4 n-party progress (research-hard — fence). **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)
   in the fused form; `sty`/`party` gain `SSelect`/`SBranch`/`QSel`/`QBra` over dedicated mutual

@@ -2375,3 +2375,372 @@ Proof. reflexivity. Qed.
 (*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE — a type-    *)
 (*  merge operation emits no obligation / residue / attestation). *)
 (* ============================================================ *)
+
+(* ============================================================ *)
+(* S3c.1 — UNION-PROJECTION rung.                                *)
+(*   Strictly ADDITIVE on top of S3c.0.  Introduces a SEPARATE   *)
+(*   union-projection proj_u (proj with the uninvolved fold's    *)
+(*   plain merge replaced by umerge), its totality, the          *)
+(*   different-LABEL non-vacuity witness, and a ONE-DIRECTIONAL   *)
+(*   monotonicity bridge (plain-projectable => union-            *)
+(*   projectable, the two projections coinciding there).         *)
+(*   proj / merge / projectable_wf / projection_total and ALL    *)
+(*   existing witnesses stay BYTE-IDENTICAL — proj is NOT        *)
+(*   re-pointed at umerge (S3c.0 FENCE 5 forbids it).            *)
+(* ============================================================ *)
+
+(* 1. Single-output induction principles over the global tree.   *)
+(*    None pre-exists; needed only by proj_agrees_u.  Harmless.   *)
+Scheme gty_mut := Induction for gty Sort Prop
+  with gbranch_mut := Induction for gbranch Sort Prop.
+
+(* 2. KEYSTONE: plain merge is the identity-MEET — it succeeds    *)
+(*    only on EQUAL arguments.  This is literally the invariant   *)
+(*    stated in the merge FENCE comment above; here it is proved. *)
+(*    REGRESSION PIN: depends on merge_br being POSITIONAL same-  *)
+(*    label and merge being non-reordering.  If merge is ever     *)
+(*    generalised to reorder/widen, THIS and the whole            *)
+(*    monotonicity chain (proj_agrees_u, proj_uninv_agrees_u,     *)
+(*    projectable_wf_implies_u) break.  The existence theorems    *)
+(*    (projection_total_u) are independent and survive.           *)
+Lemma merge_forces_eq :
+  forall s1 s2 s, merge s1 s2 = Some s -> s1 = s2.
+Proof.
+  intro s1. induction s1 using sty_mut
+    with (P0 := fun b1 => forall b2 b, merge_br b1 b2 = Some b -> b1 = b2).
+  - intros [|? ?|? ?|?|?|?|?] sR H; simpl in H; try discriminate. reflexivity.
+  - intros [|t2 k2|? ?|?|?|?|?] sR H; simpl in H; try discriminate.
+    destruct (vty_eqb v t2) eqn:E; try discriminate.
+    destruct (merge s1 k2) eqn:M; try discriminate.
+    destruct v, t2; simpl in E; try discriminate; erewrite IHs1 by exact M; reflexivity.
+  - intros [|? ?|t2 k2|?|?|?|?] sR H; simpl in H; try discriminate.
+    destruct (vty_eqb v t2) eqn:E; try discriminate.
+    destruct (merge s1 k2) eqn:M; try discriminate.
+    destruct v, t2; simpl in E; try discriminate; erewrite IHs1 by exact M; reflexivity.
+  - intros [|? ?|? ?|c2|?|?|?] sR H; simpl in H; try discriminate.
+    destruct (merge_br s c2) eqn:M; try discriminate. erewrite IHs1 by exact M; reflexivity.
+  - intros [|? ?|? ?|?|c2|?|?] sR H; simpl in H; try discriminate.
+    destruct (merge_br s c2) eqn:M; try discriminate. erewrite IHs1 by exact M; reflexivity.
+  - intros [|? ?|? ?|?|?|n2|?] sR H; simpl in H; try discriminate.
+    destruct (Nat.eqb n n2) eqn:E; try discriminate. apply Nat.eqb_eq in E; subst; reflexivity.
+  - intros [|? ?|? ?|?|?|?|a2] sR H; simpl in H; try discriminate.
+    destruct (merge s1 a2) eqn:M; try discriminate. erewrite IHs1 by exact M; reflexivity.
+  - intros [|? ? ?] bR H; simpl in H; try discriminate. reflexivity.
+  - intros [|l2 s2 r2] bR H; simpl in H; try discriminate.
+    destruct (Nat.eqb n l2) eqn:E; try discriminate. apply Nat.eqb_eq in E; subst.
+    destruct (merge s1 s2) eqn:M; try discriminate.
+    destruct (merge_br s r2) eqn:Mb; try discriminate.
+    f_equal; [ apply (IHs1 _ _ M) | apply (IHs0 _ _ Mb) ].
+Qed.
+
+(* 3. The union projection.  VERBATIM clone of proj/proj_br/      *)
+(*    proj_uninv with EXACTLY ONE token changed: merge -> umerge  *)
+(*    in proj_uninv_u's >=2-branch fold.  Structural guards       *)
+(*    mirror proj exactly; umerge is a closed non-recursive       *)
+(*    subroutine from the fold's view, so guardedness is fine.    *)
+Fixpoint proj_u (G : gty) (r : role) {struct G} : option sty :=
+  match G with
+  | GEnd          => Some SEnd
+  | GMsg p q t G' =>
+      if Nat.eqb r p then option_map (SSend t) (proj_u G' r)
+      else if Nat.eqb r q then option_map (SRecv t) (proj_u G' r)
+      else proj_u G' r
+  | GBra p q bs   =>
+      if Nat.eqb r p then option_map SSelect (proj_br_u bs r)
+      else if Nat.eqb r q then option_map SBranch (proj_br_u bs r)
+      else proj_uninv_u bs r
+  | GMu G'        => option_map SMu (proj_u G' r)
+  | GVar n        => Some (SVar n)
+  end
+with proj_br_u (bs : gbranch) (r : role) {struct bs} : option sbranch :=
+  match bs with
+  | GBnil           => Some SBnil
+  | GBcons l G rest =>
+      match proj_u G r, proj_br_u rest r with
+      | Some s, Some sb => Some (SBcons l s sb)
+      | _, _ => None end
+  end
+with proj_uninv_u (bs : gbranch) (r : role) {struct bs} : option sty :=
+  match bs with
+  | GBnil           => None
+  | GBcons l G rest =>
+      match rest with
+      | GBnil => proj_u G r
+      | _     => match proj_u G r, proj_uninv_u rest r with
+                 | Some s, Some s' => umerge s s'    (* the ONLY change vs proj_uninv *)
+                 | _, _ => None end
+      end
+  end.
+
+(* 4. Union-projectability.  VERBATIM clone of projectable_wf,    *)
+(*    ONE change: PWu_Bra's merge-existence clause uses           *)
+(*    proj_uninv_u (not proj_uninv).                              *)
+Inductive projectable_u_wf : gty -> Prop :=
+| PWu_End : projectable_u_wf GEnd
+| PWu_Var : forall n, projectable_u_wf (GVar n)
+| PWu_Msg : forall p q t G, p <> q -> projectable_u_wf G -> projectable_u_wf (GMsg p q t G)
+| PWu_Bra : forall p q bs,
+    p <> q -> bs <> GBnil -> projectable_u_wf_br bs ->
+    (forall r, r <> p -> r <> q -> exists s, proj_uninv_u bs r = Some s) ->
+    projectable_u_wf (GBra p q bs)
+| PWu_Mu : forall G, projectable_u_wf G -> projectable_u_wf (GMu G)
+with projectable_u_wf_br : gbranch -> Prop :=
+| PWub_nil  : projectable_u_wf_br GBnil
+| PWub_cons : forall l G rest, projectable_u_wf G -> projectable_u_wf_br rest -> projectable_u_wf_br (GBcons l G rest).
+Scheme projectable_u_wf_mut := Induction for projectable_u_wf Sort Prop
+  with projectable_u_wf_br_mut := Induction for projectable_u_wf_br Sort Prop.
+
+(* 5. KEYSTONE existence theorem — the S3c.1 analogue of          *)
+(*    projection_total.  Proof = projection_total's proof         *)
+(*    VERBATIM with _u renames.  Merge-existence is supplied by   *)
+(*    the PWu_Bra hypothesis, so umerge's partiality is never     *)
+(*    inspected by the induction.                                 *)
+Theorem projection_total_u :
+  forall G, projectable_u_wf G -> forall r : role, exists s, proj_u G r = Some s.
+Proof.
+  intros G Hwf.
+  induction Hwf as
+    [ | n | p q t G0 Hpq Hsub IH | p q bs Hpq Hne Hsub IHbr Hmerge
+    | G0 Hsub IH | | l G0 rest Hsg IHg Hsr IHr ]
+    using projectable_u_wf_mut
+    with (P0 := fun bs (_ : projectable_u_wf_br bs) =>
+                  forall r, exists sb, proj_br_u bs r = Some sb).
+  - intro r. exists SEnd. reflexivity.
+  - intro r. exists (SVar n). reflexivity.
+  - intro r. destruct (IH r) as [s' Hs']. cbn [proj_u]. destruct (r =? p).
+    + exists (SSend t s'). rewrite Hs'. reflexivity.
+    + destruct (r =? q).
+      * exists (SRecv t s'). rewrite Hs'. reflexivity.
+      * exists s'. exact Hs'.
+  - intro r. cbn [proj_u]. destruct (r =? p) eqn:Ep.
+    + destruct (IHbr r) as [sb Hsb]. exists (SSelect sb). rewrite Hsb. reflexivity.
+    + destruct (r =? q) eqn:Eq.
+      * destruct (IHbr r) as [sb Hsb]. exists (SBranch sb). rewrite Hsb. reflexivity.
+      * apply Nat.eqb_neq in Ep. apply Nat.eqb_neq in Eq. exact (Hmerge r Ep Eq).
+  - intro r. destruct (IH r) as [s' Hs']. exists (SMu s'). cbn [proj_u]. rewrite Hs'. reflexivity.
+  - intro r. exists SBnil. reflexivity.
+  - intro r. destruct (IHg r) as [s Hs]. destruct (IHr r) as [sb Hsb].
+    exists (SBcons l s sb). cbn [proj_br_u]. rewrite Hs, Hsb. reflexivity.
+Qed.
+
+(* 6. AGREEMENT (gty half): on any role where plain proj is       *)
+(*    defined, proj_u agrees.  gty_mut is SINGLE-output, so the   *)
+(*    gbranch transfers live in the P0 motive (a CONJUNCTION of   *)
+(*    the proj_br and proj_uninv transfers); the lemma concludes  *)
+(*    the gty half only.  The gbranch-only half is recovered      *)
+(*    separately (proj_uninv_agrees_u).  The proj_uninv cons arm  *)
+(*    uses merge_forces_eq + merge_idem + umerge_idem.            *)
+Lemma proj_agrees_u :
+  forall G rr s, proj G rr = Some s -> proj_u G rr = Some s.
+Proof.
+  intro G.
+  induction G as
+    [ | p q v Ghead IHG | p q bs [IHbr IHun] | Gbody IHG | n
+    | | n ghead IHG gtail [IHbr IHun] ]
+    using gty_mut
+    with (P0 := fun bs =>
+        (forall rr sb, proj_br bs rr = Some sb -> proj_br_u bs rr = Some sb)
+        /\ (forall rr s, proj_uninv bs rr = Some s -> proj_uninv_u bs rr = Some s)).
+  - (* GEnd *) intros rr s H. cbn in *. exact H.
+  - (* GMsg p q v Ghead *) intros rr s H. cbn [proj] in H. cbn [proj_u].
+    destruct (rr =? p). { destruct (proj Ghead rr) eqn:Pg; cbn in H; try discriminate.
+      rewrite (IHG _ _ Pg). cbn in H. exact H. }
+    destruct (rr =? q). { destruct (proj Ghead rr) eqn:Pg; cbn in H; try discriminate.
+      rewrite (IHG _ _ Pg). cbn in H. exact H. }
+    apply IHG. exact H.
+  - (* GBra p q bs *) intros rr s H. cbn [proj] in H. cbn [proj_u].
+    destruct (rr =? p). { destruct (proj_br bs rr) eqn:Pb; cbn in H; try discriminate.
+      rewrite (IHbr _ _ Pb). cbn in H. exact H. }
+    destruct (rr =? q). { destruct (proj_br bs rr) eqn:Pb; cbn in H; try discriminate.
+      rewrite (IHbr _ _ Pb). cbn in H. exact H. }
+    apply IHun. exact H.
+  - (* GMu Gbody *) intros rr s H. cbn [proj] in H. cbn [proj_u].
+    destruct (proj Gbody rr) eqn:Pg; cbn in H; try discriminate.
+    rewrite (IHG _ _ Pg). cbn in H. exact H.
+  - (* GVar n *) intros rr s H. cbn in *. exact H.
+  - (* GBnil *) split.
+    + intros rr sb H. cbn in *. exact H.
+    + intros rr s H. cbn in H. discriminate.
+  - (* GBcons n ghead gtail *) split.
+    + intros rr sb H. cbn [proj_br] in H. cbn [proj_br_u].
+      destruct (proj ghead rr) eqn:Pg; try discriminate.
+      destruct (proj_br gtail rr) eqn:Pr; try discriminate.
+      rewrite (IHG _ _ Pg). rewrite (IHbr _ _ Pr). exact H.
+    + intros rr s H. cbn [proj_uninv] in H. cbn [proj_uninv_u].
+      destruct gtail as [|l2 G2 rest2] eqn:Erest.
+      * apply IHG. exact H.
+      * destruct (proj ghead rr) eqn:Pg; try discriminate.
+        destruct (proj_uninv (GBcons l2 G2 rest2) rr) eqn:Pu; try discriminate.
+        rewrite (IHG _ _ Pg).
+        rewrite (IHun _ _ Pu).
+        pose proof (merge_forces_eq _ _ _ H) as Heq. subst s1.
+        rewrite merge_idem in H. inversion H. subst s0. apply umerge_idem.
+Qed.
+
+(* 7. AGREEMENT (gbranch-only half): the conclusion gty_mut does  *)
+(*    NOT directly deliver.  Plain induction on bs; head via      *)
+(*    proj_agrees_u, fold via merge_forces_eq.  This is the       *)
+(*    lemma projectable_wf_implies_u actually consumes.           *)
+Lemma proj_uninv_agrees_u :
+  forall bs rr s, proj_uninv bs rr = Some s -> proj_uninv_u bs rr = Some s.
+Proof.
+  intro bs.
+  induction bs as [|l G rest IHrest]; intros rr s H.
+  - cbn in H. discriminate.
+  - cbn [proj_uninv] in H. cbn [proj_uninv_u].
+    destruct rest as [|l2 G2 rest2] eqn:Erest.
+    + apply proj_agrees_u. exact H.
+    + destruct (proj G rr) eqn:Pg; try discriminate.
+      destruct (proj_uninv (GBcons l2 G2 rest2) rr) eqn:Pu; try discriminate.
+      rewrite (proj_agrees_u _ _ _ Pg).
+      rewrite (IHrest _ _ Pu).
+      pose proof (merge_forces_eq _ _ _ H) as Heq. subst s1.
+      rewrite merge_idem in H. inversion H. subst s0. apply umerge_idem.
+Qed.
+
+(* 8. MONOTONICITY BRIDGE: every plain-projectable global type is *)
+(*    union-projectable.  DOMAIN-INCLUSION (one-directional; the  *)
+(*    converse is FALSE — g_union3 below).  projectable_wf_mut    *)
+(*    induction; the only non-trivial case PWu_Bra discharges its *)
+(*    existence clause via proj_uninv_agrees_u on the plain       *)
+(*    witness (auto-named 'e' by projectable_wf_mut).             *)
+Theorem projectable_wf_implies_u :
+  forall G, projectable_wf G -> projectable_u_wf G.
+Proof.
+  intros G H. induction H using projectable_wf_mut with
+    (P0 := fun bs (_ : projectable_wf_br bs) => projectable_u_wf_br bs).
+  - apply PWu_End.
+  - apply PWu_Var.
+  - apply PWu_Msg; assumption.
+  - apply PWu_Bra; try assumption.
+    intros r Hp Hq. destruct (e r Hp Hq) as [s Hs]. exists s.
+    apply proj_uninv_agrees_u. exact Hs.
+  - apply PWu_Mu; assumption.
+  - apply PWub_nil.
+  - apply PWub_cons; assumption.
+Qed.
+
+(* 9. NON-VACUITY.  g_union3: uninvolved role 2 sees &{3:end} in  *)
+(*    outer-branch 0 and &{4:end} in outer-branch 1 — DIFFERENT   *)
+(*    LABELS, same external-choice direction.  Plain merge        *)
+(*    rejects (proj = None, ~projectable_wf); umerge UNIONS to    *)
+(*    &{3:end,4:end} (proj_u = Some, projectable_u_wf).  This is   *)
+(*    genuinely in (union-projectable MINUS plain-projectable).   *)
+Definition g_union3 : gty :=
+  GBra 0 1 (GBcons 0 (GBra 0 2 (GBcons 3 GEnd GBnil))
+           (GBcons 1 (GBra 0 2 (GBcons 4 GEnd GBnil)) GBnil)).
+Example proj_union3_role2_plain_none : proj g_union3 2 = None.
+Proof. reflexivity. Qed.
+Example proj_u_union3_role2_some :
+  proj_u g_union3 2 = Some (SBranch (SBcons 3 SEnd (SBcons 4 SEnd SBnil))).
+Proof. reflexivity. Qed.
+Example g_union3_not_plain_projectable : ~ projectable_wf g_union3.
+Proof. intro H. inversion H; subst.
+  match goal with Hm : forall r, r<>0 -> r<>1 -> _ |- _ =>
+    destruct (Hm 2 ltac:(congruence) ltac:(congruence)) as [s Hs] end.
+  cbn in Hs. discriminate. Qed.
+Example projectable_u_g_union3 : projectable_u_wf g_union3.
+Proof.
+  apply PWu_Bra.
+  - congruence.
+  - discriminate.
+  - apply PWub_cons. apply PWu_Bra. congruence. discriminate.
+    apply PWub_cons. apply PWu_End. apply PWub_nil.
+    intros r Hp Hq. cbn [proj_uninv_u]. exists SEnd. reflexivity.
+    apply PWub_cons. apply PWu_Bra. congruence. discriminate.
+    apply PWub_cons. apply PWu_End. apply PWub_nil.
+    intros r Hp Hq. cbn [proj_uninv_u]. exists SEnd. reflexivity.
+    apply PWub_nil.
+  - intros r Hp Hq.
+    assert (E0 : (r =? 0) = false) by (apply Nat.eqb_neq; congruence).
+    cbn [proj_uninv_u proj_u]. rewrite E0.
+    destruct (r =? 2) eqn:E2.
+    + apply Nat.eqb_eq in E2. subst r.
+      exists (SBranch (SBcons 3 SEnd (SBcons 4 SEnd SBnil))). reflexivity.
+    + exists SEnd. reflexivity.
+Qed.
+
+(* The HONEST-FENCE witness.  Different-PAYLOAD class (role 2     *)
+(* sees SRecv VTNat vs SRecv VTBool) STILL gives proj_u = None    *)
+(* and ~projectable_u_wf — umerge unions LABELS, never            *)
+(* reconciles divergent payloads.  Both the pre-existing          *)
+(* g_excluded and the self-contained g_excluded_u are shipped to  *)
+(* keep the boundary maximally visible.                           *)
+Example proj_u_g_excluded_still_none : proj_u g_excluded 2 = None.
+Proof. reflexivity. Qed.
+Definition g_excluded_u : gty :=
+  GBra 0 1 (GBcons 0 (GMsg 0 2 VTNat  GEnd)
+           (GBcons 1 (GMsg 0 2 VTBool GEnd) GBnil)).
+Example proj_u_excluded_still_none : proj_u g_excluded_u 2 = None.
+Proof. reflexivity. Qed.
+Example g_excluded_u_not_u_projectable : ~ projectable_u_wf g_excluded_u.
+Proof. intro H. inversion H; subst.
+  match goal with Hm : forall r, r<>0 -> r<>1 -> _ |- _ =>
+    destruct (Hm 2 ltac:(congruence) ltac:(congruence)) as [s Hs] end.
+  cbn in Hs. discriminate. Qed.
+
+(* ============================================================ *)
+(* S3c.1 FENCE (each clause literally true vs the code above):   *)
+(*  (1) EXISTENCE not SAFETY: projection_total_u asserts ONLY    *)
+(*      that every role of a projectable_u_wf global type        *)
+(*      projects (option = Some).  NO subject reduction, NO      *)
+(*      progress, NO fidelity, NO deadlock-freedom, NO           *)
+(*      coherence — identical fence to projection_total.  The    *)
+(*      'wf' in projectable_u_wf is the typing/existence         *)
+(*      convention, NOT a safety predicate.  No theorem here     *)
+(*      quantifies over a cstep, a reduction, or a configuration.*)
+(*  (2) TYPE-ALGEBRA / PROJECTION ONLY: proj_u (gty->role->      *)
+(*      option sty) + its totality + a one-directional           *)
+(*      monotonicity bridge.  No operational metatheory over an  *)
+(*      n-party configuration is reached.  proj is NOT re-       *)
+(*      pointed at umerge — plain proj/merge and ALL binary      *)
+(*      metatheory (projection_duality, projected_config_wf,     *)
+(*      config_subject_reduction) remain BYTE-IDENTICAL.         *)
+(*      Strictly ADDITIVE rung (S3c.0 FENCE 1/5 carried).        *)
+(*  (3) umerge unions LABELS, not PAYLOADS: union-projection     *)
+(*      unlocks ONLY the different-label external-choice class   *)
+(*      (witness g_union3).  It does NOT unlock the different-    *)
+(*      payload message class — proj_u g_excluded 2 = None and    *)
+(*      proj_u g_excluded_u 2 = None still hold, and              *)
+(*      ~projectable_u_wf g_excluded_u.  Do not over-read the     *)
+(*      headline.  (S3c.0 FENCE 6 carried, re-witnessed.)        *)
+(*  (4) SELECT (+, SSelect) asymmetry INHERITED: internal choice *)
+(*      is NOT unioned (umerge requires sbranch_eqb EQUALITY on   *)
+(*      SSelect).  Only the external & (SBranch) case widens.     *)
+(*      proj_u inherits this for free — it calls umerge, not a    *)
+(*      new combinator.  (S3c.0 FENCE 4 carried.)                *)
+(*  (5) ORDER-DEPENDENCE: umerge (hence proj_u) is argument-      *)
+(*      order dependent, proved idempotent ONLY (umerge_idem),    *)
+(*      not commutative/associative.  proj_u yields a syntactic   *)
+(*      sty whose branch ORDER depends on traversal order; the    *)
+(*      witness proj_u_union3_role2_some pins ONE concrete order  *)
+(*      (3 before 4).  NO canonicity/uniqueness of proj_u is      *)
+(*      claimed.  (S3c.0 FENCE 2 carried.)                       *)
+(*  (6) MONOTONICITY is DOMAIN-INCLUSION, not behavioural         *)
+(*      refinement: projectable_wf_implies_u says the plain-      *)
+(*      projectable set is a SUBSET of the union-projectable set  *)
+(*      and (proj_agrees_u) the two projections COINCIDE there.   *)
+(*      It does NOT claim union-projected types are safe, nor     *)
+(*      that the widening preserves any reduction behaviour.  It  *)
+(*      is provable-cheap ONLY because this development's merge   *)
+(*      is positional-same-label (merge_forces_eq); if merge is   *)
+(*      ever generalised to reorder/widen, the bridge must be     *)
+(*      re-proved (the existence theorems projection_total /      *)
+(*      projection_total_u survive).  ONE-DIRECTIONAL — the       *)
+(*      converse is FALSE (g_union3).                            *)
+(*  (7) MU UNPRUNED + p<>q a hypothesis: PWu_Mu admits GMu with   *)
+(*      no contractivity/guardedness check; divergent mu-         *)
+(*      structure across branches still fails to umerge; p<>q is  *)
+(*      a constructor hypothesis, not a structural invariant —    *)
+(*      all inherited verbatim from projectable_wf /              *)
+(*      projection_total.  (S2.2 fence b / S3a fence 4 carried.) *)
+(*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE).  proj_u   *)
+(*  is a pure gty->role->option sty type-algebra projection and  *)
+(*  projectable_u_wf a structural Prop predicate; no EchoMode /  *)
+(*  EchoResidue / obligation / attestation / residue artefact    *)
+(*  enters this file.  echo-types repo audited read-only: its    *)
+(*  session-type content is DYADIC (binary) provenance-residue   *)
+(*  bridges (direction E->R), NOT multiparty label-union          *)
+(*  projection — nothing reusable for this axis.  Consistent     *)
+(*  with the axis-separation note above and the S3c.0 audit.     *)
+(* ============================================================ *)

@@ -7,7 +7,7 @@ project = "my-lang"
 version = "0.1.0"
 last-updated = "2026-06-14"
 status = "active"
-session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3b (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
+session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.1 (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
 
 [project-context]
 name = "My Lang"
@@ -36,7 +36,7 @@ affine-pres = "machine-checked"                 # R3 — distinct affine budget-
 tropical-instance = "machine-checked"           # R4 — SoloCoreF Tropical, infinite min-plus carrier, axiom-free
 usage-walk-checker = "machine-checked"          # R5 — check + check_correct (sound+complete); R5b aff_type_dec
 me-elaboration = "machine-checked"              # M1.0/1.1/1.1b — elab + me_wt_sound over the whole me_tm, axiom-free
-session-pi = "machine-checked"                  # S1.0–S3b — subject reduction / fidelity / progress / duet-by-projection / n-party projection totality / static n-party config, all axiom-free
+session-pi = "machine-checked"                  # S1.0–S3c.1 — subject reduction / fidelity / progress / duet-by-projection / n-party projection totality / static n-party config / label-union merge / union-projection, all axiom-free
 echo-measure-seam = "machine-checked"           # E4 (Coq mirror) — RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective, axiom-free
 echo-type-former = "machine-checked"           # Rust checker Ty::Echo + EchoMode/THEcho/THWeaken; kernel mechanised
 echo-residue = "machine-checked"               # EchoResidue.v backs Ty::is_assignable_from
@@ -72,7 +72,8 @@ milestones = [
   { id = "S1-S2", description = "Structure climb: session-π subject reduction / fidelity / progress (S1) + duet-by-projection (S2.0–S2.2), axiom-free", status = "done", date = "2026-06-14" },
   { id = "S3a-S3b", description = "n-party projection totality (S3a) + static n-party config (S3b), axiom-free", status = "done", date = "2026-06-14" },
   { id = "S3c.0", description = "Full label-union merge umerge/umerge_br + keystone umerge_idem (Honda-Yoshida-Carbone), added ALONGSIDE plain merge; type-algebra only, axiom-free", status = "done", date = "2026-06-14" },
-  { id = "S3c.1-4", description = "n-party operational metatheory: union-projection + coherence predicate (S3c.1), n-ary located config + nstep (S3c.2), message-fragment n-party subject reduction (S3c.3), n-party progress (S3c.4 = coherence ⇒ safety, research-hard)", status = "pending", note = "S3c.0 landed; the operational rungs are the remaining structure-climb work" },
+  { id = "S3c.1", description = "Union-projection proj_u/projectable_u_wf + keystone existence theorem projection_total_u + one-directional monotonicity bridge projectable_wf_implies_u (on keystone merge_forces_eq: plain merge is the identity-meet); SEPARATE proj_u added ALONGSIDE proj (canonical proj byte-identical, NOT re-pointed); projection-EXISTENCE only, non-vacuity g_union3 in union-projectable minus plain-projectable; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.2-4", description = "n-party operational metatheory: n-ary located config + nstep (S3c.2), message-fragment n-party subject reduction (S3c.3 = first earned n-party safety half), n-party progress (S3c.4 = coherence ⇒ safety, research-hard)", status = "pending", note = "S3c.0 + S3c.1 landed (type-algebra + union-projection); the operational rungs are the remaining structure-climb work, solo" },
   { id = "E4", description = "Echo residue-measure SEAM (Coq mirror): RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective; full measure-independence upstream-cited", status = "done", date = "2026-06-14" },
   { id = "F2", description = "Effects metatheory mechanised", status = "pending" },
   { id = "F3", description = "Memory model mechanised", status = "pending" },
@@ -104,4 +105,4 @@ ci-governance = "pass"
 ci-security-scan = "pass"
 ci-rust-tests = "pass"
 ci-pr = "PR #92 — all 18 checks green (governance, scans, SPARK, Hypatia success, CodeQL neutral)"
-proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3b, E4)"
+proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3c.1, E4)"
