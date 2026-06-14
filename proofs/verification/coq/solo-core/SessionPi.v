@@ -404,3 +404,144 @@ Proof.
   - exact HP.
   - eapply wt_subst0; eassumption.
 Qed.
+
+(* ============================================================ *)
+(* S1.1b — FULL closed-system subject reduction, via the fused   *)
+(* two-party (νc)(P∣Q) form (the duet T-Session primitive).      *)
+(*                                                              *)
+(* The general open `proc` calculus above pins a ν's protocol on *)
+(* the `PRes n s` binder, which a communication under the ν must *)
+(* advance — so the closed theorem cannot hold with Δ unchanged  *)
+(* in that presentation. The standard fix (chosen by the owner)  *)
+(* is the FUSED node `(νc)(P∣Q)`: a configuration of exactly the *)
+(* two parties of ONE session, whose shared protocol advances    *)
+(* LOCALLY on each communication. The free context never changes *)
+(* (there is none — it is a closed two-party system), so subject *)
+(* reduction is the clean `wf_config c → cstep c c' → wf_config  *)
+(* c'`. This reuses the value-substitution machinery (vshift /    *)
+(* vtype_subst / vlift0_vshift) proved for S1.1a verbatim.        *)
+(*                                                              *)
+(* Faithfulness fence (additional to the file header): this form *)
+(* is the TWO-PARTY, SINGLE-SESSION, straight-line fragment —    *)
+(* each party is a sequential behaviour (send/recv/end) on its   *)
+(* one endpoint; no intra-party parallelism, no sub-session      *)
+(* nesting, no free channels, no choice. It mechanises exactly   *)
+(* the duet paper's `(νc)(P∣Q)` session initiation + R-Comm with *)
+(* its subject reduction; richer process structure stays with    *)
+(* the open `proc` calculus (whose R-Comm case is `sr_comm`).    *)
+(* ============================================================ *)
+
+(* A party = one endpoint's sequential session behaviour. *)
+Inductive party : Type :=
+| QEnd  : party                       (* close *)
+| QSend : val -> party -> party       (* send v, continue *)
+| QRecv : party -> party.             (* receive (bind payload de Bruijn 0), continue *)
+
+(* Party typing: [pty G p s] — under payload context G, party p    *)
+(* follows session type s exactly.                                 *)
+Inductive pty : list vty -> party -> sty -> Prop :=
+| PT_End  : forall G, pty G QEnd SEnd
+| PT_Send : forall G v p t s, vtype G v t -> pty G p s -> pty G (QSend v p) (SSend t s)
+| PT_Recv : forall G p t s, pty (t :: G) p s -> pty G (QRecv p) (SRecv t s).
+
+Fixpoint psubst_party (c : nat) (u : val) (p : party) : party :=
+  match p with
+  | QEnd      => QEnd
+  | QSend v q => QSend (vsubst c u v) (psubst_party c u q)
+  | QRecv q   => QRecv (psubst_party (S c) (vlift 0 u) q)
+  end.
+
+Definition open_party (u : val) (p : party) : party := psubst_party 0 u p.
+
+(* Party inversion helpers (clean names). *)
+Lemma pty_send_inv : forall G v p s, pty G (QSend v p) s ->
+  exists t s', s = SSend t s' /\ vtype G v t /\ pty G p s'.
+Proof. intros G v p s H. inversion H; subst. do 2 eexists; repeat split; eassumption. Qed.
+
+Lemma pty_recv_inv : forall G p s, pty G (QRecv p) s ->
+  exists t s', s = SRecv t s' /\ pty (t :: G) p s'.
+Proof. intros G p s H. inversion H; subst. do 2 eexists; repeat split; eassumption. Qed.
+
+(* Party value-substitution lemma (the party analogue of wt_subst, *)
+(* reusing the same value-shift machinery).                        *)
+Lemma pty_subst : forall p G1 G2 s t v,
+  pty (G1 ++ t :: G2) p s ->
+  vtype G2 v t ->
+  pty (G1 ++ G2) (psubst_party (length G1) (vshift (length G1) v) p) s.
+Proof.
+  induction p as [ | w q IHq | q IHq ]; intros G1 G2 s t v Hp Hv; simpl.
+  - (* QEnd *) inversion Hp; subst. constructor.
+  - (* QSend *) inversion Hp; subst. constructor.
+    + eapply vtype_subst; eassumption.
+    + apply IHq with (t:=t); assumption.
+  - (* QRecv *) inversion Hp; subst. constructor.
+    rewrite vlift0_vshift.
+    apply (IHq (t0 :: G1) G2 s0 t v); assumption.
+Qed.
+
+Corollary pty_subst0 : forall G p s t v,
+  pty (t :: G) p s -> vtype G v t -> pty G (open_party v p) s.
+Proof.
+  intros G p s t v Hp Hv.
+  pose proof (pty_subst p [] G s t v Hp Hv) as HH.
+  simpl in HH. rewrite vshift_0 in HH. unfold open_party. exact HH.
+Qed.
+
+(* A configuration = the two parties of one session, (νc)(P ∣ Q). *)
+Inductive config : Type := Conf : party -> party -> config.
+
+(* Well-formed: the two parties run dual protocols (the T-Session  *)
+(* premise Δ₁(c) = dual(Δ₂(c))). The protocol s is existential —   *)
+(* this is what lets the ν channel RE-TYPE across a communication. *)
+Definition wf_config (c : config) : Prop :=
+  match c with Conf P Q => exists s, pty [] P s /\ pty [] Q (dual s) end.
+
+(* Synchronous communication; the session protocol advances        *)
+(* locally to its continuation, the free context is unchanged.     *)
+Inductive cstep : config -> config -> Prop :=
+| CStep  : forall v P Q, cstep (Conf (QSend v P) (QRecv Q)) (Conf P (open_party v Q))
+| CStepR : forall v P Q, cstep (Conf (QRecv Q) (QSend v P)) (Conf (open_party v Q) P).
+
+(* ----- the S1.1b headline: closed-system subject reduction ----- *)
+(* Well-formedness (both parties dual) is preserved by reduction —  *)
+(* the two endpoints stay dual as their shared protocol advances.   *)
+Theorem config_subject_reduction : forall c c',
+  wf_config c -> cstep c c' -> wf_config c'.
+Proof.
+  intros c c' Hwf Hstep. destruct Hstep as [v P Q | v P Q].
+  - (* CStep : sender on the left *)
+    destruct Hwf as [s [HP HQ]].
+    apply pty_send_inv in HP. destruct HP as (t & s' & Es & Hv & HPc). subst s.
+    simpl in HQ. apply pty_recv_inv in HQ. destruct HQ as (t2 & s2 & Es2 & HQc).
+    inversion Es2; subst t2 s2.
+    exists s'. split; [ exact HPc | eapply pty_subst0; eassumption ].
+  - (* CStepR : sender on the right *)
+    destruct Hwf as [s [HP HQ]].
+    apply pty_recv_inv in HP. destruct HP as (t & s' & Es & HQc). subst s.
+    simpl in HQ. apply pty_send_inv in HQ. destruct HQ as (t2 & s2 & Es2 & Hv & HPc).
+    inversion Es2; subst t2 s2.
+    exists s'. split; [ eapply pty_subst0; eassumption | exact HPc ].
+Qed.
+
+(* ----- executable witnesses for the fused form ----- *)
+Example wf_pingpong_config :
+  wf_config (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)).
+Proof.
+  exists (SSend VTNat SEnd). split.
+  - apply PT_Send; [ apply VT_Nat | apply PT_End ].
+  - simpl. apply PT_Recv. apply PT_End.
+Qed.
+
+Example cstep_pingpong_config :
+  cstep (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) (Conf QEnd QEnd).
+Proof. apply CStep. Qed.
+
+(* The whole point, instantiated: the reduct is still well-formed.  *)
+Example wf_preserved_pingpong :
+  wf_config (Conf QEnd QEnd).
+Proof.
+  apply (config_subject_reduction
+           (Conf (QSend (VNat 7) QEnd) (QRecv QEnd))).
+  - apply wf_pingpong_config.
+  - apply cstep_pingpong_config.
+Qed.

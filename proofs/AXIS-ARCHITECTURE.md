@@ -122,10 +122,10 @@ my-lang is parametric over **both**, and identifies **neither**.
       mirror subst2 fix + parametric design
  M1 ✓ me elab→solo (M1.0/1.1/1.1b, whole me_tm)           SEAM CAPSTONE (joint): E4 needs R2 (a SEMIRING)
  ──structure climb (last, hardest)──                 + a solid echo core. It is where "interaction,
- S1 ◑ ensemble π metatheory (S1.0 ✓ session-pi             not identification" becomes a theorem.
-      core+witnesses; S1.1a ✓ comm-redex subject
-      red. sr_comm + value subst wt_subst, axiom-free;
-      S1.1b closed-system SR + S1.2 fidelity = open)
+ S1 ◑ ensemble π metatheory (S1.0 ✓ core+witnesses;        not identification" becomes a theorem.
+      S1.1a ✓ comm-redex SR sr_comm + value subst;
+      S1.1b ✓ closed-system SR config_subject_reduction
+      (fused (νc)(P∣Q)); S1.2 session fidelity = open)
  S2 ☐ duet = ensemble │2-party  (by projection,
       falls out of S1)
 ```
