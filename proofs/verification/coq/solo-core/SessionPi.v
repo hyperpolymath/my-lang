@@ -1118,3 +1118,154 @@ Proof.
   - simpl. apply PT_Send; [ apply VT_Nat | apply PT_End ].
   - simpl. apply PT_Recv. apply PT_End.
 Qed.
+
+(* ============================================================ *)
+(* S1.3c — structural congruence preserves typing (open proc).  *)
+(*                                                              *)
+(* On the OPEN `proc` calculus we prove that the structural     *)
+(* congruence laws PRESERVE the linear channel-typing `wt`:     *)
+(*   wt G D P  ->  cong P Q  ->  wt G D Q   (wt_congr).          *)
+(*                                                              *)
+(* Faithfulness fence: this is TYPING-PRESERVATION under ≡, NOT *)
+(* subject-reduction-up-to-≡ (there is no reduction in the      *)
+(* statement) — the open `proc` form has no closed SR for the   *)
+(* S1.1b reason (the `PRes` ν binder pins the protocol). `cong` *)
+(* contains ONLY the par laws P|0≡P, P|Q≡Q|P, (P|Q)|R≡P|(Q|R)   *)
+(* (each preserved in BOTH directions; full equivalence). OUT   *)
+(* (named, with reasons): ν-extrusion (νc)(P|Q)≡(νc)P|Q needs   *)
+(* a free-name function `fn` that does not exist here, so its   *)
+(* side-condition is unstatable; ν-swap needs an absent context *)
+(* permutation lemma; replication *P≡P|*P has no `!P`/`*P`      *)
+(* constructor — vacuously absent.  Echo-types: NOT-RELEVANT.   *)
+(* ============================================================ *)
+
+(* ----- context-splitting algebra ----- *)
+
+Lemma csplit_comm : forall D D1 D2, csplit D D1 D2 -> csplit D D2 D1.
+Proof.
+  intros D D1 D2 H; induction H.
+  - apply Csp_nil.
+  - apply Csp_r; assumption.
+  - apply Csp_l; assumption.
+Qed.
+
+Lemma csplit_nil_r : forall D, csplit D D [].
+Proof. induction D; [ apply Csp_nil | apply Csp_l; assumption ]. Qed.
+
+Lemma csplit_ended : forall D D1 D2,
+  csplit D D1 D2 -> ended D1 -> ended D2 -> ended D.
+Proof.
+  intros D D1 D2 H; induction H; intros He1 He2.
+  - exact He1.
+  - inversion He1; subst. constructor; [ assumption | apply IHcsplit; assumption ].
+  - inversion He2; subst. constructor; [ assumption | apply IHcsplit; assumption ].
+Qed.
+
+(* Reassociation of the linear split: (D1 (+) D2) (+) D3 regroups   *)
+(* to D1 (+) (D2 (+) D3).  The load-bearing algebra lemma.          *)
+Lemma csplit_assoc : forall D D12 D3, csplit D D12 D3 ->
+  forall D1 D2, csplit D12 D1 D2 ->
+  exists D23, csplit D D1 D23 /\ csplit D23 D2 D3.
+Proof.
+  intros D D12 D3 H.
+  induction H as [ | e D' D12' D3' Hrec IH | e D' D12' D3' Hrec IH ];
+    intros D1 D2 H12.
+  - inversion H12; subst. exists []. split; apply Csp_nil.
+  - inversion H12; subst.
+    + destruct (IH _ _ ltac:(eassumption)) as [D23 [Ha Hb]].
+      exists D23. split; [ apply Csp_l; exact Ha | exact Hb ].
+    + destruct (IH _ _ ltac:(eassumption)) as [D23 [Ha Hb]].
+      exists (e :: D23). split; [ apply Csp_r; exact Ha | apply Csp_l; exact Hb ].
+  - destruct (IH _ _ H12) as [D23 [Ha Hb]].
+    exists (e :: D23). split; [ apply Csp_r; exact Ha | apply Csp_r; exact Hb ].
+Qed.
+
+(* The par-nil engine: a process well-typed at D1 stays well-typed *)
+(* when D1 is enlarged by an ENDED context D2 — the extra ended    *)
+(* endpoints thread through the derivation to the PNil leaves.     *)
+Lemma wt_absorb_ended : forall G D1 P, wt G D1 P ->
+  forall D D2, csplit D D1 D2 -> ended D2 -> wt G D P.
+Proof.
+  intros G D1 P H.
+  induction H as [ G DA Hend
+                 | G DA Da Db P1 P2 Hsp HP1 IHP1 HP2 IHP2
+                 | G DA Drest p n t v k P0 Hsp Hv HP0 IHP0
+                 | G DA Drest p n t k P0 Hsp HP0 IHP0
+                 | G DA n s P0 HP0 IHP0 ];
+    intros D D2 Hcsp Hend2.
+  - apply WT_Nil. eapply csplit_ended; eassumption.
+  - destruct (csplit_assoc _ _ _ Hcsp _ _ Hsp) as [Dbd [HaD Hb]].
+    eapply WT_Par; [ exact HaD | exact HP1 | apply (IHP2 Dbd D2); assumption ].
+  - destruct (csplit_assoc _ _ _ Hcsp _ _ Hsp) as [Drest' [HaD Hb]].
+    eapply WT_Send;
+      [ exact HaD | exact Hv
+      | apply (IHP0 ((p,n,k)::Drest') D2); [ apply Csp_l; exact Hb | exact Hend2 ] ].
+  - destruct (csplit_assoc _ _ _ Hcsp _ _ Hsp) as [Drest' [HaD Hb]].
+    eapply WT_Recv;
+      [ exact HaD
+      | apply (IHP0 ((p,n,k)::Drest') D2); [ apply Csp_l; exact Hb | exact Hend2 ] ].
+  - apply WT_Res. apply (IHP0 ((Pos,n,s)::(Neg,n,dual s)::D) D2).
+    + apply Csp_l. apply Csp_l. exact Hcsp.
+    + exact Hend2.
+Qed.
+
+(* ----- structural congruence (the typing-preserving par laws) ----- *)
+
+Inductive cong : proc -> proc -> Prop :=
+| Cg_refl     : forall P, cong P P
+| Cg_sym      : forall P Q, cong P Q -> cong Q P
+| Cg_trans    : forall P Q R, cong P Q -> cong Q R -> cong P R
+| Cg_par      : forall P P' Q, cong P P' -> cong (PPar P Q) (PPar P' Q)
+| Cg_parnil   : forall P, cong (PPar P PNil) P
+| Cg_parcomm  : forall P Q, cong (PPar P Q) (PPar Q P)
+| Cg_parassoc : forall P Q R, cong (PPar (PPar P Q) R) (PPar P (PPar Q R)).
+
+(* Subject congruence: structurally-congruent processes are typed   *)
+(* at the SAME context (proved as an iff so the symmetric closure    *)
+(* Cg_sym goes through in one induction).                            *)
+Lemma wt_congr_iff : forall P Q, cong P Q -> forall G D, wt G D P <-> wt G D Q.
+Proof.
+  intros P Q H; induction H; intros G D.
+  - (* refl *) split; intro Hwt; exact Hwt.
+  - (* sym *) split; intro Hwt;
+      [ apply (proj2 (IHcong G D)) | apply (proj1 (IHcong G D)) ]; exact Hwt.
+  - (* trans *) split; intro Hwt.
+    + apply (proj1 (IHcong2 G D)). apply (proj1 (IHcong1 G D)). exact Hwt.
+    + apply (proj2 (IHcong1 G D)). apply (proj2 (IHcong2 G D)). exact Hwt.
+  - (* Cg_par : congruence closure on the left of a PPar *)
+    split; intro Hwt; apply wt_par_inv in Hwt;
+      destruct Hwt as (D1 & D2 & Hsp & HP & HQ).
+    + eapply WT_Par; [ exact Hsp | apply (proj1 (IHcong G D1)); exact HP | exact HQ ].
+    + eapply WT_Par; [ exact Hsp | apply (proj2 (IHcong G D1)); exact HP | exact HQ ].
+  - (* Cg_parnil : P|0 ≡ P *)
+    split; intro Hwt.
+    + apply wt_par_inv in Hwt. destruct Hwt as (D1 & D2 & Hsp & HP & HQ).
+      apply wt_nil_inv in HQ. eapply wt_absorb_ended; eassumption.
+    + eapply WT_Par; [ apply csplit_nil_r | exact Hwt | apply WT_Nil; constructor ].
+  - (* Cg_parcomm : P|Q ≡ Q|P *)
+    split; intro Hwt; apply wt_par_inv in Hwt;
+      destruct Hwt as (D1 & D2 & Hsp & HP & HQ);
+      apply csplit_comm in Hsp; eapply WT_Par; eassumption.
+  - (* Cg_parassoc : (P|Q)|R ≡ P|(Q|R) *)
+    split; intro Hwt.
+    + apply wt_par_inv in Hwt. destruct Hwt as (Dpq & Dr & Hsp1 & Hpq & HR).
+      apply wt_par_inv in Hpq. destruct Hpq as (Dp & Dq & Hsp2 & HP & HQ).
+      destruct (csplit_assoc _ _ _ Hsp1 _ _ Hsp2) as [Dqr [Ha Hb]].
+      eapply WT_Par; [ exact Ha | exact HP | eapply WT_Par; [ exact Hb | exact HQ | exact HR ] ].
+    + apply wt_par_inv in Hwt. destruct Hwt as (Dp & Dqr & Hsp1 & HP & Hqr).
+      apply wt_par_inv in Hqr. destruct Hqr as (Dq & Dr & Hsp2 & HQ & HR).
+      apply csplit_comm in Hsp1. apply csplit_comm in Hsp2.
+      destruct (csplit_assoc _ _ _ Hsp1 _ _ Hsp2) as [Dpq [Ha Hb]].
+      apply csplit_comm in Ha. apply csplit_comm in Hb.
+      eapply WT_Par;
+        [ exact Ha | eapply WT_Par; [ exact Hb | exact HP | exact HQ ] | exact HR ].
+Qed.
+
+Theorem wt_congr : forall G D P Q, wt G D P -> cong P Q -> wt G D Q.
+Proof. intros G D P Q HP Hc. apply (proj1 (wt_congr_iff P Q Hc G D)). exact HP. Qed.
+
+(* Witness: a well-typed parallel composition stays well-typed       *)
+(* after commuting its two sides (a one-line use of wt_congr).        *)
+Example wt_congr_comm_witness : forall G D P Q,
+  wt G D (PPar P Q) -> wt G D (PPar Q P).
+Proof. intros G D P Q H. eapply wt_congr; [ exact H | apply Cg_parcomm ]. Qed.

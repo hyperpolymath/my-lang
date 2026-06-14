@@ -96,7 +96,9 @@ jobs:
                      wf_preserved_pingpong \
                      session_fidelity config_progress \
                      bget_dual_br bget_dual_br_inv pget_psubst \
-                     wf_choice_config cstep_choice_config progress_choice; do
+                     wf_choice_config cstep_choice_config progress_choice \
+                     csplit_comm csplit_assoc wt_absorb_ended \
+                     wt_congr wt_congr_comm_witness; do
             echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
               | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_sp_${thm}.txt"
             grep -q "Closed under the global context" "/tmp/assum_sp_${thm}.txt" \
