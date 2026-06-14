@@ -125,8 +125,11 @@ my-lang is parametric over **both**, and identifies **neither**.
  S1 ◑ ensemble π metatheory (S1.0 ✓ core+witnesses;        not identification" becomes a theorem.
       S1.1 ✓ subject reduction sr_comm +
       config_subject_reduction; S1.2 ✓ session
-      fidelity + progress/deadlock-freedom; all
-      axiom-free. S1.3 choice/μ/congruence = open)
+      fidelity + progress/deadlock-freedom;
+      S1.3 ✓ a:n-ary choice, c:congruence
+      (wt_congr), b-core:μ type-layer
+      (unfold_mu/dual_unfold/guarded); all
+      axiom-free. S1.3b-meta μ-typing/SR = open)
  S2 ◑ duet = ensemble │2-party by projection
       (S2.0 ✓ gty/proj/two_party + witnesses;
       S2.1 ✓ projection_duality + projected_*
@@ -283,6 +286,22 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   types (S2.2), μ-recursion (S2.2), n≥3 coherence/merge/projection-existence (S3). **Echo-types
   audit: NOT-RELEVANT** (axis-2 STRUCTURE; projection emits no obligation/residue — re-checked for
   the multiparty-syntax layer specifically).
+- **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
+  sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)
+  in the fused form; `sty`/`party` gain `SSelect`/`SBranch`/`QSel`/`QBra` over dedicated mutual
+  inductives `sbranch`/`pbranch` (NOT `list`, so `dual`/`psubst_party` are well-guarded mutual
+  fixpoints — Coq rejects the `List.map` form); the three fused theorems
+  (`config_subject_reduction`/`session_fidelity`/`config_progress`) extended with the choice cases,
+  label-mismatch safety expressible via the functional lookups `bget`/`pget`. **n-ary, not binary**
+  — required so S2.2's `merge` (over label sets) is statable. **S1.3c (congruence):** `wt_congr`
+  (typing preserved under structural congruence on the open `proc`), the par laws `P|0≡P`/comm/assoc,
+  via new `csplit_comm`/`csplit_assoc` and `wt_absorb_ended`; fenced as typing-PRESERVATION (NOT
+  SR-up-to-≡), with ν-extrusion/ν-swap/replication named OUT. **S1.3b-core (μ type-layer):**
+  `SMu`/`SVar`, `tlift`/`tsubst`/`unfold_mu` (one structural pass, terminates on `μa.a`),
+  `dual_unfold` (projection-duality of recursion — the S2.2 target), `guarded` contractiveness.
+  **DEFERRED — S1.3b-meta:** μ typing/subject-reduction up-to-unfolding (needs a `PT_Unfold` rule +
+  its soundness + up-to-unfolding inversions); S2.2 unblocked (consumes only the type layer).
+  **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without

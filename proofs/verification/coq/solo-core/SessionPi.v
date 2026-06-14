@@ -83,13 +83,18 @@ Inductive sty : Type :=
 | SRecv   : vty -> sty -> sty            (* ?t.s  : receive a t, continue as s *)
 | SSelect : sbranch -> sty               (* +{l_i:s_i} : internal choice (S1.3a) *)
 | SBranch : sbranch -> sty               (* &{l_i:s_i} : external choice (S1.3a) *)
+| SVar    : nat -> sty                   (* mu-bound type variable (de Bruijn) (S1.3b) *)
+| SMu     : sty -> sty                   (* mu a.s : equi-recursive session    (S1.3b) *)
 with sbranch : Type :=
 | SBnil  : sbranch
 | SBcons : nat -> sty -> sbranch -> sbranch.
 
 (* Duality.  Choice dualises pointwise over the branch list,       *)
 (* preserving labels: select (internal) <-> branch (external),     *)
-(* the paper's dual(+{l_i:S_i}) = &{l_i:dual S_i}.                  *)
+(* the paper's dual(+{l_i:S_i}) = &{l_i:dual S_i}.  Recursion       *)
+(* variables are UNPOLARISED, so dual passes through SVar/SMu — a   *)
+(* fence: this is correct ONLY because there are no polarised type  *)
+(* variables (standard for binary session duality).                *)
 Fixpoint dual (s : sty) : sty :=
   match s with
   | SEnd       => SEnd
@@ -97,6 +102,8 @@ Fixpoint dual (s : sty) : sty :=
   | SRecv t k  => SSend t (dual k)
   | SSelect bs => SBranch (dual_br bs)
   | SBranch bs => SSelect (dual_br bs)
+  | SVar n     => SVar n
+  | SMu s0     => SMu (dual s0)
   end
 with dual_br (bs : sbranch) : sbranch :=
   match bs with
@@ -107,7 +114,7 @@ with dual_br (bs : sbranch) : sbranch :=
 Lemma dual_involutive : forall s, dual (dual s) = s.
 Proof.
   fix IH 1.
-  intros [ | t k | t k | bs | bs ]; simpl.
+  intros [ | t k | t k | bs | bs | n | s0 ]; simpl.
   - reflexivity.
   - rewrite IH; reflexivity.
   - rewrite IH; reflexivity.
@@ -115,6 +122,8 @@ Proof.
       [ reflexivity | rewrite IH, IHrest; reflexivity ].
   - f_equal. induction bs as [ | l s' rest IHrest ]; simpl;
       [ reflexivity | rewrite IH, IHrest; reflexivity ].
+  - reflexivity.
+  - rewrite IH; reflexivity.
 Qed.
 
 (* Session-branch lookup (first match), used by the choice layer    *)
@@ -1269,3 +1278,144 @@ Proof. intros G D P Q HP Hc. apply (proj1 (wt_congr_iff P Q Hc G D)). exact HP. 
 Example wt_congr_comm_witness : forall G D P Q,
   wt G D (PPar P Q) -> wt G D (PPar Q P).
 Proof. intros G D P Q H. eapply wt_congr; [ exact H | apply Cg_parcomm ]. Qed.
+
+(* ============================================================ *)
+(* S1.3b-core — equi-recursive mu, the TYPE layer.              *)
+(*                                                              *)
+(* The session-type infrastructure for mu-recursion: type-var   *)
+(* shifting/substitution, one-step unfolding, dual passing      *)
+(* through mu (dual_unfold — the projection-duality-of-recursion*)
+(* lemma S2.2 consumes), and a depth-indexed `guarded`          *)
+(* contractiveness predicate.  All structural / axiom-free.     *)
+(*                                                              *)
+(* DEFERRED (S1.3b-meta, NOT done here): the equi-recursive     *)
+(* TYPING / subject-reduction layer (typing up to unfolding).   *)
+(* Naive inversion is unprovable under a `PT_Unfold` rule; it    *)
+(* needs every inversion lemma rewritten to an up-to-unfolding   *)
+(* relation plus a PT_Unfold-soundness theorem — a separate,     *)
+(* larger unit.  S2.2 is NOT blocked: it consumes only this     *)
+(* type layer (SMu / unfold_mu / dual_unfold / guarded).         *)
+(* No "mu supported / recursive sessions done" claim until       *)
+(* S1.3b-meta lands.  Echo-types: NOT-RELEVANT (axis-2).         *)
+(* ============================================================ *)
+
+(* Type-variable shift (de Bruijn), mutual over sty/sbranch. *)
+Fixpoint tlift (c : nat) (s : sty) : sty :=
+  match s with
+  | SEnd       => SEnd
+  | SSend t k  => SSend t (tlift c k)
+  | SRecv t k  => SRecv t (tlift c k)
+  | SSelect bs => SSelect (tlift_br c bs)
+  | SBranch bs => SBranch (tlift_br c bs)
+  | SVar k     => if Nat.ltb k c then SVar k else SVar (S k)
+  | SMu s0     => SMu (tlift (S c) s0)
+  end
+with tlift_br (c : nat) (bs : sbranch) : sbranch :=
+  match bs with
+  | SBnil           => SBnil
+  | SBcons l s rest => SBcons l (tlift c s) (tlift_br c rest)
+  end.
+
+(* Type-variable substitution [c := u], mutual over sty/sbranch. *)
+Fixpoint tsubst (c : nat) (u : sty) (s : sty) : sty :=
+  match s with
+  | SEnd       => SEnd
+  | SSend t k  => SSend t (tsubst c u k)
+  | SRecv t k  => SRecv t (tsubst c u k)
+  | SSelect bs => SSelect (tsubst_br c u bs)
+  | SBranch bs => SBranch (tsubst_br c u bs)
+  | SVar k     => match Nat.compare k c with
+                  | Lt => SVar k
+                  | Eq => u
+                  | Gt => SVar (Nat.pred k)
+                  end
+  | SMu s0     => SMu (tsubst (S c) (tlift 0 u) s0)
+  end
+with tsubst_br (c : nat) (u : sty) (bs : sbranch) : sbranch :=
+  match bs with
+  | SBnil           => SBnil
+  | SBcons l s rest => SBcons l (tsubst c u s) (tsubst_br c u rest)
+  end.
+
+(* Equi-recursive one-step unfolding: mu a.s  ==  s[mu a.s / a].   *)
+(* A plain Definition (one tsubst pass): NO fuel/measure — it      *)
+(* terminates even on mu a.a (tsubst is structural on s).          *)
+Definition unfold_mu (s : sty) : sty := tsubst 0 (SMu s) s.
+
+(* dual commutes with shift and substitution... *)
+Lemma dual_tlift : forall s c, dual (tlift c s) = tlift c (dual s).
+Proof.
+  fix IH 1.
+  intros [ | t k | t k | bs | bs | n | s0 ] c; simpl.
+  - reflexivity.
+  - rewrite IH; reflexivity.
+  - rewrite IH; reflexivity.
+  - f_equal. induction bs as [ | l s' rest IHrest ]; simpl;
+      [ reflexivity | rewrite IH, IHrest; reflexivity ].
+  - f_equal. induction bs as [ | l s' rest IHrest ]; simpl;
+      [ reflexivity | rewrite IH, IHrest; reflexivity ].
+  - destruct (Nat.ltb n c); reflexivity.
+  - rewrite IH; reflexivity.
+Qed.
+
+Lemma dual_tsubst : forall s c u, dual (tsubst c u s) = tsubst c (dual u) (dual s).
+Proof.
+  fix IH 1.
+  intros [ | t k | t k | bs | bs | n | s0 ] c u; simpl.
+  - reflexivity.
+  - rewrite IH; reflexivity.
+  - rewrite IH; reflexivity.
+  - f_equal. induction bs as [ | l s' rest IHrest ]; simpl;
+      [ reflexivity | rewrite IH, IHrest; reflexivity ].
+  - f_equal. induction bs as [ | l s' rest IHrest ]; simpl;
+      [ reflexivity | rewrite IH, IHrest; reflexivity ].
+  - destruct (Nat.compare n c); reflexivity.
+  - rewrite IH. rewrite dual_tlift. reflexivity.
+Qed.
+
+(* The S2.2 payoff: projection-duality of recursion — dual passes  *)
+(* cleanly through unfolding.                                       *)
+Lemma dual_unfold : forall s, dual (unfold_mu s) = unfold_mu (dual s).
+Proof. intro s. unfold unfold_mu. rewrite dual_tsubst. reflexivity. Qed.
+
+(* Depth-indexed contractiveness: [guarded d s] holds when every   *)
+(* SVar referring to one of the innermost d mu-binders occurs      *)
+(* UNDER a message/choice prefix.  A message prefix "resets" d to  *)
+(* 0 (everything below it is guarded); a mu adds an unguarded      *)
+(* binder.  This is the projectability side-condition S2.2 needs;  *)
+(* it is carried in WELL-FORMEDNESS, never in the typing rules.    *)
+Inductive guarded : nat -> sty -> Prop :=
+| Gd_end    : forall d, guarded d SEnd
+| Gd_var    : forall d k, k >= d -> guarded d (SVar k)
+| Gd_send   : forall d t s, guarded 0 s -> guarded d (SSend t s)
+| Gd_recv   : forall d t s, guarded 0 s -> guarded d (SRecv t s)
+| Gd_select : forall d bs, guarded_br bs -> guarded d (SSelect bs)
+| Gd_branch : forall d bs, guarded_br bs -> guarded d (SBranch bs)
+| Gd_mu     : forall d s, guarded (S d) s -> guarded d (SMu s)
+with guarded_br : sbranch -> Prop :=
+| Gdb_nil  : guarded_br SBnil
+| Gdb_cons : forall l s rest, guarded 0 s -> guarded_br rest -> guarded_br (SBcons l s rest).
+
+(* ----- executable witnesses for the mu type layer ----- *)
+
+(* Unfolding the recursive ping-pong type mu a.!Nat.a yields       *)
+(* !Nat.(mu a.!Nat.a) — by reflexivity.                            *)
+Example unfold_mu_compute :
+  unfold_mu (SSend VTNat (SVar 0)) = SSend VTNat (SMu (SSend VTNat (SVar 0))).
+Proof. reflexivity. Qed.
+
+(* dual_unfold instantiated on that type. *)
+Example dual_unfold_pingpong :
+  dual (unfold_mu (SSend VTNat (SVar 0))) = unfold_mu (SRecv VTNat (SVar 0)).
+Proof. apply dual_unfold. Qed.
+
+(* mu a.!Nat.a is guarded (contractive); mu a.a is not. *)
+Example guarded_recursive : guarded 0 (SMu (SSend VTNat (SVar 0))).
+Proof. apply Gd_mu. apply Gd_send. apply Gd_var. apply Nat.le_0_l. Qed.
+
+Example not_guarded_muvar : ~ guarded 0 (SMu (SVar 0)).
+Proof.
+  intro H. inversion H; subst.
+  match goal with G : guarded _ (SVar _) |- _ => inversion G; subst end.
+  lia.
+Qed.

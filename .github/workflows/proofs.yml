@@ -98,7 +98,9 @@ jobs:
                      bget_dual_br bget_dual_br_inv pget_psubst \
                      wf_choice_config cstep_choice_config progress_choice \
                      csplit_comm csplit_assoc wt_absorb_ended \
-                     wt_congr wt_congr_comm_witness; do
+                     wt_congr wt_congr_comm_witness \
+                     dual_tlift dual_tsubst dual_unfold \
+                     unfold_mu_compute guarded_recursive not_guarded_muvar; do
             echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
               | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_sp_${thm}.txt"
             grep -q "Closed under the global context" "/tmp/assum_sp_${thm}.txt" \

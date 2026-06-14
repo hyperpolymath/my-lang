@@ -170,10 +170,15 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   concurrency / session-types / π-calculus / multiparty metatheory in any form
   — a category AS does not enter. **Honest fence:** S2 mechanises message-passing
   + end only and *instantiates* the duet thesis on two-party choreographies — it
-  does not prove a general n-party result. **Remaining:** choice (select/branch),
-  μ-recursion and structural congruence (**S1.3 / S2.2**); n≥3 coherence / merge /
-  projection-existence (**S3** — where "duet" stops and "ensemble" begins).
-  Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
+  does not prove a general n-party result. **S1.3 done (2026-06-14):** n-ary
+  labelled **choice** (S1.3a — the three fused theorems extended via dedicated
+  mutual inductives `sbranch`/`pbranch`), structural **congruence** preserves
+  typing on the open `proc` (S1.3c — `wt_congr`, par laws), and the equi-recursive
+  **μ type-layer** (S1.3b-core — `unfold_mu`/`dual_unfold`/`guarded`). **Remaining:**
+  μ typing/SR up-to-unfolding (**S1.3b-meta**, deferred — needs a `PT_Unfold` rule +
+  soundness); global-type choice/μ projection + a **merge** operator (**S2.2**);
+  n≥3 coherence / merge / projection-existence (**S3** — where "duet" stops and
+  "ensemble" begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
