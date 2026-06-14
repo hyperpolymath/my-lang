@@ -9,7 +9,7 @@ prose, `proofs/verification/README.md`, `.machine_readable/STATE`)
 disagrees, *this registry wins*. Modelled on AffineScript's
 `CAPABILITY-MATRIX.adoc` discipline.
 
-Last verified: 2026-06-02.
+Last verified: 2026-06-14.
 
 ## Status vocabulary (used precisely)
 
@@ -33,7 +33,7 @@ Last verified: 2026-06-02.
 |----------|-------|--------|-------|
 | QTT semiring + laws | Idris2 `idris/solo-core/Quantity.idr` | **locally-checked** | Semiring + ordering laws by exhaustive `Refl`, `%default total`. CI leg pending (Phase F5). |
 | QTT semiring + laws | Coq `coq/solo-core/Quantity.v` | **locally-checked** | Laws by `destruct; reflexivity`, real `Qed`. CI leg pending (F5). |
-| Solo syntax / contexts / typing | Idris2 + Coq `solo-core/` | **definitions-only** | de Bruijn terms, QTT context split/scale/zero, context-splitting typing judgement. |
+| Solo syntax / contexts / typing | Idris2 + Coq `solo-core/` | **definitions-only** | de Bruijn terms; **separated** QTT context (type ctx `tctx` + usage vector `uvec`, with `uadd`/`uscale`); both products — additive `&` (`TWith`, shared usage, `Fst`/`Snd`) and multiplicative `⊗` (`TTensor`, split usage, let-pair); Echo former. Typing judgement `has_type G D t a`. |
 | `progress` | Coq `solo-core/Soundness` | **locally-checked** | `Theorem progress : Progress.` real `Qed`, axiom-free (`Print Assumptions` closed). Phase F1.3. CI leg pending (F5). |
 | `progress` | Idris2 `solo-core/Soundness` | **statement-only** | `?todo_progress`. Proof = Phase F1.3 (Idris track). |
 | `preservation` / `affine_pres` | Coq `solo-core/Soundness` | **locally-checked** | `Theorem preservation : Preservation.` and `affine_pres : AffinePreservation.`, real `Qed`, axiom-free, via the open-context QTT substitution lemma `ht_subst`. Phase F1.4. CI leg pending (F5). |
