@@ -120,7 +120,7 @@ my-lang is parametric over **both**, and identifies **neither**.
  ──parity / surface──                                T3 ☐ firm the Lean↔Isabelle cross-links
  P1 ☐ Idris twin of solo (close ?todo) +             T4 ☐ WithTop ∞ (drop tcZero=1e6 hack)
       mirror subst2 fix + parametric design
- M1 ◑ me elab→solo (M1.0+M1.1 ✓, M1.1b ☐)           SEAM CAPSTONE (joint): E4 needs R2 (a SEMIRING)
+ M1 ◑ me elab→solo (M1.0/1.1/1.1b ✓; MeSeq ☐)           SEAM CAPSTONE (joint): E4 needs R2 (a SEMIRING)
  ──structure climb (last, hardest)──                 + a solid echo core. It is where "interaction,
  S1 ☐ ensemble π metatheory (subject red.,                not identification" becomes a theorem.
       session fidelity)
@@ -228,9 +228,12 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   `uzero G`). All real `Qed`, `Print Assumptions` closed, CI-guarded. The first MECHANISED
   surface→core elaboration-correctness result in either sibling — a clean **overtake of
   AffineScript** (solo-only, no `me`-like dialect, nothing analogous as surveyed (AS@main 2026-06-02)).
-  Echo-types audit: NOT-RELEVANT (axis-4 surface vs axis-3 modality). **M1.1b ☐:** universal
-  adequacy for the linear-USE constructs (`MeLet`-consume, `MeUsePair`) needs a `check`-
-  weakening lemma — next rung.
+  Echo-types audit: NOT-RELEVANT (axis-4 surface vs axis-3 modality). **M1.1b ✓ (2026-06-14):**
+  a me-level typing judgement `me_wt` with `me_wt_sound : me_wt G D e a → has_type G D (elab e) a`
+  (axiom-free) makes the linear-USE constructs (`MeVar`/`MeLet`/`MeUsePair`) UNIVERSAL, plus the
+  faithful conditional `MeIf → Case` (the paper IfBlock = sum ELIM); corollaries `me_wt_check` /
+  `me_wt_aff`. Only `MeSeq`-universal remains (its elaboration shifts under the discarded
+  Zero-binder, needing a `has_type` weakening lemma).
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without

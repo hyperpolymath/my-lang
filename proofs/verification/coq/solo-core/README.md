@@ -48,8 +48,12 @@ visual `me` surface (`proofs/me/`) as a Coq `me_tm` with
 `elab : me_tm → tm` into this core: M1.0 gives `check`-executed
 `Example` witnesses and M1.1 the universal, axiom-free Visual-Soundness
 theorem `elab_data_check` (with `elab_data_typed` / `elab_data_aff_budget`)
-for the no-linear-use fragment — the first mechanised surface→core
-elaboration in either sibling. The authoritative state is
+for the no-linear-use fragment, and M1.1b a me typing judgement `me_wt`
+with `me_wt_sound : me_wt G D e a → has_type G D (elab e) a` (axiom-free)
+covering the linear-use constructs (token-consume / `MeLet` / pair-split)
+and the faithful conditional `MeIf → Case` universally — the first
+mechanised surface→core elaboration in either sibling. The authoritative
+state is
 `proofs/STATUS.md`.
 
 ## Building

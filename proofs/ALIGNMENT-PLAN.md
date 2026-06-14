@@ -137,8 +137,11 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   `elab_data_typed` / `elab_data_aff_budget`. This is the first
   mechanised surface→core elaboration-correctness result in either
   sibling and a clean **overtake** — AffineScript is solo-only with no
-  `me`-like dialect and nothing analogous as surveyed (AS@main 2026-06-02). **M1.1b** (the
-  linear-USE constructs, needing a `check`-weakening lemma) remains open.
+  `me`-like dialect and nothing analogous as surveyed (AS@main 2026-06-02). **M1.1b** (done,
+  2026-06-14) adds a me-level typing judgement `me_wt` with `me_wt_sound : me_wt G D e a →
+  has_type G D (elab e) a` (axiom-free), making the linear-USE constructs (`MeVar`/`MeLet`/
+  `MeUsePair`) and the faithful conditional `MeIf → Case` UNIVERSAL; only `MeSeq`-universal
+  (needing a `has_type` weakening lemma) remains.
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
