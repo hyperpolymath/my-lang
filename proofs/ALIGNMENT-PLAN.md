@@ -195,10 +195,20 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   different-payload choice is a SAFE protocol plain merge rejects). Fences: projection
   EXISTENCE only (no n-party safety); plain (not full-union) merge; μ unpruned; the general
   `two_party → projectable_wf` NOT proved (it is false — n=2 collapse witnessed by example);
-  no n-party config / operational semantics. **Remaining:** μ typing/SR up-to-unfolding
-  (**S1.3b-meta**, deferred — needs a `PT_Unfold` rule + soundness); static n-party config
-  tuple (**S3b**); full-union merge + n-party SR/progress/coherence (**S3c** — where "duet"
-  stops and "ensemble" begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
+  no n-party config / operational semantics.
+  **S3b done (2026-06-14):** the first static n-party *configuration* form — `role_assignment :=
+  list (role*party)` + the In-based `wf_assignment G ra` (every listed endpoint typed at its role's
+  projection; a plain `Definition`, NOT nth/length, NOT a Fixpoint/Inductive), with the binary
+  `Conf`/`wf_config` recovered as the **n=2 slice** (`conf_is_role_assignment2`, reusing
+  `projected_config_wf`) + the converse embed `role_assignment2_of_conf`, an n=3 non-`Conf` static
+  witness over `g_ring` (`wf_ra_ring`), and honesty witnesses (duplicate-key tolerance;
+  `projectable_but_uncoverable` — `GVar`/`SVar` uninhabited by closed parties) that fence out
+  functionality and a general coverage theorem. Fences: STATIC only (no `cstep`/no n-party
+  operational metatheory = S3c), `wf_assignment` = typed-at-projection NOT n-party safety, plain
+  (not union) merge + unpruned μ inherited, `role_assignment` is an association list (no map/coverage
+  claim). **Remaining:** μ typing/SR up-to-unfolding (**S1.3b-meta**, deferred — needs a `PT_Unfold`
+  rule + soundness); full-union merge + n-party SR/progress/coherence (**S3c** — where "duet" stops
+  and "ensemble" begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a

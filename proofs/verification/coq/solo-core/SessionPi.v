@@ -1943,3 +1943,217 @@ Proof.
     destruct (Hm 2 ltac:(congruence) ltac:(congruence)) as [s Hs] end.
   cbn in Hs. discriminate.
 Qed.
+
+(* ============================================================ *)
+(* S3b — STATIC n-party CONFIGURATION (axis-2 STRUCTURE).        *)
+(*                                                              *)
+(* The FIRST n-party CONFIGURATION form: a static role->endpoint *)
+(* assignment.  S3a gave projection TOTALITY (the type side is   *)
+(* defined on every role); S3b gives the CONTAINER (an actual    *)
+(* assembly of endpoint PROCESSES).  There is NO operational     *)
+(* semantics here — the dynamics over an n-party assembly is S3c.*)
+(*                                                              *)
+(* FENCES (each literally true vs the code):                    *)
+(*  (1) wf_assignment asserts ONLY that every LISTED endpoint   *)
+(*      is typed at G's projection on its role.  It does NOT     *)
+(*      assert n-party safety: no n-party subject reduction, no  *)
+(*      n-party progress, no n-party fidelity, no deadlock-      *)
+(*      freedom for n>=3, and no global compatibility / coherence*)
+(*      among the listed endpoints.  (Despite the wf_ prefix —   *)
+(*      same convention as projectable_wf: existence / typing,   *)
+(*      NOT safety.)                                            *)
+(*  (2) conf_is_role_assignment2 recovers the binary Conf /      *)
+(*      wf_config as the n=2 INSTANCE; it still requires         *)
+(*      two_party p q G and p<>q, so it fires only on binary     *)
+(*      choreographies.  A SLICE, NOT a general n->2 collapse,   *)
+(*      transporting NO metatheory to n>=3.  The only            *)
+(*      operational metatheory reached is the BINARY             *)
+(*      config_subject_reduction, only via projected_config_wf   *)
+(*      inside the n=2 collapse, never over the n-ary list.      *)
+(*  (3) STATIC only: NO cstep / no n-party operational semantics *)
+(*      / no n-party metatheory in this rung (= S3c).  'config'  *)
+(*      here = a static role->endpoint assignment, never an      *)
+(*      operationally-stepping system.                          *)
+(*  (4) The uninvolved-role merge is the PLAIN / identity-meet   *)
+(*      merge inherited from S2.2/S3a (NOT label-UNION).  Since  *)
+(*      wf_assignment ranges only over roles whose proj is Some, *)
+(*      g_excluded-class (same-direction different-payload)      *)
+(*      protocols are silently excluded (their proj is None, so  *)
+(*      the exists-clause is unprovable).  Full-union = S3c.     *)
+(*  (5) mu is UNPRUNED (S2.2 fence b / S3a fence 3 inherited).   *)
+(*      Combined with (1), an open GVar / GMu role projects to   *)
+(*      an SVar / SMu type that NO closed party inhabits — so    *)
+(*      there is NO general 'projectable_wf G -> exists covering *)
+(*      wf_assignment' theorem (it is FALSE — witnessed by       *)
+(*      projectable_but_uncoverable).  Coverage / inhabitation   *)
+(*      is witnessed BY EXAMPLE only.                            *)
+(*  (6) role_assignment is an association LIST, NOT a verified    *)
+(*      map: the obligation is POINTWISE via In (NOT nth / NOT   *)
+(*      length), is DUPLICATE-TOLERANT (witnessed:               *)
+(*      wf_assignment_admits_duplicate_keys), and is vacuously   *)
+(*      true on []; non-vacuity is carried by the non-empty      *)
+(*      g_ring witness.  ra_get is a convenience whose only      *)
+(*      sanctioned bridge to truth is ra_get_in.  No coverage    *)
+(*      of all of G's roles is claimed.                          *)
+(*  (7) The S3a-trap analogue is avoided BY EXAMPLE, not by a    *)
+(*      false theorem: NO 'wf_assignment -> (any global safety)' *)
+(*      and NO uniqueness / functionality theorem is stated —    *)
+(*      both are refuted by the witnesses below.                *)
+(*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE — the       *)
+(*  assignment layer emits no obligation / residue / attestation)*)
+(* ============================================================ *)
+
+(* A finite map role -> endpoint process, as an association list. *)
+Definition role_assignment := list (role * party).
+
+(* wf_assignment G ra : every listed endpoint is typed at G's     *)
+(* projection on its role.  RELATIONAL, via In-membership.  This  *)
+(* asserts ONLY per-endpoint local typing-at-projection; it does  *)
+(* NOT assert n-party safety / progress / subject reduction.  A   *)
+(* plain Definition over a Prop: NOT a Fixpoint (it would have to *)
+(* decide pty, an undecidable Inductive Prop) and NOT an Inductive*)
+(* (a derived In-obligation is cleaner and needs no Scheme), so   *)
+(* the S1.3a list-mutual guard/positivity wall does not apply.    *)
+Definition wf_assignment (G : gty) (ra : role_assignment) : Prop :=
+  forall r P, In (r, P) ra ->
+    exists s, proj G r = Some s /\ pty [] P s.
+
+(* KEYSTONE — the n=2 INSTANCE: the binary Conf / wf_config is    *)
+(* recovered from a two_party choreography + p<>q + the two role  *)
+(* entries in a wf_assignment, reusing projected_config_wf.  The  *)
+(* two destructs yield the SAME sp / sq that feed                 *)
+(* projected_config_wf, which re-derives sq = dual sp internally  *)
+(* (proj_q_dual_p_some) — no duality re-asserted, no mismatch.    *)
+Theorem conf_is_role_assignment2 :
+  forall p q G P Q ra,
+    p <> q -> two_party p q G ->
+    In (p, P) ra -> In (q, Q) ra ->
+    wf_assignment G ra ->
+    wf_config (Conf P Q).
+Proof.
+  intros p q G P Q ra Hpq Htp HinP HinQ Hwf.
+  destruct (Hwf p P HinP) as [sp [Hpp Htp_p]].
+  destruct (Hwf q Q HinQ) as [sq [Hpq2 Htp_q]].
+  apply (projected_config_wf p q G P Q sp sq Hpq Htp Hpp Hpq2 Htp_p Htp_q).
+Qed.
+
+(* CONVERSE embed: from the binary data, build a 2-element         *)
+(* wf_assignment.  p<>q is NOT needed (In is duplicate-tolerant —  *)
+(* the two clauses are independent).  Together with the keystone   *)
+(* this makes the binary metatheory exactly the n=2 SLICE.         *)
+Theorem role_assignment2_of_conf :
+  forall p q G P Q sp sq,
+    proj G p = Some sp -> proj G q = Some sq ->
+    pty [] P sp -> pty [] Q sq ->
+    wf_assignment G [(p, P); (q, Q)].
+Proof.
+  intros p q G P Q sp sq Hpp Hqq HP HQ.
+  intros r R Hin. cbn [In] in Hin.
+  destruct Hin as [E | [E | F]].
+  - injection E as Er ER. subst r R. exists sp. split; assumption.
+  - injection E as Er ER. subst r R. exists sq. split; assumption.
+  - contradiction.
+Qed.
+
+(* ---- functional lookup, related to In WITHOUT no-duplicates ---- *)
+Fixpoint ra_get (ra : role_assignment) (r : role) : option party :=
+  match ra with
+  | [] => None
+  | (r', P) :: rest => if Nat.eqb r r' then Some P else ra_get rest r
+  end.
+
+(* ra_get found => In.  (No duplicate-freeness required.)  This is *)
+(* the ONLY sanctioned bridge from the convenience lookup to truth.*)
+Lemma ra_get_in : forall ra r P,
+  ra_get ra r = Some P -> In (r, P) ra.
+Proof.
+  induction ra as [| [r' P'] rest IH]; intros r P H.
+  - cbn in H. discriminate.
+  - cbn in H. destruct (Nat.eqb r r') eqn:E.
+    + apply Nat.eqb_eq in E. subst r'. injection H as H. subst P'. left. reflexivity.
+    + right. apply IH. exact H.
+Qed.
+
+(* Well-formedness transfers to any successful lookup. *)
+Lemma wf_assignment_get : forall G ra r P,
+  wf_assignment G ra -> ra_get ra r = Some P ->
+  exists s, proj G r = Some s /\ pty [] P s.
+Proof.
+  intros G ra r P Hwf Hget.
+  apply Hwf. apply ra_get_in. exact Hget.
+Qed.
+
+(* ---- n=3 witnesses: genuine 3-party static configs ---- *)
+(* Endpoints for the g_ring roles, typed at the ring projections. *)
+Definition ring_P0 : party := QSend (VNat 1) (QRecv QEnd).  (* !Nat.?Nat.end *)
+Definition ring_P1 : party := QRecv (QSend (VNat 2) QEnd).  (* ?Nat.!Nat.end *)
+Definition ring_P2 : party := QRecv (QSend (VNat 3) QEnd).  (* ?Nat.!Nat.end *)
+
+Definition ra_ring : role_assignment := [(0, ring_P0); (1, ring_P1); (2, ring_P2)].
+
+Example ring_P0_typed : pty [] ring_P0 (SSend VTNat (SRecv VTNat SEnd)).
+Proof. apply PT_Send; [ apply VT_Nat | apply PT_Recv; apply PT_End ]. Qed.
+
+Example proj_ring_1 : proj g_ring 1 = Some (SRecv VTNat (SSend VTNat SEnd)).
+Proof. reflexivity. Qed.
+(* role 2: receives Nat from 1, then sends Nat to 0 (GMsg 2 0). *)
+Example proj_ring_2 : proj g_ring 2 = Some (SRecv VTNat (SSend VTNat SEnd)).
+Proof. reflexivity. Qed.
+
+(* A genuine 3-party STATIC config: every role's endpoint typed   *)
+(* at its projection of g_ring.  Three In-cases + the [] tail.    *)
+Example wf_ra_ring : wf_assignment g_ring ra_ring.
+Proof.
+  intros r P Hin. cbn [In ra_ring] in Hin.
+  destruct Hin as [E | [E | [E | F]]].
+  - injection E as Er EP. subst r P. exists (SSend VTNat (SRecv VTNat SEnd)).
+    split; [ reflexivity | apply ring_P0_typed ].
+  - injection E as Er EP. subst r P. exists (SRecv VTNat (SSend VTNat SEnd)).
+    split; [ reflexivity | apply PT_Recv; apply PT_Send; [ apply VT_Nat | apply PT_End ] ].
+  - injection E as Er EP. subst r P. exists (SRecv VTNat (SSend VTNat SEnd)).
+    split; [ reflexivity | apply PT_Recv; apply PT_Send; [ apply VT_Nat | apply PT_End ] ].
+  - contradiction.
+Qed.
+
+(* This 3-party config is NOT a single Conf: it has three roles,  *)
+(* and g_ring is provably not two_party 0 1 (g_ring_not_two_party)*)
+(* — shown BY EXAMPLE (length + the existing refutation), never   *)
+(* via an over-conditioned 'wf with >2 entries -> not two_party'. *)
+Example ra_ring_three_entries : length ra_ring = 3.
+Proof. reflexivity. Qed.
+
+(* ---- honesty witnesses: the soundness boundary, by example ---- *)
+
+(* wf_assignment is DUPLICATE-TOLERANT (In, not a map): two        *)
+(* DISTINCT endpoints at role 0, both typed at proj gpingpong 0.   *)
+(* Ship this REFUTATION instead of any (false) functionality /     *)
+(* config-determined-by-G theorem.                                 *)
+Example wf_assignment_admits_duplicate_keys :
+  wf_assignment gpingpong [(0, QSend (VNat 7) QEnd); (0, QSend (VNat 9) QEnd)]
+  /\ QSend (VNat 7) QEnd <> QSend (VNat 9) QEnd.
+Proof.
+  split.
+  - intros r P Hin. cbn [In] in Hin. destruct Hin as [E | [E | F]].
+    + injection E as Er EP. subst r P. exists (SSend VTNat SEnd).
+      split; [ reflexivity | apply PT_Send; [ apply VT_Nat | apply PT_End ] ].
+    + injection E as Er EP. subst r P. exists (SSend VTNat SEnd).
+      split; [ reflexivity | apply PT_Send; [ apply VT_Nat | apply PT_End ] ].
+    + contradiction.
+  - intro E. injection E as E. discriminate.
+Qed.
+
+(* The S3a-trap analogue, refuted: projectable does NOT imply      *)
+(* coverable.  GVar 3 is projectable_wf, yet proj (GVar 3) 0 =     *)
+(* Some (SVar 3), and NO closed party inhabits SVar n.  Ship this, *)
+(* NOT a general 'projectable_wf G -> exists covering ra'.         *)
+Lemma svar_uninhabited : forall P n, ~ pty [] P (SVar n).
+Proof. intros P n H. inversion H. Qed.
+
+Example projectable_but_uncoverable :
+  projectable_wf (GVar 3) /\ proj (GVar 3) 0 = Some (SVar 3)
+  /\ (forall P, ~ pty [] P (SVar 3)).
+Proof.
+  split; [ apply PW_Var | ].
+  split; [ reflexivity | ].
+  intro P. apply svar_uninhabited.
+Qed.

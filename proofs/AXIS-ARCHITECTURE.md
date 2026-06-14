@@ -138,7 +138,9 @@ my-lang is parametric over **both**, and identifies **neither**.
       proj + merge/merge_idem, option-form
       duality; S3a ✓ n≥3 projection_total
       (projectable_wf, first n-party theorem);
-      all axiom-free. S3b config/S3c union = open)
+      S3b ✓ static n-party config (role_assignment,
+      wf_assignment, conf_is_role_assignment2);
+      all axiom-free. S3c union/operational = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -333,6 +335,25 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   admits empty choices + μ-divergent branches that break the absent-role merge) — n=2 collapse
   witnessed BY EXAMPLE (`projectable_gpingpong`); (5) no n-party config / operational semantics —
   static role-assignment tuple (**S3b**) and full-union merge + n-party metatheory (**S3c**) deferred.
+  **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
+- **S3b DONE — static n-party configuration, axiom-free 2026-06-14.** The FIRST n-party
+  *configuration* form: a STATIC role→endpoint assignment with no operational semantics (S3a gave
+  projection totality on the type side; S3b gives the container of endpoint *processes*).
+  `role_assignment := list (role * party)`; **`wf_assignment G ra`** — a plain `Definition` over a
+  `Prop`, In-based (NOT nth/length, NOT a Fixpoint/Inductive, so the S1.3a guard/positivity wall is
+  sidestepped) — asserts ONLY that every listed `(r,P)` is typed at `G`'s projection on `r`. Keystone
+  **`conf_is_role_assignment2`**: the binary `Conf`/`wf_config` is the n=2 INSTANCE (from
+  `two_party p q G` + `p≠q` + the two entries, via `projected_config_wf`), with the converse embed
+  `role_assignment2_of_conf` and the lookup bridge `ra_get`/`ra_get_in`/`wf_assignment_get`.
+  Non-vacuity at n=3 by `wf_ra_ring` over `g_ring` (concrete closed endpoints; NOT a single `Conf` —
+  `length = 3` + `g_ring_not_two_party`, BY EXAMPLE). Honesty witnesses pin the boundary: duplicate-key
+  tolerance (no functionality theorem) and `projectable_but_uncoverable` (`GVar 3` is `projectable_wf`
+  yet `proj … = Some (SVar 3)` is uninhabited by any closed party via `svar_uninhabited` → NO general
+  "projectable ⇒ coverable"). **Honest scope:** `wf_assignment` = typed-at-projection, **NOT** n-party
+  safety (no SR/progress/fidelity/coherence); the n=2 recovery is a SLICE not an n→2 collapse; STATIC
+  only; plain (not union) merge + unpruned μ inherited; `role_assignment` is an association list, not a
+  verified map (duplicate-tolerant, vacuous on `[]`). Deferred to **S3c**: n-party operational
+  semantics, n-party SR/progress/fidelity, full-union merge + coherence.
   **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)

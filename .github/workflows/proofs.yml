@@ -170,6 +170,29 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S3b static n-party configuration is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3b (axis-2 STRUCTURE): the FIRST n-party CONFIGURATION form,
+          # STATIC (no operational semantics). wf_assignment G ra = every
+          # listed endpoint typed at its role's projection (In-based plain
+          # Definition). The binary Conf is recovered as the n=2 INSTANCE via
+          # conf_is_role_assignment2 (reusing projected_config_wf), with the
+          # converse embed + lookup bridge. Non-vacuity at n=3 by wf_ra_ring
+          # over g_ring. Honesty witnesses fence out functionality (duplicate
+          # keys) and a general coverage theorem (projectable_but_uncoverable
+          # — GVar/SVar uninhabited by closed parties). All bare global ctx.
+          for thm in conf_is_role_assignment2 role_assignment2_of_conf \
+                     ra_get_in wf_assignment_get \
+                     wf_ra_ring ra_ring_three_entries \
+                     wf_assignment_admits_duplicate_keys \
+                     svar_uninhabited projectable_but_uncoverable; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3b_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3b_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest
