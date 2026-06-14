@@ -2967,10 +2967,10 @@ Qed.
 (* (MeLet/MeUsePair/MeIf binders are consumed EXACTLY once,    *)
 (* q=One; MeVar spends [onehot]).                              *)
 (*                                                            *)
-(* MeSeq is the one omission: its elaboration shifts the body  *)
-(* under the discarded Zero-binder, so its universal adequacy  *)
-(* needs a has_type WEAKENING lemma (deferred). MeSeq stays    *)
-(* covered at the data fragment by elab_data_check.            *)
+(* MeSeq IS covered (MW_Seq): e1 is erased at multiplicity     *)
+(* Zero (the discard) and e2 is weakened under the discarded   *)
+(* binder by the existing ht_shift0 weakening lemma (F1.4). So *)
+(* me_wt now spans the WHOLE me_tm -- every constructor.       *)
 (* ========================================================== *)
 
 Inductive me_wt : tctx -> uvec -> me_tm -> ty -> Prop :=
@@ -3015,7 +3015,15 @@ Inductive me_wt : tctx -> uvec -> me_tm -> ty -> Prop :=
       me_wt G D (MeEcho a e) (TEcho Linear a a)
   | MW_Weaken : forall G D a b e,
       me_wt G D e (TEcho Linear a b) ->
-      me_wt G D (MeWeaken e) (TEcho Affine a b).
+      me_wt G D (MeWeaken e) (TEcho Affine a b)
+  (* V1 o V2: e1 is ERASED at multiplicity Zero (the discard — e1 must
+     still type-check, but its usage is scaled away), and e2 is typed in
+     the same G; the total usage is uadd (uscale Zero D1) D2 (= D2). *)
+  | MW_Seq : forall G D D1 D2 a b e1 e2,
+      me_wt G D1 e1 a ->
+      me_wt G D2 e2 b ->
+      uadd (uscale Quantity.Zero D1) D2 = Some D ->
+      me_wt G D (MeSeq e1 e2) b.
 
 (** [uscale One] is the identity, restated with the concrete [Quantity.One]
     so it rewrites against the elaboration's [Let Quantity.One ...]. *)
@@ -3039,6 +3047,10 @@ Proof.
   - eapply T_Case; [ eassumption | eassumption | eassumption | eassumption ].
   - apply T_Echo; assumption.
   - apply T_Weaken; assumption.
+  - (* MW_Seq — V1 o V2 -> Let Zero (elab e1) (shift 0 (elab e2)):
+       e1 erased at multiplicity Zero; e2 weakened under the discarded
+       binder by ht_shift0 (the F1.4 weakening lemma). *)
+    eapply T_Let; [ eassumption | apply ht_shift0; eassumption | eassumption ].
 Qed.
 
 (** Hence accepted by the verified usage-walk (via check_complete): the
@@ -3083,4 +3095,12 @@ Proof.
   - apply MW_Var. apply HVHere.
   - apply MW_Var. apply HVHere.
   - reflexivity.
+Qed.
+
+(* sequencing (V1 o V2): e1 erased at multiplicity Zero (the discard), e2
+   weakened under it -- now typed by me_wt, so me_wt spans the whole me_tm. *)
+Example me_wt_seq :
+  me_wt TEmpty UEmpty (MeSeq MeUnit MeUnit) TUnit.
+Proof.
+  eapply MW_Seq; [ apply MW_Unit | apply MW_Unit | reflexivity ].
 Qed.
