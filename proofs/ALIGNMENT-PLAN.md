@@ -140,8 +140,9 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   `me`-like dialect and nothing analogous as surveyed (AS@main 2026-06-02). **M1.1b** (done,
   2026-06-14) adds a me-level typing judgement `me_wt` with `me_wt_sound : me_wt G D e a →
   has_type G D (elab e) a` (axiom-free), making the linear-USE constructs (`MeVar`/`MeLet`/
-  `MeUsePair`) and the faithful conditional `MeIf → Case` UNIVERSAL; only `MeSeq`-universal
-  (needing a `has_type` weakening lemma) remains.
+  `MeUsePair`) and the faithful conditional `MeIf → Case` UNIVERSAL — including `MeSeq`
+  (closed via the F1.4 `ht_shift0` weakening lemma), so `me_wt` spans the whole `me_tm`. **M1
+  (axis-4 SURFACE) is complete.**
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
