@@ -128,6 +128,26 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S2.2 choice+recursion projection + merge are axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S2.2 (axis-2 STRUCTURE): global labelled CHOICE (GBra) + equi-
+          # recursive (GMu/GVar) global types projecting onto S1.3 local
+          # select/branch/mu. Projection is now PARTIAL (option sty); the
+          # uninvolved-role merge keystone (merge_idem), the option-form
+          # duality bridge (proj_q_dual_p_some), the choice + recursion
+          # duality witnesses (gchoice2_dual, grec_dual), and the B1
+          # None-propagation regression (proj_tail_conflict_none — a tail
+          # merge-conflict must yield None, not be erased to Some) must all
+          # rest on the bare global context.
+          for thm in merge_idem proj_q_dual_p_some \
+                     gchoice2_dual grec_dual proj_tail_conflict_none; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s22_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s22_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest

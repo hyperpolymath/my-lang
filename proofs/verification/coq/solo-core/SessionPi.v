@@ -909,36 +909,46 @@ Proof. apply config_progress. apply wf_choice_config. Qed.
 (*   deadlock-freedom (projected_config_progress). This          *)
 (*   INSTANTIATES the duet thesis on two-party choreographies;   *)
 (*   it does NOT establish a general n-party -> 2-party result.  *)
-(* GLOBAL-TYPE LANGUAGE. Message-passing + end ONLY              *)
-(*   (GMsg p q t G | GEnd). [role := nat] so the uninvolved-     *)
-(*   party branch  G|>r = G'|>r  is SYNTACTICALLY reachable, but *)
-(*   NO theorem quantifies over a genuine n>=3 system: every     *)
-(*   theorem's [two_party] hypothesis re-collapses the nat role  *)
-(*   space to {p,q}, under which the uninvolved branch is DEAD.  *)
-(* THE 3 PROJECTION EQUATIONS. All three are DEFINED in [proj].  *)
-(*   Cases 1-2 (r=p send, r=q recv) are LOAD-BEARING in          *)
-(*   projection_duality. Case 3 (uninvolved r) is exercised by   *)
-(*   executable witnesses (a 3-party gty projected on each role) *)
-(*   and is provably unreachable inside the theorems: all 3      *)
-(*   cases are defined-and-witnessed, NOT                        *)
-(*   all-three-verified-in-a-theorem.                            *)
-(* NO COHERENCE / NO MERGE. [proj] is TOTAL and trivial          *)
-(*   PRECISELY BECAUSE choice is out of scope: there is NO       *)
-(*   projectability side-condition, NO merge operator, and NO    *)
-(*   well-formedness predicate on [gty]. An arbitrary GMsg a b.. *)
-(*   with a,b outside {p,q} is a valid gty that NO theorem       *)
-(*   constrains. (Partiality re-enters with choice at S2.2.)     *)
+(* GLOBAL-TYPE LANGUAGE (S2.0 + S2.2). Message + end (GMsg|GEnd) *)
+(*   PLUS (S2.2) labelled choice GBra p q {l_i:G_i} and equi-    *)
+(*   recursive GMu/GVar. [role := nat] so uninvolved-party       *)
+(*   branches are SYNTACTICALLY reachable, but NO theorem        *)
+(*   quantifies over a genuine n>=3 system: every theorem's      *)
+(*   [two_party] hypothesis re-collapses the nat role space to   *)
+(*   {p,q}, under which every uninvolved branch is DEAD.         *)
+(* PROJECTION EQUATIONS. All are DEFINED in [proj] (send/recv,   *)
+(*   select/branch, mu/var, and the uninvolved passthru/merge).  *)
+(*   The p- and q-cases are LOAD-BEARING in projection_duality;  *)
+(*   the uninvolved cases are exercised by executable witnesses  *)
+(*   (3-party gty projected on each role) and are provably       *)
+(*   unreachable inside the theorems: defined-and-witnessed, NOT *)
+(*   all-verified-in-a-theorem.                                  *)
+(* COHERENCE / MERGE (S2.2, FENCED). With choice, [proj] is now  *)
+(*   PARTIAL (option sty): an uninvolved role merges the         *)
+(*   branches via [merge].  merge is the PLAIN / identity-MEET   *)
+(*   merge (keystone merge_idem) — NOT the full label-set-UNION  *)
+(*   merge; the n>=3 coherence/projection-EXISTENCE it unlocks   *)
+(*   is deferred to S3.  Still NO well-formedness predicate on   *)
+(*   [gty]; an arbitrary node with roles outside {p,q} is a      *)
+(*   valid gty that NO theorem constrains.                       *)
+(* MU PROJECTION (S2.2, FENCED). proj (GMu G) r = mu.(G|>r) is   *)
+(*   UNPRUNED: a non-participating role yields mu X.X, a non-    *)
+(*   contractive artefact (rejected by [guarded]/                *)
+(*   not_guarded_muvar), occurring only OUTSIDE the two_party    *)
+(*   {p,q} collapse (non-theorematic).  No witness displays it   *)
+(*   as a role's session type.  Participation-pruning deferred.  *)
 (* THE p<>q SIDE-CONDITION is load-bearing, not decorative: at   *)
 (*   p=q the duality theorem is FALSE (a self-send GMsg 0 0 t    *)
 (*   GEnd projects to SSend, whose dual is SRecv). p<>q is what  *)
 (*   puts self-communication (p->p) out of scope.                *)
-(* OUT (deferred). S2.2 hook: choice global types               *)
-(*   p->q:{l_i:G_i} (makes projection PARTIAL, needs a MERGE     *)
-(*   operator + select/branch in sty); mu a.G / a recursion     *)
-(*   (needs a guardedness side-condition) — both mirror S1.3.    *)
-(*   S3 hook: n>=3 coherence / merge / projection-EXISTENCE —    *)
-(*   the boundary where "duet" stops and "ensemble" begins. No   *)
-(*   payload-binding in global types (base value types only).    *)
+(* NO GLOBAL-LEVEL METATHEORY. Subject reduction / fidelity /    *)
+(*   progress are NOT re-proved for GBra/GMu at the global       *)
+(*   level; the duet-collapse bridge transports the BINARY       *)
+(*   metatheory only where BOTH projections are Some.            *)
+(* OUT (deferred). S3: n>=3 coherence / full-UNION merge /       *)
+(*   projection-EXISTENCE — the boundary where "duet" stops and  *)
+(*   "ensemble" begins.  S1.3b-meta: mu TYPING up-to-unfolding.  *)
+(*   No payload-binding in global types (base value types only). *)
 (* ECHO-TYPES AUDIT (performed, not assumed). Projection emits   *)
 (*   no obligation/residue/attestation; it is pure axis-2        *)
 (*   STRUCTURE. No axis-3 (L3 echo) obligation arises ->         *)
@@ -955,92 +965,317 @@ Proof. apply config_progress. apply wf_choice_config. Qed.
 (* only; no theorem quantifies over a genuine n-party system.    *)
 Definition role := nat.
 
-(* Global type (choreography), message-passing fragment:         *)
-(*   GMsg p q t G  ==  p -> q : t . G   (p sends a t to q, then G)*)
+(* Global type (choreography). S2.0 shipped the MESSAGE fragment;  *)
+(* S2.2 adds labelled CHOICE  p->q:{l_i:G_i}  (GBra, with a        *)
+(* DEDICATED mutual gbranch — NOT list, to keep the projection     *)
+(* fixpoints' guard checker happy: the S1.3a lesson) and equi-     *)
+(* recursive  mu X.G / X  (GMu / GVar, de Bruijn aligned with the  *)
+(* local SMu/SVar layer).                                          *)
+(*   GMsg p q t G  ==  p -> q : t . G        (p sends a t to q)    *)
+(*   GBra p q bs   ==  p -> q : {l_i : G_i}  (p picks a label)     *)
+(*   GMu  G        ==  mu X. G               (recursive protocol)  *)
+(*   GVar n        ==  X                     (recursion variable)  *)
 Inductive gty : Type :=
 | GEnd : gty
-| GMsg : role -> role -> vty -> gty -> gty.
+| GMsg : role -> role -> vty -> gty -> gty
+| GBra : role -> role -> gbranch -> gty
+| GMu  : gty -> gty
+| GVar : nat -> gty
+with gbranch : Type :=
+| GBnil  : gbranch
+| GBcons : nat -> gty -> gbranch -> gbranch.
 
-(* Projection  G|>r  (formal-system.md:250-252), all three cases:*)
-(*   (p->q:t.G)|>p = !t.(G|>p)   sender   -> SSend                *)
-(*   (p->q:t.G)|>q = ?t.(G|>q)   receiver -> SRecv                *)
-(*   (p->q:t.G)|>r = G|>r        uninvolved (r<>p,q) -> passthru  *)
-Fixpoint proj (G : gty) (r : role) : sty :=
-  match G with
-  | GEnd          => SEnd
-  | GMsg p q t G' =>
-      if Nat.eqb r p then SSend t (proj G' r)
-      else if Nat.eqb r q then SRecv t (proj G' r)
-      else proj G' r
+(* ---- merge: the uninvolved-role projection's combinator ----    *)
+(* Decidable payload equality, to reject mismatched message        *)
+(* payloads inside merge.                                          *)
+Definition vty_eqb (a b : vty) : bool :=
+  match a, b with
+  | VTUnit, VTUnit => true
+  | VTBool, VTBool => true
+  | VTNat , VTNat  => true
+  | _, _ => false
+  end.
+Lemma vty_eqb_refl : forall t, vty_eqb t t = true.
+Proof. destruct t; reflexivity. Qed.
+
+(* [merge s1 s2] : the local type a role uninvolved in a choice    *)
+(* must follow when the choice's branches demand s1 vs s2.         *)
+(*                                                                 *)
+(* FENCE (honest scope — the "merge" name is only PARTIALLY        *)
+(* earned).  This is the PLAIN / identity-MEET merge.  On the      *)
+(* message fragment (SEnd/SSend/SRecv/SVar/SMu) it succeeds IFF    *)
+(* the two types are equal (merge s1 s2 = Some s -> s1 = s2 = s);  *)
+(* the only structural give is that branch CONTINUATIONS merge     *)
+(* pointwise under IDENTICAL label structure.  It is NOT the full  *)
+(* label-set-UNION merge of Honda-Yoshida-Carbone (where a merged  *)
+(* role may offer the UNION of the branches' labels); that, and    *)
+(* the n>=3 coherence it unlocks, is deferred to S3.  merge        *)
+(* recurses STRUCTURALLY on s1 (principal arg); it NEVER unfolds   *)
+(* an SMu — that would break the guard — it recurses on the body.  *)
+Fixpoint merge (s1 s2 : sty) {struct s1} : option sty :=
+  match s1, s2 with
+  | SEnd, SEnd => Some SEnd
+  | SSend t1 k1, SSend t2 k2 =>
+      if vty_eqb t1 t2
+      then match merge k1 k2 with Some k => Some (SSend t1 k) | None => None end
+      else None
+  | SRecv t1 k1, SRecv t2 k2 =>
+      if vty_eqb t1 t2
+      then match merge k1 k2 with Some k => Some (SRecv t1 k) | None => None end
+      else None
+  | SSelect b1, SSelect b2 =>
+      match merge_br b1 b2 with Some b => Some (SSelect b) | None => None end
+  | SBranch b1, SBranch b2 =>
+      match merge_br b1 b2 with Some b => Some (SBranch b) | None => None end
+  | SVar n1, SVar n2 => if Nat.eqb n1 n2 then Some (SVar n1) else None
+  | SMu a1, SMu a2 =>
+      match merge a1 a2 with Some a => Some (SMu a) | None => None end
+  | _, _ => None
+  end
+with merge_br (b1 b2 : sbranch) {struct b1} : option sbranch :=
+  match b1, b2 with
+  | SBnil, SBnil => Some SBnil
+  | SBcons l1 s1 r1, SBcons l2 s2 r2 =>
+      if Nat.eqb l1 l2
+      then match merge s1 s2, merge_br r1 r2 with
+           | Some s, Some r => Some (SBcons l1 s r)
+           | _, _ => None
+           end
+      else None
+  | _, _ => None
   end.
 
-(* [two_party p q G] : every message in G is between exactly the *)
-(* fixed pair p,q (in either direction). NB it does NOT by       *)
-(* itself entail p<>q (TP_PQ/TP_QP coincide and admit a self-    *)
-(* send when p=q); distinctness is carried as a theorem          *)
-(* hypothesis where needed — see the p<>q fence note.            *)
+(* Mutual induction principle over the local types, for merge_idem.*)
+Scheme sty_mut := Induction for sty Sort Prop
+  with sbranch_mut := Induction for sbranch Sort Prop.
+
+(* merge KEYSTONE: merge is reflexive — every type merges with     *)
+(* itself, to itself.  This is exactly what makes an uninvolved    *)
+(* role's projection DEFINED whenever the choice's branches AGREE  *)
+(* on that role (the plain-merge projectability condition).        *)
+Lemma merge_idem : forall s, merge s s = Some s.
+Proof.
+  intro s.
+  induction s using sty_mut
+    with (P0 := fun bs => merge_br bs bs = Some bs); simpl; try reflexivity.
+  - (* SSend   *) rewrite vty_eqb_refl, IHs. reflexivity.
+  - (* SRecv   *) rewrite vty_eqb_refl, IHs. reflexivity.
+  - (* SSelect *) rewrite IHs. reflexivity.
+  - (* SBranch *) rewrite IHs. reflexivity.
+  - (* SVar    *) rewrite Nat.eqb_refl. reflexivity.
+  - (* SMu     *) rewrite IHs. reflexivity.
+  - (* SBcons  *) rewrite Nat.eqb_refl, IHs, IHs0. reflexivity.
+Qed.
+
+(* Projection  G|>r, now PARTIAL (option sty): an uninvolved role  *)
+(* must MERGE the choice branches, which can fail.  Three-way      *)
+(* mutual (proj / proj_br / proj_uninv), all structural on the     *)
+(* gty/gbranch tree.                                               *)
+(*   (p->q:t.G)|>p     = !t.(G|>p)            sender   -> SSend     *)
+(*   (p->q:t.G)|>q     = ?t.(G|>q)            receiver -> SRecv     *)
+(*   (p->q:t.G)|>r     = G|>r                 uninvolved passthru   *)
+(*   (p->q:{l:G})|>p   = +{l:(G|>p)}          sender   -> SSelect   *)
+(*   (p->q:{l:G})|>q   = &{l:(G|>q)}          receiver -> SBranch   *)
+(*   (p->q:{l:G})|>r   = merge_i (G_i|>r)     uninvolved -> MERGE   *)
+(*   (mu X.G)|>r       = mu X.(G|>r)          (UNPRUNED — fence b)  *)
+(*   X|>r              = X                                          *)
+(* proj_uninv folds the branches with merge; EMPTY = None, the     *)
+(* SINGLETON case is the body alone, and ANY None (unprojectable   *)
+(* body OR a merge conflict, including a TAIL conflict) propagates  *)
+(* — never silently erased (the S2.2 panel's None-erasure fix).    *)
+Fixpoint proj (G : gty) (r : role) {struct G} : option sty :=
+  match G with
+  | GEnd          => Some SEnd
+  | GMsg p q t G' =>
+      if Nat.eqb r p then option_map (SSend t) (proj G' r)
+      else if Nat.eqb r q then option_map (SRecv t) (proj G' r)
+      else proj G' r
+  | GBra p q bs   =>
+      if Nat.eqb r p then option_map SSelect (proj_br bs r)
+      else if Nat.eqb r q then option_map SBranch (proj_br bs r)
+      else proj_uninv bs r
+  | GMu G'        => option_map SMu (proj G' r)
+  | GVar n        => Some (SVar n)
+  end
+with proj_br (bs : gbranch) (r : role) {struct bs} : option sbranch :=
+  match bs with
+  | GBnil           => Some SBnil
+  | GBcons l G rest =>
+      match proj G r, proj_br rest r with
+      | Some s, Some sb => Some (SBcons l s sb)
+      | _, _ => None
+      end
+  end
+with proj_uninv (bs : gbranch) (r : role) {struct bs} : option sty :=
+  match bs with
+  | GBnil           => None
+  | GBcons l G rest =>
+      match rest with
+      | GBnil => proj G r
+      | _     => match proj G r, proj_uninv rest r with
+                 | Some s, Some s' => merge s s'
+                 | _, _ => None
+                 end
+      end
+  end.
+
+(* [two_party p q G] : every message/choice node in G is between *)
+(* exactly the fixed pair p,q (either direction). The binary      *)
+(* restriction is enforced at EVERY GMsg/GBra node (branches via  *)
+(* the mutual two_party_br); GVar/GMu carry it transparently — a  *)
+(* third role is unrepresentable except at a message/choice node. *)
+(* NB it does NOT by itself entail p<>q (TP_PQ/TP_QP coincide and *)
+(* admit a self-send when p=q); distinctness is carried as a      *)
+(* theorem hypothesis where needed — see the p<>q fence note.     *)
 Inductive two_party (p q : role) : gty -> Prop :=
-| TP_End : two_party p q GEnd
-| TP_PQ  : forall t G, two_party p q G -> two_party p q (GMsg p q t G)
-| TP_QP  : forall t G, two_party p q G -> two_party p q (GMsg q p t G).
+| TP_End   : two_party p q GEnd
+| TP_PQ    : forall t G, two_party p q G -> two_party p q (GMsg p q t G)
+| TP_QP    : forall t G, two_party p q G -> two_party p q (GMsg q p t G)
+| TP_BraPQ : forall bs, two_party_br p q bs -> two_party p q (GBra p q bs)
+| TP_BraQP : forall bs, two_party_br p q bs -> two_party p q (GBra q p bs)
+| TP_Mu    : forall G, two_party p q G -> two_party p q (GMu G)
+| TP_Var   : forall n, two_party p q (GVar n)
+with two_party_br (p q : role) : gbranch -> Prop :=
+| TPB_nil  : two_party_br p q GBnil
+| TPB_cons : forall l G rest,
+    two_party p q G -> two_party_br p q rest ->
+    two_party_br p q (GBcons l G rest).
+
+(* Mutual induction principle: the GBra duality case needs the    *)
+(* per-branch (P0) motive AND the head/rest IHs.                  *)
+Scheme two_party_mut := Induction for two_party Sort Prop
+  with two_party_br_mut := Induction for two_party_br Sort Prop.
 
 (* ================= S2.1: projection duality + bridge ======== *)
 
-(* The duet collapse: a two-party choreography projects onto its *)
-(* two roles to give DUAL binary local types. Induction is on    *)
-(* the [two_party] DERIVATION (not on gty) — that hands back the *)
-(* IH on the SAME role r, so it applies directly. The p<>q       *)
-(* hypothesis is load-bearing: it is what makes the receiver's   *)
-(* (q =? p) test false in the TP_PQ case (and symmetrically).    *)
+(* option_map glue: dual passes through each projection wrapper.   *)
+(* Each is one [destruct] — they let every duality case collapse   *)
+(* to the IH after a single rewrite (the option-form enabler).     *)
+Lemma option_map_dual_SSend : forall t y,
+  option_map (SSend t) (option_map dual y)
+  = option_map dual (option_map (SRecv t) y).
+Proof. intros t [s|]; reflexivity. Qed.
+
+Lemma option_map_dual_SRecv : forall t y,
+  option_map (SRecv t) (option_map dual y)
+  = option_map dual (option_map (SSend t) y).
+Proof. intros t [s|]; reflexivity. Qed.
+
+Lemma option_map_dual_SSelect : forall y,
+  option_map SSelect (option_map dual_br y)
+  = option_map dual (option_map SBranch y).
+Proof. intros [b|]; reflexivity. Qed.
+
+Lemma option_map_dual_SBranch : forall y,
+  option_map SBranch (option_map dual_br y)
+  = option_map dual (option_map SSelect y).
+Proof. intros [b|]; reflexivity. Qed.
+
+Lemma option_map_dual_SMu : forall y,
+  option_map SMu (option_map dual y) = option_map dual (option_map SMu y).
+Proof. intros [s|]; reflexivity. Qed.
+
+(* The duet collapse (S2.0 + S2.2): a two-party choreography       *)
+(* projects onto its two roles to give DUAL local types. Now       *)
+(* OPTION-valued (projection is partial), so duality is stated     *)
+(* with option_map; both projections are in fact Some on the       *)
+(* two-party fragment, but the total statement is cleaner and      *)
+(* makes each case  option_map f (proj ..) = option_map g (proj..) *)
+(* collapse to the IH.  Induction is on the [two_party] DERIVATION *)
+(* via the MUTUAL scheme (the GBra case needs the per-branch P0    *)
+(* motive proj_br p = option_map dual_br (proj_br q)).  The p<>q    *)
+(* hypothesis is load-bearing: it makes the receiver's (q =? p)    *)
+(* test false at every GMsg/GBra node.  GMu uses only structural   *)
+(* dual(SMu x)=SMu(dual x) — NOT dual_unfold.                       *)
 Theorem projection_duality :
-  forall p q G, p <> q -> two_party p q G -> proj G p = dual (proj G q).
+  forall p q G, p <> q -> two_party p q G ->
+    proj G p = option_map dual (proj G q).
 Proof.
   intros p q G Hpq Htp.
-  induction Htp as [ | t G' Htp' IH | t G' Htp' IH ].
+  induction Htp as
+    [ | t G0 Hsub IH | t G0 Hsub IH | bs Hsub IHbr | bs Hsub IHbr
+    | G0 Hsub IH | n | | l G0 rest Hsg IHg Hsr IHr ]
+    using two_party_mut
+    with (P0 := fun bs (_ : two_party_br p q bs) =>
+                  proj_br bs p = option_map dual_br (proj_br bs q)).
   - (* TP_End *) reflexivity.
-  - (* TP_PQ : node GMsg p q t G' *)
-    cbn [proj]. repeat rewrite Nat.eqb_refl.
+  - (* TP_PQ : node GMsg p q t G0 *)
     assert (Hqp : (q =? p) = false) by (apply Nat.eqb_neq; congruence).
-    rewrite Hqp. cbn. rewrite IH. reflexivity.
-  - (* TP_QP : node GMsg q p t G' *)
-    cbn [proj]. repeat rewrite Nat.eqb_refl.
+    cbn [proj]. rewrite Nat.eqb_refl, Hqp, Nat.eqb_refl. cbv beta iota.
+    rewrite IH. apply option_map_dual_SSend.
+  - (* TP_QP : node GMsg q p t G0 *)
     assert (Hpq' : (p =? q) = false) by (apply Nat.eqb_neq; exact Hpq).
-    rewrite Hpq'. cbn. rewrite IH. reflexivity.
+    cbn [proj]. rewrite Hpq', Nat.eqb_refl, Nat.eqb_refl. cbv beta iota.
+    rewrite IH. apply option_map_dual_SRecv.
+  - (* TP_BraPQ : node GBra p q bs *)
+    assert (Hqp : (q =? p) = false) by (apply Nat.eqb_neq; congruence).
+    cbn [proj]. rewrite Nat.eqb_refl, Hqp, Nat.eqb_refl. cbv beta iota.
+    rewrite IHbr. apply option_map_dual_SSelect.
+  - (* TP_BraQP : node GBra q p bs *)
+    assert (Hpq' : (p =? q) = false) by (apply Nat.eqb_neq; exact Hpq).
+    cbn [proj]. rewrite Hpq', Nat.eqb_refl, Nat.eqb_refl. cbv beta iota.
+    rewrite IHbr. apply option_map_dual_SBranch.
+  - (* TP_Mu : node GMu G0 *)
+    cbn [proj]. rewrite IH. apply option_map_dual_SMu.
+  - (* TP_Var : node GVar n *) reflexivity.
+  - (* TPB_nil *) reflexivity.
+  - (* TPB_cons : node GBcons l G0 rest *)
+    cbn [proj_br]. rewrite IHg, IHr.
+    destruct (proj G0 q) as [sq|], (proj_br rest q) as [sbq|]; reflexivity.
 Qed.
 
-(* Glue lemma (de-dup; consumed by the bridge + fidelity): the   *)
-(* q-projection is the dual of the p-projection.                 *)
+(* Glue lemma (option form): the q-projection is the dual of the *)
+(* p-projection.                                                 *)
 Lemma proj_q_dual_p :
-  forall p q G, p <> q -> two_party p q G -> proj G q = dual (proj G p).
+  forall p q G, p <> q -> two_party p q G ->
+    proj G q = option_map dual (proj G p).
 Proof.
   intros p q G Hpq Htp.
   rewrite (projection_duality p q G Hpq Htp).
-  rewrite dual_involutive. reflexivity.
+  destruct (proj G q) as [s|]; cbn [option_map].
+  - rewrite dual_involutive. reflexivity.
+  - reflexivity.
+Qed.
+
+(* Some-threaded helper (B8): the bridge + fidelity corollaries   *)
+(* consume the projections as concrete Some-values, so the dual   *)
+(* relation is funnelled through this single lemma to keep them   *)
+(* one-rewrite thin and drift-free.                               *)
+Lemma proj_q_dual_p_some :
+  forall p q G sp sq, p <> q -> two_party p q G ->
+    proj G p = Some sp -> proj G q = Some sq -> sq = dual sp.
+Proof.
+  intros p q G sp sq Hpq Htp Hp Hq.
+  pose proof (projection_duality p q G Hpq Htp) as Hd.
+  rewrite Hp, Hq in Hd. cbn [option_map] in Hd.
+  injection Hd as Hd. subst sp. rewrite dual_involutive. reflexivity.
 Qed.
 
 (* The bridge: a config built from the two role-projections is   *)
 (* well-formed in the fused two-party metatheory — well-formed   *)
-(* BY CONSTRUCTION, no separate duality obligation.              *)
+(* BY CONSTRUCTION, no separate duality obligation.  Projections  *)
+(* are now PARTIAL, so the bridge is conditioned on both being    *)
+(* Some (the projectable case); duality is funnelled through      *)
+(* proj_q_dual_p_some.                                            *)
 Theorem projected_config_wf :
-  forall p q G P Q, p <> q -> two_party p q G ->
-    pty [] P (proj G p) -> pty [] Q (proj G q) -> wf_config (Conf P Q).
+  forall p q G P Q sp sq, p <> q -> two_party p q G ->
+    proj G p = Some sp -> proj G q = Some sq ->
+    pty [] P sp -> pty [] Q sq -> wf_config (Conf P Q).
 Proof.
-  intros p q G P Q Hpq Htp HP HQ.
-  exists (proj G p). split.
+  intros p q G P Q sp sq Hpq Htp Hp Hq HP HQ.
+  exists sp. split.
   - exact HP.
-  - rewrite (proj_q_dual_p p q G Hpq Htp) in HQ. exact HQ.
+  - rewrite (proj_q_dual_p_some p q G sp sq Hpq Htp Hp Hq) in HQ. exact HQ.
 Qed.
 
 (* The thesis sentence: G IS a duet — its two role-projections   *)
 (* form one dual channel (projection_duality, repackaged).       *)
 Corollary global_projects_to_dual_channel :
-  forall p q G, p <> q -> two_party p q G ->
-    exists s, proj G p = s /\ proj G q = dual s.
+  forall p q G sp, p <> q -> two_party p q G ->
+    proj G p = Some sp -> proj G q = Some (dual sp).
 Proof.
-  intros p q G Hpq Htp.
-  exists (proj G p). split.
-  - reflexivity.
-  - apply (proj_q_dual_p p q G Hpq Htp).
+  intros p q G sp Hpq Htp Hp.
+  rewrite (proj_q_dual_p p q G Hpq Htp), Hp. reflexivity.
 Qed.
 
 (* ---- the whole S1.1b/S1.2 guarantee, transported across the   *)
@@ -1048,41 +1283,44 @@ Qed.
 
 (* SAFETY: subject reduction for any projected two-party config. *)
 Corollary projected_config_subject_reduction :
-  forall p q G P Q c', p <> q -> two_party p q G ->
-    pty [] P (proj G p) -> pty [] Q (proj G q) ->
+  forall p q G P Q c' sp sq, p <> q -> two_party p q G ->
+    proj G p = Some sp -> proj G q = Some sq ->
+    pty [] P sp -> pty [] Q sq ->
     cstep (Conf P Q) c' -> wf_config c'.
 Proof.
-  intros p q G P Q c' Hpq Htp HP HQ Hstep.
+  intros p q G P Q c' sp sq Hpq Htp Hp Hq HP HQ Hstep.
   apply (config_subject_reduction (Conf P Q) c').
-  - apply (projected_config_wf p q G P Q Hpq Htp HP HQ).
+  - apply (projected_config_wf p q G P Q sp sq Hpq Htp Hp Hq HP HQ).
   - exact Hstep.
 Qed.
 
 (* FIDELITY: a step of a projected config advances the SHARED    *)
-(* protocol (= proj G p) by exactly one head action.             *)
+(* protocol (= sp) by exactly one head action.                   *)
 Corollary projected_session_fidelity :
-  forall p q G P Q c', p <> q -> two_party p q G ->
-    pty [] P (proj G p) -> pty [] Q (proj G q) ->
+  forall p q G P Q c' sp sq, p <> q -> two_party p q G ->
+    proj G p = Some sp -> proj G q = Some sq ->
+    pty [] P sp -> pty [] Q sq ->
     cstep (Conf P Q) c' ->
     exists s' P' Q', c' = Conf P' Q'
-      /\ sty_step (proj G p) s' /\ pty [] P' s' /\ pty [] Q' (dual s').
+      /\ sty_step sp s' /\ pty [] P' s' /\ pty [] Q' (dual s').
 Proof.
-  intros p q G P Q c' Hpq Htp HP HQ Hstep.
-  apply (session_fidelity P Q c' (proj G p)).
+  intros p q G P Q c' sp sq Hpq Htp Hp Hq HP HQ Hstep.
+  apply (session_fidelity P Q c' sp).
   - exact HP.
-  - rewrite (proj_q_dual_p p q G Hpq Htp) in HQ. exact HQ.
+  - rewrite (proj_q_dual_p_some p q G sp sq Hpq Htp Hp Hq) in HQ. exact HQ.
   - exact Hstep.
 Qed.
 
 (* LIVENESS: a projected two-party config is never stuck — every *)
 (* projectable choreography is deadlock-free BY CONSTRUCTION.    *)
 Corollary projected_config_progress :
-  forall p q G P Q, p <> q -> two_party p q G ->
-    pty [] P (proj G p) -> pty [] Q (proj G q) ->
+  forall p q G P Q sp sq, p <> q -> two_party p q G ->
+    proj G p = Some sp -> proj G q = Some sq ->
+    pty [] P sp -> pty [] Q sq ->
     Conf P Q = Conf QEnd QEnd \/ exists c', cstep (Conf P Q) c'.
 Proof.
-  intros p q G P Q Hpq Htp HP HQ.
-  apply config_progress. apply (projected_config_wf p q G P Q Hpq Htp HP HQ).
+  intros p q G P Q sp sq Hpq Htp Hp Hq HP HQ.
+  apply config_progress. apply (projected_config_wf p q G P Q sp sq Hpq Htp Hp Hq HP HQ).
 Qed.
 
 (* ================= executable witnesses ===================== *)
@@ -1090,8 +1328,8 @@ Qed.
 (* The two-party ping-pong choreography:  0 -> 1 : Nat . end.    *)
 Definition gpingpong : gty := GMsg 0 1 VTNat GEnd.
 
-Example proj_ping_0 : proj gpingpong 0 = SSend VTNat SEnd. Proof. reflexivity. Qed.
-Example proj_ping_1 : proj gpingpong 1 = SRecv VTNat SEnd. Proof. reflexivity. Qed.
+Example proj_ping_0 : proj gpingpong 0 = Some (SSend VTNat SEnd). Proof. reflexivity. Qed.
+Example proj_ping_1 : proj gpingpong 1 = Some (SRecv VTNat SEnd). Proof. reflexivity. Qed.
 Example two_party_ping : two_party 0 1 gpingpong.
 Proof. apply TP_PQ. apply TP_End. Qed.
 
@@ -1101,9 +1339,9 @@ Proof. apply TP_PQ. apply TP_End. Qed.
 (* branch on the 1->2 node, the one a purely-binary gty could    *)
 (* never reach.                                                  *)
 Definition g3 : gty := GMsg 0 1 VTNat (GMsg 1 2 VTBool GEnd).
-Example proj_g3_role0 : proj g3 0 = SSend VTNat SEnd. Proof. reflexivity. Qed.
-Example proj_g3_role1 : proj g3 1 = SRecv VTNat (SSend VTBool SEnd). Proof. reflexivity. Qed.
-Example proj_g3_role2 : proj g3 2 = SRecv VTBool SEnd. Proof. reflexivity. Qed.
+Example proj_g3_role0 : proj g3 0 = Some (SSend VTNat SEnd). Proof. reflexivity. Qed.
+Example proj_g3_role1 : proj g3 1 = Some (SRecv VTNat (SSend VTBool SEnd)). Proof. reflexivity. Qed.
+Example proj_g3_role2 : proj g3 2 = Some (SRecv VTBool SEnd). Proof. reflexivity. Qed.
 
 (* ...and g3 is genuinely OUTSIDE the two-party theorems: it is  *)
 (* not two_party 0 1 (the inner 1->2 node refutes it), so the    *)
@@ -1121,12 +1359,100 @@ Example projected_pingpong_deadlock_free :
   Conf (QSend (VNat 7) QEnd) (QRecv QEnd) = Conf QEnd QEnd
   \/ exists c', cstep (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) c'.
 Proof.
-  apply (projected_config_progress 0 1 gpingpong).
+  eapply (projected_config_progress 0 1 gpingpong).
   - discriminate.
   - apply two_party_ping.
-  - simpl. apply PT_Send; [ apply VT_Nat | apply PT_End ].
-  - simpl. apply PT_Recv. apply PT_End.
+  - reflexivity.   (* proj gpingpong 0 = Some (SSend VTNat SEnd) *)
+  - reflexivity.   (* proj gpingpong 1 = Some (SRecv VTNat SEnd) *)
+  - apply PT_Send; [ apply VT_Nat | apply PT_End ].
+  - apply PT_Recv. apply PT_End.
 Qed.
+
+(* ================= S2.2 witnesses ============================ *)
+(* (a) The merge name, EARNED and FENCED: idempotence keystone,  *)
+(*     a non-trivial-continuation success, and BOTH failure      *)
+(*     modes (payload mismatch, constructor mismatch).           *)
+Example merge_idem_witness :
+  merge (SSend VTNat SEnd) (SSend VTNat SEnd) = Some (SSend VTNat SEnd).
+Proof. reflexivity. Qed.
+Example merge_succ_branch :
+  merge (SBranch (SBcons 0 (SRecv VTNat SEnd) SBnil))
+        (SBranch (SBcons 0 (SRecv VTNat SEnd) SBnil))
+  = Some (SBranch (SBcons 0 (SRecv VTNat SEnd) SBnil)).
+Proof. reflexivity. Qed.
+Example merge_fail_payload :
+  merge (SSend VTNat SEnd) (SSend VTBool SEnd) = None.
+Proof. reflexivity. Qed.
+Example merge_fail_ctor :
+  merge (SSend VTNat SEnd) (SRecv VTNat SEnd) = None.
+Proof. reflexivity. Qed.
+
+(* (b) PARTIAL projection, witnessed in BOTH directions on an    *)
+(*     uninvolved role (2):  AGREE -> Some,  DISAGREE -> None,    *)
+(*     plus the panel's TAIL-conflict regression (was Some SEnd  *)
+(*     under the buggy fold; must be None) and an unprojectable  *)
+(*     body.                                                      *)
+Definition gchoice_agree : gty :=
+  GBra 0 1 (GBcons 0 (GMsg 0 1 VTNat GEnd)
+           (GBcons 1 (GMsg 0 1 VTNat GEnd) GBnil)).
+Example proj_agree_uninvolved : proj gchoice_agree 2 = Some SEnd.
+Proof. reflexivity. Qed.
+
+Definition gchoice_disagree : gty :=
+  GBra 0 1 (GBcons 0 (GMsg 2 0 VTNat GEnd)
+           (GBcons 1 (GMsg 0 2 VTNat GEnd) GBnil)).
+Example proj_disagree_uninvolved_none : proj gchoice_disagree 2 = None.
+Proof. reflexivity. Qed.
+
+(* Tail-conflict regression (LOCKS the B1 None-propagation fix):  *)
+(* branch 0 leaves role 2 idle (SEnd), branch 1 has role 2 SEND,  *)
+(* branch 2 has role 2 RECV — the tail conflict must NOT be       *)
+(* erased to Some SEnd; the honest answer is None.                *)
+Definition gtail_conflict : gty :=
+  GBra 0 1 (GBcons 0 (GMsg 0 1 VTNat GEnd)
+           (GBcons 1 (GMsg 2 0 VTNat GEnd)
+           (GBcons 2 (GMsg 0 2 VTNat GEnd) GBnil))).
+Example proj_tail_conflict_none : proj gtail_conflict 2 = None.
+Proof. reflexivity. Qed.
+
+Example proj_unprojectable_body_none :
+  proj (GBra 0 1 (GBcons 0 gchoice_disagree GBnil)) 2 = None.
+Proof. reflexivity. Qed.
+
+(* (c) Choice + recursion choreography DUALITY (projection_duality*)
+(*     instantiated). Both participants act in each, so no        *)
+(*     uninvolved mu X.X artefact is ever displayed (fence b).    *)
+Definition gchoice2 : gty :=
+  GBra 0 1 (GBcons 0 (GMsg 0 1 VTNat GEnd)
+           (GBcons 1 (GMsg 1 0 VTBool GEnd) GBnil)).
+Example proj_gchoice2_0 :
+  proj gchoice2 0
+  = Some (SSelect (SBcons 0 (SSend VTNat SEnd)
+                  (SBcons 1 (SRecv VTBool SEnd) SBnil))).
+Proof. reflexivity. Qed.
+Example proj_gchoice2_1 :
+  proj gchoice2 1
+  = Some (SBranch (SBcons 0 (SRecv VTNat SEnd)
+                  (SBcons 1 (SSend VTBool SEnd) SBnil))).
+Proof. reflexivity. Qed.
+Example two_party_gchoice2 : two_party 0 1 gchoice2.
+Proof.
+  apply TP_BraPQ. apply TPB_cons; [ apply TP_PQ; apply TP_End | ].
+  apply TPB_cons; [ apply TP_QP; apply TP_End | apply TPB_nil ].
+Qed.
+Example gchoice2_dual : proj gchoice2 0 = option_map dual (proj gchoice2 1).
+Proof. apply (projection_duality 0 1 gchoice2); [ discriminate | apply two_party_gchoice2 ]. Qed.
+
+(* The two-party RECURSIVE choreography  mu X. 0 -> 1 : Nat . X.  *)
+Definition grec : gty := GMu (GMsg 0 1 VTNat (GVar 0)).
+Example proj_grec_0 : proj grec 0 = Some (SMu (SSend VTNat (SVar 0))).
+Proof. reflexivity. Qed.
+Example proj_grec_1 : proj grec 1 = Some (SMu (SRecv VTNat (SVar 0))).
+Proof. reflexivity. Qed.
+Example two_party_grec : two_party 0 1 grec.
+Proof. apply TP_Mu. apply TP_PQ. apply TP_Var. Qed.
+Example grec_dual : proj grec 0 = option_map dual (proj grec 1).
+Proof. apply (projection_duality 0 1 grec); [ discriminate | apply two_party_grec ]. Qed.
 
 (* ============================================================ *)
 (* S1.3c — structural congruence preserves typing (open proc).  *)
@@ -1284,8 +1610,10 @@ Proof. intros G D P Q H. eapply wt_congr; [ exact H | apply Cg_parcomm ]. Qed.
 (*                                                              *)
 (* The session-type infrastructure for mu-recursion: type-var   *)
 (* shifting/substitution, one-step unfolding, dual passing      *)
-(* through mu (dual_unfold — the projection-duality-of-recursion*)
-(* lemma S2.2 consumes), and a depth-indexed `guarded`          *)
+(* through mu (dual_unfold — future duality-up-to-unfolding     *)
+(* infrastructure for S1.3b-meta; NOT consumed by S2.2's        *)
+(* projection_duality, which uses only structural               *)
+(* dual(SMu x)=SMu(dual x)), and a depth-indexed `guarded`      *)
 (* contractiveness predicate.  All structural / axiom-free.     *)
 (*                                                              *)
 (* DEFERRED (S1.3b-meta, NOT done here): the equi-recursive     *)
@@ -1293,8 +1621,8 @@ Proof. intros G D P Q H. eapply wt_congr; [ exact H | apply Cg_parcomm ]. Qed.
 (* Naive inversion is unprovable under a `PT_Unfold` rule; it    *)
 (* needs every inversion lemma rewritten to an up-to-unfolding   *)
 (* relation plus a PT_Unfold-soundness theorem — a separate,     *)
-(* larger unit.  S2.2 is NOT blocked: it consumes only this     *)
-(* type layer (SMu / unfold_mu / dual_unfold / guarded).         *)
+(* larger unit.  S2.2 (DONE) consumed only this type layer       *)
+(* (SMu / SVar / guarded for projectability).                    *)
 (* No "mu supported / recursive sessions done" claim until       *)
 (* S1.3b-meta lands.  Echo-types: NOT-RELEVANT (axis-2).         *)
 (* ============================================================ *)
@@ -1373,8 +1701,10 @@ Proof.
   - rewrite IH. rewrite dual_tlift. reflexivity.
 Qed.
 
-(* The S2.2 payoff: projection-duality of recursion — dual passes  *)
-(* cleanly through unfolding.                                       *)
+(* dual passes cleanly through unfolding.  Infrastructure for      *)
+(* future duality-UP-TO-UNFOLDING (S1.3b-meta); NOT consumed by    *)
+(* S2.2's projection_duality (that uses only structural            *)
+(* dual(SMu x)=SMu(dual x), no unfolding).                          *)
 Lemma dual_unfold : forall s, dual (unfold_mu s) = unfold_mu (dual s).
 Proof. intro s. unfold unfold_mu. rewrite dual_tsubst. reflexivity. Qed.
 

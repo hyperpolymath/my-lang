@@ -133,8 +133,10 @@ my-lang is parametric over **both**, and identifies **neither**.
  S2 ◑ duet = ensemble │2-party by projection
       (S2.0 ✓ gty/proj/two_party + witnesses;
       S2.1 ✓ projection_duality + projected_*
-      {wf, subj.red., fidelity, progress},
-      axiom-free. S2.2 choice/μ, S3 n≥3 = open)
+      {wf, subj.red., fidelity, progress};
+      S2.2 ✓ choice GBra + μ GMu/GVar, PARTIAL
+      proj + merge/merge_idem, option-form
+      duality; all axiom-free. S3 n≥3 = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -286,6 +288,29 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   types (S2.2), μ-recursion (S2.2), n≥3 coherence/merge/projection-existence (S3). **Echo-types
   audit: NOT-RELEVANT** (axis-2 STRUCTURE; projection emits no obligation/residue — re-checked for
   the multiparty-syntax layer specifically).
+- **S2.2 DONE — choice + recursion by projection, axiom-free 2026-06-14.** Design-panel-validated
+  (the panel empirically compiled the proposed fixpoints on Coq 8.18 and caught a real **None-erasure
+  soundness bug** in `proj_uninv` + two faithfulness overclaims BEFORE any code was written). Global
+  types gain labelled **choice** `GBra p→q:{lᵢ:Gᵢ}` (dedicated mutual `gbranch`, NOT `list`) and
+  equi-recursive **`GMu`/`GVar`** (de Bruijn aligned with the local `SMu`/`SVar`); projection becomes
+  **PARTIAL** (`proj : gty → role → option sty`, three-way mutual `proj`/`proj_br`/`proj_uninv`) —
+  sender→`SSelect`, receiver→`SBranch`, uninvolved→**merge** of the branches. **`merge`** + keystone
+  **`merge_idem : merge s s = Some s`** (mutual `sty_mut` scheme) make an uninvolved role's projection
+  DEFINED exactly when the branches AGREE. **`projection_duality`** reproved in **option-map form**
+  `proj G p = option_map dual (proj G q)` via the mutual `two_party_mut` scheme (the `GBra` case needs
+  the per-branch motive `proj_br p = option_map dual_br (proj_br q)`); the whole S2.0/S2.1 bridge +
+  four corollaries rethreaded through `proj … = Some _` (`proj_q_dual_p_some`). Witnesses: choice
+  (`gchoice2`) + recursive (`grec = μX.0→1:Nat.X`) duality, partial projection in BOTH directions, the
+  **tail-conflict regression** `proj_tail_conflict_none` locking the panel's None-erasure fix, and
+  merge's two failure modes. All axiom-free, dedicated `proofs.yml` S2.2 gate. **Honest fences:**
+  (1) `merge` is the **plain/identity-MEET** merge (= equality on the message fragment), NOT the full
+  label-set-UNION merge — deferred S3; (2) `GMu` projection is **UNPRUNED** (a non-participating role
+  yields the non-contractive `μX.X`, rejected by `guarded`, only OUTSIDE the `two_party {p,q}` collapse
+  — non-theorematic, never shown as a role's type); (3) **NO global-level metatheory** (SR/fidelity/
+  progress not re-proved for `GBra`/`GMu`; the bridge transports binary metatheory only where both
+  projections are `Some`); (4) `dual_unfold` NOT consumed (the `GMu` case uses only structural
+  `dual(SMu x)=SMu(dual x)`). OUT → S3: n≥3 coherence / full-UNION merge / projection-existence.
+  **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)
   in the fused form; `sty`/`party` gain `SSelect`/`SBranch`/`QSel`/`QBra` over dedicated mutual
@@ -298,9 +323,10 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   via new `csplit_comm`/`csplit_assoc` and `wt_absorb_ended`; fenced as typing-PRESERVATION (NOT
   SR-up-to-≡), with ν-extrusion/ν-swap/replication named OUT. **S1.3b-core (μ type-layer):**
   `SMu`/`SVar`, `tlift`/`tsubst`/`unfold_mu` (one structural pass, terminates on `μa.a`),
-  `dual_unfold` (projection-duality of recursion — the S2.2 target), `guarded` contractiveness.
+  `dual_unfold` (future S1.3b-meta infra — S2.2's `projection_duality` consumed only the structural
+  `dual(SMu x)=SMu(dual x)`, NOT `dual_unfold`), `guarded` contractiveness.
   **DEFERRED — S1.3b-meta:** μ typing/subject-reduction up-to-unfolding (needs a `PT_Unfold` rule +
-  its soundness + up-to-unfolding inversions); S2.2 unblocked (consumes only the type layer).
+  its soundness + up-to-unfolding inversions); S2.2 (now DONE) consumed only the type layer.
   **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /

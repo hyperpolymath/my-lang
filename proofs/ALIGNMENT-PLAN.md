@@ -144,7 +144,7 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   (closed via the F1.4 `ht_shift0` weakening lemma), so `me_wt` spans the whole `me_tm`. **M1
   (axis-4 SURFACE) is complete.**
 
-  **Structure (S1 + S2, axis-2) — S1.0–S1.2 + S2.0/S2.1 done 2026-06-14.** The
+  **Structure (S1 + S2, axis-2) — S1.0–S1.3 + S2.0–S2.2 done 2026-06-14.** The
   structure climb (`AXIS-ARCHITECTURE.md` axis 2: solo ⊂ duet ⊂ ensemble, done
   *ensemble-first* on the process side since `solo ⊄ ensemble`). A standalone Coq
   development `proofs/verification/coq/solo-core/SessionPi.v` (module
@@ -174,11 +174,20 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   labelled **choice** (S1.3a — the three fused theorems extended via dedicated
   mutual inductives `sbranch`/`pbranch`), structural **congruence** preserves
   typing on the open `proc` (S1.3c — `wt_congr`, par laws), and the equi-recursive
-  **μ type-layer** (S1.3b-core — `unfold_mu`/`dual_unfold`/`guarded`). **Remaining:**
-  μ typing/SR up-to-unfolding (**S1.3b-meta**, deferred — needs a `PT_Unfold` rule +
-  soundness); global-type choice/μ projection + a **merge** operator (**S2.2**);
-  n≥3 coherence / merge / projection-existence (**S3** — where "duet" stops and
-  "ensemble" begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
+  **μ type-layer** (S1.3b-core — `unfold_mu`/`dual_unfold`/`guarded`). **S2.2 done
+  (2026-06-14):** global-type labelled **choice** (`GBra p→q:{lᵢ:Gᵢ}`) + equi-recursive
+  (`GMu`/`GVar`) projection — projection becomes **partial** (`proj : gty → role →
+  option sty`, three-way mutual) with a plain **`merge`** operator (keystone `merge_idem`)
+  combining the branches for an uninvolved role; `projection_duality` reproved in
+  **option-map form** over choice + μ (mutual `two_party_mut` scheme), the whole S2.0/S2.1
+  bridge rethreaded through `proj … = Some _`. Design-panel-validated (the panel
+  empirically compiled the fixpoints on Coq 8.18 and caught a real None-erasure soundness
+  bug before implementation). Fences: **plain** (not full label-union) merge, **unpruned**
+  μ projection (a non-participating role's `μX.X` is non-theorematic, never shown as a
+  type), **no** global-level metatheory. **Remaining:** μ typing/SR up-to-unfolding
+  (**S1.3b-meta**, deferred — needs a `PT_Unfold` rule + soundness); n≥3 coherence /
+  full-union merge / projection-existence (**S3** — where "duet" stops and "ensemble"
+  begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
