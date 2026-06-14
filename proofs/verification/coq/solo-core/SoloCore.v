@@ -2647,27 +2647,48 @@ Proof. exact I. Qed.
 
 (** The `me` block fragment (de Bruijn). The colour/port apparatus and
     the effectful blocks (Print/Input) of formal-model.md are denotational
-    decoration; the TYPING-relevant affine core is the resource fragment:
-    a unit token, token-consumption (a variable use), let-binding (consume
-    once), sequencing (run-and-discard = the affine drop), the two product
-    flavours, sum injections, and the echo residue + its weakening. *)
+    decoration; the TYPING-relevant fragment modelled here is: a unit token
+    (MeUnit), token-consumption = a variable use (MeVar), let-binding
+    (MeLet), sequencing run-and-discard (MeSeq), the paper `(X)` parallel
+    product (MeTensor) and an eliminator for it (MeUsePair), and sum
+    INTRODUCTION (MeInl/MeInr).
+
+    Faithfulness caveats (so nothing masquerades as a `me` block it is not):
+    - MeInl/MeInr are sum INTRODUCTION; they do NOT model the paper
+      IfBlock(E,V1,V2), which is a two-branch CONDITIONAL = sum ELIMINATION
+      (the core `Case`). A faithful `MeIf -> Case` is a future rung.
+    - The paper token rules are AFFINE (at-most-once: a created token need
+      NOT be consumed -- Dead-Code-Elimination drops an unused LetBlock
+      binding). The strict-LINEAR must-use behaviour exercised below via
+      `check` is a VARIANT; the faithful affine reading is carried by
+      `aff_type` (me_elab_affine_droppable / elab_data_aff_budget).
+    - MeWith (additive `&`) and MeEcho/MeWeaken (echo residue + weakening)
+      have NO `me` block-grammar correspondent (the paper's only product is
+      `(X)`; `echo`/`residue`/`weaken` appear nowhere in proofs/me/, and the
+      M1.0 banner declares echo NOT-RELEVANT to this axis-4 obligation).
+      They are core probes, carried only to exercise the solo core, and are
+      NOT counted toward `me`-faithfulness. *)
 Inductive me_tm : Type :=
   | MeUnit    : me_tm                       (* the empty / done block; a unit token *)
   | MeVar     : nat -> me_tm                (* ConsumeBlock: use the token at index n *)
   | MeLet     : me_tm -> me_tm -> me_tm     (* LetBlock(x = e1; e2): bind, consume once in e2 *)
   | MeSeq     : me_tm -> me_tm -> me_tm     (* V1 o V2: run e1, DISCARD it, then e2 (affine drop) *)
   | MeTensor  : me_tm -> me_tm -> me_tm     (* V1 (X) V2: parallel composition = multiplicative pair *)
-  | MeWith    : me_tm -> me_tm -> me_tm     (* additive choice pair (shared resources) *)
-  | MeUsePair : me_tm -> me_tm -> me_tm     (* let (x,y) = e1 in e2: split a paired resource *)
-  | MeInl     : ty -> me_tm -> me_tm        (* IfBlock left injection (annot = right summand) *)
-  | MeInr     : ty -> me_tm -> me_tm        (* right injection (annot = left summand) *)
-  | MeEcho    : ty -> me_tm -> me_tm        (* keep a residue [a => a] at Linear mode *)
-  | MeWeaken  : me_tm -> me_tm.             (* weaken a linear echo residue to affine *)
+  | MeWith    : me_tm -> me_tm -> me_tm     (* core probe: additive `&` pair -- NO me-paper form *)
+  | MeUsePair : me_tm -> me_tm -> me_tm     (* let (x,y) = e1 in e2: eliminate a paired resource *)
+  | MeInl     : ty -> me_tm -> me_tm        (* sum INTRO, left (annot = right summand) -- NOT IfBlock (= sum ELIM/Case) *)
+  | MeInr     : ty -> me_tm -> me_tm        (* sum INTRO, right (annot = left summand) *)
+  | MeEcho    : ty -> me_tm -> me_tm        (* core probe (NOT in me paper): keep a residue [a => a], Linear mode *)
+  | MeWeaken  : me_tm -> me_tm.             (* core probe (NOT in me paper): weaken a linear echo residue to affine *)
 
-(** The elaboration — the mechanised `translate`, landing in the de Bruijn
-    solo `tm`. Token creation/consumption is a [One]-binder used once;
-    sequencing is a [Zero]-binder (the affine discard); the body of a
-    sequence is [shift]ed to skip the discarded binding. *)
+(** The elaboration — a CORE-LANDING analogue of the paper `translate`
+    (which targets surface Solo; this lands in the lower de Bruijn `tm`, and
+    the denotational correspondence, formal-model.md Theorem 3, is out of
+    scope). Token creation/consumption is a [One]-binder used once;
+    sequencing is a [Zero]-binder (the affine discard -- sound here only
+    because the M1.1 fragment keeps the discarded sub-term data/non-token;
+    a token-valued one would be silently dropped); the sequence body is
+    [shift]ed to skip the discarded binding. *)
 Fixpoint elab (e : me_tm) : tm :=
   match e with
   | MeUnit        => UnitT
@@ -2695,10 +2716,13 @@ Example me_elab_unit :
   check TEmpty (elab MeUnit) = Some (TUnit, UEmpty).
 Proof. reflexivity. Qed.
 
-(* LetBlock + ConsumeBlock: create a unit token and consume it EXACTLY ONCE
-   -> the linear judgement ACCEPTS. This is the heart of the visual token
-   discipline (Token Conservation + Single Consumption), machine-checked
-   straight through the elaboration. *)
+(* LetBlock + ConsumeBlock: create a unit token and consume it once -> the
+   strict-LINEAR judgement ACCEPTS. NB the paper's token discipline is
+   AFFINE (at-most-once; a created token need NOT be consumed -- Dead-Code-
+   Elimination drops an unused LetBlock binding), so this exact-once
+   must-use is a strict VARIANT, not the paper's rule. The faithful affine
+   'token need not be consumed' reading is me_elab_affine_droppable /
+   elab_data_aff_budget below. *)
 Example me_elab_let_consume :
   check TEmpty (elab (MeLet MeUnit (MeVar 0))) = Some (TUnit, UEmpty).
 Proof. reflexivity. Qed.
@@ -2708,8 +2732,10 @@ Example me_elab_let_consume_typed :
   has_type TEmpty UEmpty (elab (MeLet MeUnit (MeVar 0))) TUnit.
 Proof. apply check_correct. reflexivity. Qed.
 
-(* Creating a linear token and DROPPING it (never consumed) is REJECTED by
-   the linear discipline -- a dropped token is not linearly well-typed. *)
+(* Creating a token and DROPPING it is REJECTED by the strict-LINEAR check
+   (must-use). This is STRICTER than the affine paper, which PERMITS the
+   drop (via aff_type -- see me_elab_affine_droppable); it is shown to
+   delimit the linear-vs-affine boundary, NOT as the paper's token rule. *)
 Example me_elab_let_drop_rejected :
   check TEmpty (elab (MeLet MeUnit MeUnit)) = None.
 Proof. reflexivity. Qed.
@@ -2732,7 +2758,8 @@ Example me_elab_with :
     = Some (TWith TUnit TUnit, UEmpty).
 Proof. reflexivity. Qed.
 
-(* an IfBlock injection (left), annotated with the right summand. *)
+(* sum INTRODUCTION (left), annotated with the right summand. (NOT IfBlock:
+   the paper IfBlock is a two-branch conditional = sum ELIMINATION / Case.) *)
 Example me_elab_inl :
   check TEmpty (elab (MeInl TUnit MeUnit))
     = Some (TSum TUnit TUnit, UEmpty).
@@ -2837,10 +2864,18 @@ Proof.
   - (* MeInr *) rewrite (IH1 c Hd). reflexivity.
 Qed.
 
-(** ** Visual Soundness, mechanised (the M1.1 theorem).
+(** ** Visual Soundness for the data (no-linear-use) fragment, mechanised
+       (the M1.1 theorem).
 
     Every well-formed data me-term elaborates to a solo term accepted by
-    the verified usage-walk [check], in any context, at usage [uzero G]. *)
+    the verified usage-walk [check], in any context, at usage [uzero G].
+    The conclusion [uzero G] is equivalent to 'consumes no resource' (a
+    [Var] use would synthesise [onehot G n], which is NOT [uzero G], and
+    [me_data] excludes [MeVar]/[MeLet]/[MeUsePair]), so this rung carries
+    no usage-counting obligation — that is exactly what M1.1b adds. The
+    resource-discriminating behaviour (single-consumption, linear-drop
+    rejection, pair-splitting) is witnessed only at the concrete M1.0
+    Examples. *)
 Theorem elab_data_check :
   forall e G, me_data e = true -> exists a, check G (elab e) = Some (a, uzero G).
 Proof.

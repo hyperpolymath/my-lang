@@ -227,7 +227,7 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   (`has_type` via `check_correct`) and `elab_data_aff_budget` (fits any affine budget ≥
   `uzero G`). All real `Qed`, `Print Assumptions` closed, CI-guarded. The first MECHANISED
   surface→core elaboration-correctness result in either sibling — a clean **overtake of
-  AffineScript** (solo-only, no `me`-like dialect, nothing analogous even on paper).
+  AffineScript** (solo-only, no `me`-like dialect, nothing analogous as surveyed (AS@main 2026-06-02)).
   Echo-types audit: NOT-RELEVANT (axis-4 surface vs axis-3 modality). **M1.1b ☐:** universal
   adequacy for the linear-USE constructs (`MeLet`-consume, `MeUsePair`) needs a `check`-
   weakening lemma — next rung.

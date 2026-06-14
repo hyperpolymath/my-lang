@@ -70,7 +70,7 @@ Last verified: 2026-06-14.
 | Mechanised QTT solo-core | **commenced** (this PR) | F1 |
 | Mechanised progress/preservation | Coq **machine-checked** (axiom-free `Qed`, CI-guarded); Idris twin pending | F1.3 / F1.4 |
 | Algorithmic typing / decidable typecheck (static-split ≡ usage-walk) | Coq **machine-checked** (`check_correct`, axiom-free) — **overtakes AS** (states it as prose "future work" only) | F1.4 |
-| Surface→core elaboration correctness (`me` → `solo`) | Coq **machine-checked** (`elab_data_check`, axiom-free, M1.1) — **overtakes AS** (solo-only; no `me`-like dialect, nothing analogous even on paper) | M1 |
+| Surface→core elaboration correctness (`me` → `solo`) | Coq **machine-checked** (`elab_data_check`, axiom-free, M1.1) — **overtakes AS** (solo-only; no `me`-like dialect, nothing analogous as surveyed (AS@main 2026-06-02)) | M1 |
 | Quantitative-types (dedicated doc) | folded into solo affine doc | F4 |
 | Row-polymorphism proof | absent | F4 |
 | Dependent/refinement types proof | absent | F4 |
