@@ -143,8 +143,10 @@ my-lang is parametric over **both**, and identifies **neither**.
       S3c.0 ✓ full label-union merge (umerge,
       umerge_idem); S3c.1 ✓ union-projection
       (proj_u, projection_total_u, projectable_wf
-      _implies_u); all axiom-free. S3c.2-4 n-ary
-      opsem/SR/progress = open)
+      _implies_u); S3c.2 ✓ n-ary located opsem
+      (nstep/gstep, ring run, adequacy-only);
+      all axiom-free. S3c.3-4 n-party SR/progress
+      = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -401,6 +403,28 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   order-dependence + unpruned `μ` inherited from S3c.0. **Remaining S3c (solo):** S3c.2 n-ary located
   config + `nstep`; S3c.3 message-fragment n-party subject reduction (first *earned* n-party safety half);
   S3c.4 n-party progress (research-hard — fence). **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
+- **S3c.2 DONE — n-ary located operational semantics, axiom-free 2026-06-14.** The third S3c sub-rung
+  and the FIRST operational metatheory over an n-party config (S3a/S3b/S3c.1 were all type-side / static).
+  A located reduction **`nstep : role_assignment → role_assignment → Prop`** — the located mirror of the
+  fused binary `cstep`: one synchronous communication between two distinct roles `ra_set`-updates exactly
+  those two endpoints (`NStep_Comm` message + `NStep_Sel` select), every other role untouched (`p`
+  universally quantified, so cstep's fixed-left/right `CStepR`/`CSelR` are subsumed). Plus the functional
+  update `ra_set` (+ `ra_set_get_eq`/`ra_set_get_neq`/`ra_set_length`), a global-type reduction **`gstep`**
+  (message fragment), the reflexive-transitive closures `nstar`/`gstar`, and the functional well-formedness
+  **`wf_assignment_f`** (the ra_get form S3c.3's SR will use; `wf_assignment → wf_assignment_f`, one
+  direction, so S3b's `wf_ra_ring` transfers). **Adequacy witnessed on both sides:** the 3-party ring runs
+  `0→1→2→0` to all-`QEnd` — `ring_runs_to_end : nstar ra_ring ra_ring3` (three `NStep_Comm`) and
+  `g_ring_gsteps : gstar g_ring GEnd`; `nstep_length`/`nstar_length` give the structural-adequacy fact that
+  communication preserves the role count. **The load-bearing honesty witness `nstep_breaks_wf_at_fixed_G`**
+  PROVES `nstep` does **not** preserve `wf_assignment_f` at a *fixed* G (after one step role 0 is a receiver
+  while `proj g_ring 0` is a send type) — exactly *why* n-party subject reduction (S3c.3) must be stated
+  against a *stepping* G, and why `wf_assignment ra → deadlock-free` is false. **Fences:** ADEQUACY ONLY —
+  no SR (the refutation above), no progress / deadlock-freedom (the ring run is *by example*, = S3c.4),
+  `nstep`/`gstep` not yet coupled (no simulation/fidelity, = S3c.3); message+select fragments only; `ra_set`
+  first-match (duplicate-tolerant); uses plain `proj` (independent of the S3c.1 widening). **Remaining S3c
+  (solo):** S3c.3 message-fragment n-party SR (coupled `gstep`/`nstep` vs a stepping G — the first *earned*
+  n-party safety half); S3c.3-choice; S3c.4 n-party progress (research-hard — fence). **Echo-types audit:
+  NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)
   in the fused form; `sty`/`party` gain `SSelect`/`SBranch`/`QSel`/`QBra` over dedicated mutual

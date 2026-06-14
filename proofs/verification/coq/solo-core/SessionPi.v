@@ -2744,3 +2744,241 @@ Proof. intro H. inversion H; subst.
 (*  projection — nothing reusable for this axis.  Consistent     *)
 (*  with the axis-separation note above and the S3c.0 audit.     *)
 (* ============================================================ *)
+
+(* ============================================================ *)
+(* S3c.2 -- n-ary LOCATED operational semantics (nstep / gstep). *)
+(*   The FIRST operational metatheory over an n-party config:   *)
+(*   a located reduction nstep on role_assignment (the S3b      *)
+(*   container) + a global-type reduction gstep, with the       *)
+(*   3-party RING run witnessed on BOTH sides.  OPERATIONAL     *)
+(*   ADEQUACY ONLY -- there is deliberately NO subject reduction *)
+(*   and NO progress here (see the trailing S3c.2 FENCE).       *)
+(*   nstep is the LOCATED mirror of the fused binary cstep: one *)
+(*   communication updates EXACTLY the two communicating roles  *)
+(*   (ra_set p, ra_set q), every other role untouched.          *)
+(* ============================================================ *)
+
+(* Functional pointwise update -- first match, duplicate-tolerant *)
+(* exactly like ra_get (on a duplicate key only the FIRST entry  *)
+(* is updated).  Keys and length are preserved (ra_set_length).   *)
+Fixpoint ra_set (ra : role_assignment) (r : role) (P : party) : role_assignment :=
+  match ra with
+  | [] => []
+  | (r', Q) :: rest =>
+      if Nat.eqb r r' then (r', P) :: rest else (r', Q) :: ra_set rest r P
+  end.
+
+Lemma ra_set_length : forall ra r P, length (ra_set ra r P) = length ra.
+Proof.
+  induction ra as [| [r' Q] rest IH]; intros r P; cbn.
+  - reflexivity.
+  - destruct (Nat.eqb r r'); cbn; [ reflexivity | rewrite IH; reflexivity ].
+Qed.
+
+(* set-then-get at the SAME role yields the new party, PROVIDED   *)
+(* the role was present (else ra_set is a no-op and ra_get None).  *)
+Lemma ra_set_get_eq : forall ra r P Q,
+  ra_get ra r = Some Q -> ra_get (ra_set ra r P) r = Some P.
+Proof.
+  induction ra as [| [r' Q'] rest IH]; intros r P Q H.
+  - cbn in H. discriminate.
+  - cbn in H. cbn. destruct (Nat.eqb r r') eqn:E.
+    + cbn. rewrite E. reflexivity.
+    + cbn. rewrite E. apply (IH r P Q H).
+Qed.
+
+(* set-then-get at a DIFFERENT role is transparent. *)
+Lemma ra_set_get_neq : forall ra r r' P,
+  r <> r' -> ra_get (ra_set ra r P) r' = ra_get ra r'.
+Proof.
+  induction ra as [| [r0 Q0] rest IH]; intros r r' P Hne.
+  - cbn. reflexivity.
+  - cbn. destruct (Nat.eqb r r0) eqn:E.
+    + apply Nat.eqb_eq in E. subst r0. cbn.
+      destruct (Nat.eqb r' r) eqn:E2.
+      * apply Nat.eqb_eq in E2. subst r'. contradiction Hne. reflexivity.
+      * reflexivity.
+    + cbn. destruct (Nat.eqb r' r0) eqn:E2.
+      * reflexivity.
+      * apply IH. exact Hne.
+Qed.
+
+(* The n-ary located reduction.  One synchronous communication    *)
+(* between TWO DISTINCT roles p (acting) and q (reacting); both    *)
+(* their endpoints advance via ra_set, every other role is        *)
+(* untouched.  The message + select fragments mirror cstep's       *)
+(* CStep / CSel (p universally quantified, so the CStepR/CSelR     *)
+(* other-direction rules are subsumed -- no fixed left/right).   *)
+Inductive nstep : role_assignment -> role_assignment -> Prop :=
+| NStep_Comm : forall ra p q v P Q,
+    p <> q ->
+    ra_get ra p = Some (QSend v P) ->
+    ra_get ra q = Some (QRecv Q) ->
+    nstep ra (ra_set (ra_set ra p P) q (open_party v Q))
+| NStep_Sel  : forall ra p q l P bsP Q,
+    p <> q ->
+    ra_get ra p = Some (QSel l P) ->
+    ra_get ra q = Some (QBra bsP) ->
+    pget l bsP = Some Q ->
+    nstep ra (ra_set (ra_set ra p P) q Q).
+
+(* Structural adequacy: a communication neither creates nor        *)
+(* destroys a role -- the domain (here: the length) is invariant.  *)
+Lemma nstep_length : forall ra ra', nstep ra ra' -> length ra' = length ra.
+Proof.
+  intros ra ra' H. destruct H.
+  - rewrite ra_set_length, ra_set_length. reflexivity.
+  - rewrite ra_set_length, ra_set_length. reflexivity.
+Qed.
+
+(* Reflexive-transitive closure -- a located RUN. *)
+Inductive nstar : role_assignment -> role_assignment -> Prop :=
+| NS_refl : forall ra, nstar ra ra
+| NS_step : forall ra ra' ra'', nstep ra ra' -> nstar ra' ra'' -> nstar ra ra''.
+
+Lemma nstar_length : forall ra ra', nstar ra ra' -> length ra' = length ra.
+Proof.
+  intros ra ra' H. induction H.
+  - reflexivity.
+  - rewrite IHnstar. apply nstep_length. exact H.
+Qed.
+
+(* Functional (ra_get-based) well-formedness -- the form n-party   *)
+(* subject reduction (S3c.3) will be stated against, because       *)
+(* ra_set/ra_get reasoning is functional.  wf_assignment (S3b,     *)
+(* In-based) IMPLIES it (so the S3b witness transfers); the        *)
+(* converse needs NoDup and is deliberately NOT claimed.           *)
+Definition wf_assignment_f (G : gty) (ra : role_assignment) : Prop :=
+  forall r P, ra_get ra r = Some P ->
+    exists s, proj G r = Some s /\ pty [] P s.
+
+Lemma wf_assignment_to_f : forall G ra,
+  wf_assignment G ra -> wf_assignment_f G ra.
+Proof.
+  intros G ra H r P Hget. apply H. apply ra_get_in. exact Hget.
+Qed.
+
+(* S3b's static 3-party ring witness transfers to the functional   *)
+(* form for free -- keeps S3b green under the new predicate.       *)
+Example wf_ra_ring_f : wf_assignment_f g_ring ra_ring.
+Proof. apply wf_assignment_to_f. apply wf_ra_ring. Qed.
+
+(* The global-type reduction (message fragment).  Consuming the    *)
+(* head message advances the choreography to its continuation.     *)
+(* The choice fragment (GBra branch selection) is S3c.3-choice.    *)
+Inductive gstep : gty -> gty -> Prop :=
+| GStep_Msg : forall p q t G, gstep (GMsg p q t G) G.
+
+Inductive gstar : gty -> gty -> Prop :=
+| GS_refl : forall G, gstar G G
+| GS_step : forall G G' G'', gstep G G' -> gstar G' G'' -> gstar G G''.
+
+(* Global-side adequacy: the ring choreography runs to GEnd. *)
+Example g_ring_gsteps : gstar g_ring GEnd.
+Proof.
+  unfold g_ring.
+  eapply GS_step. apply GStep_Msg.
+  eapply GS_step. apply GStep_Msg.
+  eapply GS_step. apply GStep_Msg.
+  apply GS_refl.
+Qed.
+
+(* ---- the LOCATED 3-party ring run, step by step ---- *)
+(* ra_ring = [(0, !1.?.end); (1, ?.!2.end); (2, ?.!3.end)] runs    *)
+(* 0->1, 1->2, 2->0 to all-QEnd.  Each step is one NStep_Comm; the  *)
+(* result is written as a clean intermediate (definitionally equal  *)
+(* to the constructor's ra_set output -- replace ... by reflexivity *)
+(* discharges the conversion, then apply fills the premises).       *)
+Definition ra_ring1 : role_assignment :=
+  [(0, QRecv QEnd); (1, QSend (VNat 2) QEnd); (2, ring_P2)].
+Definition ra_ring2 : role_assignment :=
+  [(0, QRecv QEnd); (1, QEnd); (2, QSend (VNat 3) QEnd)].
+Definition ra_ring3 : role_assignment :=
+  [(0, QEnd); (1, QEnd); (2, QEnd)].
+
+Example ring_nstep1 : nstep ra_ring ra_ring1.
+Proof.
+  replace ra_ring1 with
+    (ra_set (ra_set ra_ring 0 (QRecv QEnd)) 1 (open_party (VNat 1) (QSend (VNat 2) QEnd)))
+    by reflexivity.
+  apply NStep_Comm; [ discriminate | reflexivity | reflexivity ].
+Qed.
+
+Example ring_nstep2 : nstep ra_ring1 ra_ring2.
+Proof.
+  replace ra_ring2 with
+    (ra_set (ra_set ra_ring1 1 QEnd) 2 (open_party (VNat 2) (QSend (VNat 3) QEnd)))
+    by reflexivity.
+  apply NStep_Comm; [ discriminate | reflexivity | reflexivity ].
+Qed.
+
+Example ring_nstep3 : nstep ra_ring2 ra_ring3.
+Proof.
+  replace ra_ring3 with
+    (ra_set (ra_set ra_ring2 2 QEnd) 0 (open_party (VNat 3) QEnd))
+    by reflexivity.
+  apply NStep_Comm; [ discriminate | reflexivity | reflexivity ].
+Qed.
+
+Example ring_runs_to_end : nstar ra_ring ra_ring3.
+Proof.
+  eapply NS_step. apply ring_nstep1.
+  eapply NS_step. apply ring_nstep2.
+  eapply NS_step. apply ring_nstep3.
+  apply NS_refl.
+Qed.
+
+(* The whole run preserves the role count -- 3 roles throughout. *)
+Example ring_run_preserves_count : length ra_ring3 = length ra_ring.
+Proof. apply nstar_length. apply ring_runs_to_end. Qed.
+
+(* ---- the load-bearing HONESTY witness: NO SR against fixed G ---- *)
+(* This is WHY S3c.2 stops at adequacy and n-party subject          *)
+(* reduction (S3c.3) must be stated against a STEPPING global type. *)
+(* ra_ring is wf_assignment_f at g_ring, but after ONE step ra_ring1 *)
+(* is NOT (role 0 is now a RECEIVER QRecv, while proj g_ring 0 is a  *)
+(* SEND type -- the endpoint is typed at proj of the STEPPED g, not  *)
+(* of g_ring).  So `nstep preserves wf_assignment_f G` is FALSE for  *)
+(* a fixed G; the true statement couples nstep with gstep (S3c.3).   *)
+Example nstep_breaks_wf_at_fixed_G :
+  wf_assignment_f g_ring ra_ring /\ ~ wf_assignment_f g_ring ra_ring1.
+Proof.
+  split.
+  - apply wf_ra_ring_f.
+  - intro H. destruct (H 0 (QRecv QEnd) eq_refl) as [s [Hp Ht]].
+    cbn in Hp. injection Hp as Hs. subst s. inversion Ht.
+Qed.
+
+(* ============================================================ *)
+(* S3c.2 FENCE (each clause literally true vs the code above):   *)
+(*  (1) OPERATIONAL ADEQUACY ONLY -- nstep / gstep are DEFINED    *)
+(*      and the 3-party ring RUN is witnessed on both sides       *)
+(*      (ring_runs_to_end, g_ring_gsteps).  There is NO subject   *)
+(*      reduction: nstep does NOT preserve wf_assignment_f at a    *)
+(*      FIXED G (nstep_breaks_wf_at_fixed_G is a PROVED            *)
+(*      refutation).  The true n-party SR couples nstep with       *)
+(*      gstep against a STEPPING G -- that is S3c.3.               *)
+(*  (2) NO PROGRESS / NO DEADLOCK-FREEDOM -- the ring RUN is BY    *)
+(*      EXAMPLE; there is no theorem (every wf config steps or is  *)
+(*      all-ended).  n-party progress is research-hard (= S3c.4);  *)
+(*      `wf_assignment ra -> deadlock-free` is FALSE in general    *)
+(*      (per-endpoint typing carries no global compatibility).     *)
+(*  (3) gstep and nstep are NOT YET COUPLED -- no gstep<->nstep    *)
+(*      simulation / fidelity is proved (= S3c.3).  They are two   *)
+(*      independent reductions that happen to run the same ring.   *)
+(*  (4) nstep = the LOCATED mirror of cstep, MESSAGE + SELECT      *)
+(*      fragments only (NStep_Comm / NStep_Sel); gstep = MESSAGE   *)
+(*      fragment only (GStep_Msg) -- choice-gstep is S3c.3-choice. *)
+(*  (5) ra_set is FIRST-MATCH (duplicate-tolerant like ra_get):    *)
+(*      on a duplicate key only the first entry updates.  Domain   *)
+(*      preserved (ra_set_length, nstep_length, nstar_length).     *)
+(*  (6) wf_assignment_f is the FUNCTIONAL (ra_get) well-formedness; *)
+(*      wf_assignment (S3b, In) => wf_assignment_f (one direction; *)
+(*      the converse needs NoDup, NOT claimed).  Still STATIC      *)
+(*      typed-at-projection, NOT n-party safety.                   *)
+(*  (7) plain merge + unpruned mu + p<>q-as-hypothesis inherited   *)
+(*      from S3a/S3b/S3c.1; proj (NOT proj_u) used (the located    *)
+(*      semantics is independent of the S3c.1 widening).           *)
+(*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE -- nstep is   *)
+(*  a located reduction relation, emits no obligation / residue).  *)
+(* ============================================================ *)

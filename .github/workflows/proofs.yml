@@ -261,6 +261,32 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S3c.2 n-ary located operational semantics is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.2 (axis-2 STRUCTURE): the FIRST operational metatheory over
+          # an n-party config -- a located reduction nstep on role_assignment
+          # (the located mirror of the fused binary cstep: one communication
+          # ra_set-updates exactly the two roles) + a global-type reduction
+          # gstep, with the 3-party RING run witnessed on BOTH sides
+          # (ring_runs_to_end / g_ring_gsteps). The functional well-formedness
+          # wf_assignment_f (wf_assignment => it, one direction) is the form
+          # S3c.3 SR will use. OPERATIONAL ADEQUACY ONLY: the load-bearing
+          # honesty witness nstep_breaks_wf_at_fixed_G PROVES nstep does NOT
+          # preserve wf_assignment_f at a FIXED G -- so n-party SR must couple
+          # nstep with gstep against a STEPPING G (= S3c.3), and there is NO
+          # progress (= S3c.4). nstep/gstep are NOT yet coupled.
+          for thm in ra_set_length ra_set_get_eq ra_set_get_neq \
+                     nstep_length nstar_length \
+                     wf_assignment_to_f wf_ra_ring_f g_ring_gsteps \
+                     ring_runs_to_end ring_run_preserves_count \
+                     nstep_breaks_wf_at_fixed_G; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c2_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c2_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest
