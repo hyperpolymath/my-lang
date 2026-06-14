@@ -545,3 +545,82 @@ Proof.
   - apply wf_pingpong_config.
   - apply cstep_pingpong_config.
 Qed.
+
+(* ============================================================ *)
+(* S1.2 — session fidelity + progress (deadlock freedom)         *)
+(*                                                              *)
+(* On the fused two-party form these are the duet paper's        *)
+(* headline SAFETY (fidelity) and LIVENESS (progress / deadlock  *)
+(* freedom) theorems, mechanised axiom-free for the send/recv/   *)
+(* end fragment. They fall out cleanly because the two parties   *)
+(* run dual protocols: every action of one is the dual action of *)
+(* the other, so a well-formed non-ended config can ALWAYS step, *)
+(* and each step advances the shared protocol by exactly its     *)
+(* head action.                                                  *)
+(*                                                              *)
+(* Still OUT (S1.3+): internal/external choice (select/branch),  *)
+(* μ-recursive sessions, structural congruence over the open     *)
+(* `proc` calculus, and multiparty G / projection (the S2 hook). *)
+(* ============================================================ *)
+
+(* A single session-type transition: consume the head action. *)
+Inductive sty_step : sty -> sty -> Prop :=
+| SS_Send : forall t s, sty_step (SSend t s) s
+| SS_Recv : forall t s, sty_step (SRecv t s) s.
+
+(* ----- session fidelity ----- *)
+(* A communication of a well-formed two-party config advances the *)
+(* shared protocol by EXACTLY one session step, and the reduct is *)
+(* well-formed at that successor protocol. This both refines      *)
+(* subject reduction (it pins WHICH protocol the reduct follows)  *)
+(* and IS fidelity: the reduction follows the session type.       *)
+Theorem session_fidelity : forall P Q c' s,
+  pty [] P s -> pty [] Q (dual s) -> cstep (Conf P Q) c' ->
+  exists s' P' Q', c' = Conf P' Q'
+                /\ sty_step s s' /\ pty [] P' s' /\ pty [] Q' (dual s').
+Proof.
+  intros P Q c' s HP HQ Hstep. inversion Hstep; subst.
+  - (* CStep : sender on the left *)
+    apply pty_send_inv in HP. destruct HP as (t & s' & Es & Hv & HPc). subst s.
+    simpl in HQ. apply pty_recv_inv in HQ. destruct HQ as (t2 & s2 & Es2 & HQc).
+    inversion Es2; subst t2 s2.
+    exists s', P0, (open_party v Q0). repeat split.
+    + apply SS_Send.
+    + exact HPc.
+    + eapply pty_subst0; eassumption.
+  - (* CStepR : sender on the right *)
+    apply pty_recv_inv in HP. destruct HP as (t & s' & Es & HQc). subst s.
+    simpl in HQ. apply pty_send_inv in HQ. destruct HQ as (t2 & s2 & Es2 & Hv & HPc).
+    inversion Es2; subst t2 s2.
+    exists s', (open_party v Q0), P0. repeat split.
+    + apply SS_Recv.
+    + eapply pty_subst0; eassumption.
+    + exact HPc.
+Qed.
+
+(* ----- progress / deadlock freedom ----- *)
+(* A well-formed config is either fully ENDED (both parties done) *)
+(* or it can take a step. There is no stuck (deadlocked) state:   *)
+(* duality guarantees one party's pending action is matched by    *)
+(* the other's dual action.                                       *)
+Theorem config_progress : forall c,
+  wf_config c -> c = Conf QEnd QEnd \/ exists c', cstep c c'.
+Proof.
+  intros [P Q] [s [HP HQ]].
+  destruct P as [ | v P0 | P0 ].
+  - (* P = QEnd : s = SEnd, so dual s = SEnd, so Q = QEnd *)
+    inversion HP; subst. simpl in HQ. inversion HQ; subst.
+    left. reflexivity.
+  - (* P = QSend : Q must be QRecv (dual), so CStep fires *)
+    inversion HP; subst. simpl in HQ. inversion HQ; subst.
+    right. eexists. apply CStep.
+  - (* P = QRecv : Q must be QSend (dual), so CStepR fires *)
+    inversion HP; subst. simpl in HQ. inversion HQ; subst.
+    right. eexists. apply CStepR.
+Qed.
+
+(* Witness: the ping-pong config is not stuck — it can step. *)
+Example progress_pingpong :
+  (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) = Conf QEnd QEnd
+  \/ exists c', cstep (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) c'.
+Proof. apply config_progress. apply wf_pingpong_config. Qed.
