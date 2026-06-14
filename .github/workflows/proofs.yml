@@ -101,6 +101,27 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert duet-by-projection S2 results are axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S2 (axis-2 STRUCTURE, "duet = ensemble | 2-party by projection"):
+          # the multiparty-SHAPED global-type / projection layer (gty, proj,
+          # two_party) and the BINARY COLLAPSE bridge into the S1.1b/S1.2 fused
+          # config metatheory. projection_duality (a two-party choreography
+          # projects to DUAL local types) + proj_q_dual_p, projected_config_wf,
+          # and the transported guarantees (subject reduction / fidelity /
+          # progress) + the round-trip global_projects_to_dual_channel must all
+          # rest on the bare global context.
+          for thm in projection_duality proj_q_dual_p \
+                     projected_config_wf global_projects_to_dual_channel \
+                     projected_config_subject_reduction \
+                     projected_session_fidelity projected_config_progress; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s2_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s2_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest

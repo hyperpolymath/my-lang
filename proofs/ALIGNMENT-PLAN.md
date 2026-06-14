@@ -144,25 +144,36 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   (closed via the F1.4 `ht_shift0` weakening lemma), so `me_wt` spans the whole `me_tm`. **M1
   (axis-4 SURFACE) is complete.**
 
-  **Structure (S1, axis-2) — commenced 2026-06-14.** The structure climb
-  (`AXIS-ARCHITECTURE.md` axis 2: solo ⊂ duet ⊂ ensemble, done *ensemble-first*
-  on the process side since `solo ⊄ ensemble`). A NEW standalone Coq
+  **Structure (S1 + S2, axis-2) — S1.0–S1.2 + S2.0/S2.1 done 2026-06-14.** The
+  structure climb (`AXIS-ARCHITECTURE.md` axis 2: solo ⊂ duet ⊂ ensemble, done
+  *ensemble-first* on the process side since `solo ⊄ ensemble`). A standalone Coq
   development `proofs/verification/coq/solo-core/SessionPi.v` (module
   `SoloCore.SessionPi`) mechanises a synchronous binary session-typed
   π-calculus core after `proofs/duet/session-types/` and
-  `proofs/ensemble/agent-calculus/`. **S1.0 done (2026-06-14):** definitions
+  `proofs/ensemble/agent-calculus/`. **S1.0:** definitions
   (payloads, session types `sty` with a computed duality + `dual_involutive`,
   polarised endpoints, processes, a *linear* channel-typing judgement `wt`
-  with context splitting, small-step `step` for the communication redex) plus
-  executable witnesses — a well-typed ping-pong that reduces — all axiom-free
+  with context splitting, small-step `step`) plus executable witnesses.
+  **S1.1a/S1.1b:** value substitution (`wt_subst`) + communication-redex
+  subject reduction (`sr_comm`), and full closed-system subject reduction
+  (`config_subject_reduction`) via the fused two-party `(νc)(P∣Q)` form.
+  **S1.2:** session fidelity (`session_fidelity`) + progress / deadlock-freedom
+  (`config_progress`) — the duet paper's safety + liveness theorems for the
+  binary fragment. **S2.0/S2.1 — duet by projection:** the multiparty-*shaped*
+  global-type layer `gty`, the three-case projection `proj G r`, the two-party
+  restriction `two_party`, `projection_duality` (a two-party choreography
+  projects to DUAL local types, `p≠q` load-bearing), and `projected_config_wf`
+  + corollaries that transport the whole S1.1b/S1.2 guarantee across projection
+  — a projected choreography is deadlock-free BY CONSTRUCTION. All axiom-free
   (`Print Assumptions` closed) and CI-guarded (`proofs.yml`). This is a
   greenfield **overtake**: AffineScript@main (surveyed 2026-06-02) has *no*
   concurrency / session-types / π-calculus / multiparty metatheory in any form
-  — a category AS does not enter. **Subject reduction (S1.1) and session
-  fidelity / congruence / choice (S1.2)** are the remaining obligations;
-  multiparty global types + projection `G ↾ p` are the **S2** hook
-  (duet = ensemble │ 2-party by projection). Echo-types: NOT-RELEVANT
-  (axis-2 STRUCTURE vs axis-3 MODALITY).
+  — a category AS does not enter. **Honest fence:** S2 mechanises message-passing
+  + end only and *instantiates* the duet thesis on two-party choreographies — it
+  does not prove a general n-party result. **Remaining:** choice (select/branch),
+  μ-recursion and structural congruence (**S1.3 / S2.2**); n≥3 coherence / merge /
+  projection-existence (**S3** — where "duet" stops and "ensemble" begins).
+  Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a

@@ -624,3 +624,251 @@ Example progress_pingpong :
   (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) = Conf QEnd QEnd
   \/ exists c', cstep (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) c'.
 Proof. apply config_progress. apply wf_pingpong_config. Qed.
+
+(* ============================================================ *)
+(* S2 — duet by projection (axis-2 STRUCTURE).                  *)
+(*                                                              *)
+(* The duet thesis "duet = ensemble | 2-party" rendered as a    *)
+(* theorem: a global choreography, PROJECTED onto its two roles,*)
+(* yields DUAL binary local session types, so the two projected *)
+(* endpoints compose into a well-formed fused config and thereby*)
+(* INHERIT the entire S1.1b/S1.2 metatheory (subject reduction, *)
+(* fidelity, progress / deadlock-freedom) for free.             *)
+(*                                                              *)
+(* It reuses the existing session-type layer verbatim (sty,     *)
+(* dual, dual_involutive) and the fused two-party config        *)
+(* metatheory (party, pty, config, wf_config,                   *)
+(* config_subject_reduction, session_fidelity, config_progress).*)
+(*                                                              *)
+(* ----- FAITHFULNESS FENCE (S2 — honest scope). --------------- *)
+(* WHAT IS PROVED. For a TWO-PARTY choreography — a [gty] all of *)
+(*   whose messages are between the SAME fixed pair p,q          *)
+(*   (predicate [two_party p q G]) — projection yields DUAL      *)
+(*   binary local types (projection_duality), the two role-      *)
+(*   projections form one dual channel                           *)
+(*   (global_projects_to_dual_channel), and composing the two    *)
+(*   projected endpoints transports the full S1.1b/S1.2          *)
+(*   guarantee: well-formedness (projected_config_wf), subject   *)
+(*   reduction (projected_config_subject_reduction), session     *)
+(*   fidelity (projected_session_fidelity), and progress /       *)
+(*   deadlock-freedom (projected_config_progress). This          *)
+(*   INSTANTIATES the duet thesis on two-party choreographies;   *)
+(*   it does NOT establish a general n-party -> 2-party result.  *)
+(* GLOBAL-TYPE LANGUAGE. Message-passing + end ONLY              *)
+(*   (GMsg p q t G | GEnd). [role := nat] so the uninvolved-     *)
+(*   party branch  G|>r = G'|>r  is SYNTACTICALLY reachable, but *)
+(*   NO theorem quantifies over a genuine n>=3 system: every     *)
+(*   theorem's [two_party] hypothesis re-collapses the nat role  *)
+(*   space to {p,q}, under which the uninvolved branch is DEAD.  *)
+(* THE 3 PROJECTION EQUATIONS. All three are DEFINED in [proj].  *)
+(*   Cases 1-2 (r=p send, r=q recv) are LOAD-BEARING in          *)
+(*   projection_duality. Case 3 (uninvolved r) is exercised by   *)
+(*   executable witnesses (a 3-party gty projected on each role) *)
+(*   and is provably unreachable inside the theorems: all 3      *)
+(*   cases are defined-and-witnessed, NOT                        *)
+(*   all-three-verified-in-a-theorem.                            *)
+(* NO COHERENCE / NO MERGE. [proj] is TOTAL and trivial          *)
+(*   PRECISELY BECAUSE choice is out of scope: there is NO       *)
+(*   projectability side-condition, NO merge operator, and NO    *)
+(*   well-formedness predicate on [gty]. An arbitrary GMsg a b.. *)
+(*   with a,b outside {p,q} is a valid gty that NO theorem       *)
+(*   constrains. (Partiality re-enters with choice at S2.2.)     *)
+(* THE p<>q SIDE-CONDITION is load-bearing, not decorative: at   *)
+(*   p=q the duality theorem is FALSE (a self-send GMsg 0 0 t    *)
+(*   GEnd projects to SSend, whose dual is SRecv). p<>q is what  *)
+(*   puts self-communication (p->p) out of scope.                *)
+(* OUT (deferred). S2.2 hook: choice global types               *)
+(*   p->q:{l_i:G_i} (makes projection PARTIAL, needs a MERGE     *)
+(*   operator + select/branch in sty); mu a.G / a recursion     *)
+(*   (needs a guardedness side-condition) — both mirror S1.3.    *)
+(*   S3 hook: n>=3 coherence / merge / projection-EXISTENCE —    *)
+(*   the boundary where "duet" stops and "ensemble" begins. No   *)
+(*   payload-binding in global types (base value types only).    *)
+(* ECHO-TYPES AUDIT (performed, not assumed). Projection emits   *)
+(*   no obligation/residue/attestation; it is pure axis-2        *)
+(*   STRUCTURE. No axis-3 (L3 echo) obligation arises ->         *)
+(*   recorded NOT-RELEVANT (AXIS-ARCHITECTURE.md sec.3 — axes    *)
+(*   compose but must not collapse), same outcome as S1,         *)
+(*   re-checked for the multiparty-syntax layer specifically.    *)
+(* ============================================================ *)
+
+(* ================= S2.0: global types + projection ========== *)
+
+(* Participants. [nat] (not a 2-element type) so the paper's     *)
+(* third projection equation  (p->q:t.G)|>r = G|>r  (r<>p,q) is  *)
+(* SYNTACTICALLY reachable — witness-enabling + future-proofing  *)
+(* only; no theorem quantifies over a genuine n-party system.    *)
+Definition role := nat.
+
+(* Global type (choreography), message-passing fragment:         *)
+(*   GMsg p q t G  ==  p -> q : t . G   (p sends a t to q, then G)*)
+Inductive gty : Type :=
+| GEnd : gty
+| GMsg : role -> role -> vty -> gty -> gty.
+
+(* Projection  G|>r  (formal-system.md:250-252), all three cases:*)
+(*   (p->q:t.G)|>p = !t.(G|>p)   sender   -> SSend                *)
+(*   (p->q:t.G)|>q = ?t.(G|>q)   receiver -> SRecv                *)
+(*   (p->q:t.G)|>r = G|>r        uninvolved (r<>p,q) -> passthru  *)
+Fixpoint proj (G : gty) (r : role) : sty :=
+  match G with
+  | GEnd          => SEnd
+  | GMsg p q t G' =>
+      if Nat.eqb r p then SSend t (proj G' r)
+      else if Nat.eqb r q then SRecv t (proj G' r)
+      else proj G' r
+  end.
+
+(* [two_party p q G] : every message in G is between exactly the *)
+(* fixed pair p,q (in either direction). NB it does NOT by       *)
+(* itself entail p<>q (TP_PQ/TP_QP coincide and admit a self-    *)
+(* send when p=q); distinctness is carried as a theorem          *)
+(* hypothesis where needed — see the p<>q fence note.            *)
+Inductive two_party (p q : role) : gty -> Prop :=
+| TP_End : two_party p q GEnd
+| TP_PQ  : forall t G, two_party p q G -> two_party p q (GMsg p q t G)
+| TP_QP  : forall t G, two_party p q G -> two_party p q (GMsg q p t G).
+
+(* ================= S2.1: projection duality + bridge ======== *)
+
+(* The duet collapse: a two-party choreography projects onto its *)
+(* two roles to give DUAL binary local types. Induction is on    *)
+(* the [two_party] DERIVATION (not on gty) — that hands back the *)
+(* IH on the SAME role r, so it applies directly. The p<>q       *)
+(* hypothesis is load-bearing: it is what makes the receiver's   *)
+(* (q =? p) test false in the TP_PQ case (and symmetrically).    *)
+Theorem projection_duality :
+  forall p q G, p <> q -> two_party p q G -> proj G p = dual (proj G q).
+Proof.
+  intros p q G Hpq Htp.
+  induction Htp as [ | t G' Htp' IH | t G' Htp' IH ].
+  - (* TP_End *) reflexivity.
+  - (* TP_PQ : node GMsg p q t G' *)
+    cbn [proj]. repeat rewrite Nat.eqb_refl.
+    assert (Hqp : (q =? p) = false) by (apply Nat.eqb_neq; congruence).
+    rewrite Hqp. cbn. rewrite IH. reflexivity.
+  - (* TP_QP : node GMsg q p t G' *)
+    cbn [proj]. repeat rewrite Nat.eqb_refl.
+    assert (Hpq' : (p =? q) = false) by (apply Nat.eqb_neq; exact Hpq).
+    rewrite Hpq'. cbn. rewrite IH. reflexivity.
+Qed.
+
+(* Glue lemma (de-dup; consumed by the bridge + fidelity): the   *)
+(* q-projection is the dual of the p-projection.                 *)
+Lemma proj_q_dual_p :
+  forall p q G, p <> q -> two_party p q G -> proj G q = dual (proj G p).
+Proof.
+  intros p q G Hpq Htp.
+  rewrite (projection_duality p q G Hpq Htp).
+  rewrite dual_involutive. reflexivity.
+Qed.
+
+(* The bridge: a config built from the two role-projections is   *)
+(* well-formed in the fused two-party metatheory — well-formed   *)
+(* BY CONSTRUCTION, no separate duality obligation.              *)
+Theorem projected_config_wf :
+  forall p q G P Q, p <> q -> two_party p q G ->
+    pty [] P (proj G p) -> pty [] Q (proj G q) -> wf_config (Conf P Q).
+Proof.
+  intros p q G P Q Hpq Htp HP HQ.
+  exists (proj G p). split.
+  - exact HP.
+  - rewrite (proj_q_dual_p p q G Hpq Htp) in HQ. exact HQ.
+Qed.
+
+(* The thesis sentence: G IS a duet — its two role-projections   *)
+(* form one dual channel (projection_duality, repackaged).       *)
+Corollary global_projects_to_dual_channel :
+  forall p q G, p <> q -> two_party p q G ->
+    exists s, proj G p = s /\ proj G q = dual s.
+Proof.
+  intros p q G Hpq Htp.
+  exists (proj G p). split.
+  - reflexivity.
+  - apply (proj_q_dual_p p q G Hpq Htp).
+Qed.
+
+(* ---- the whole S1.1b/S1.2 guarantee, transported across the   *)
+(*      projection (each is one `apply` off wf_config). -------- *)
+
+(* SAFETY: subject reduction for any projected two-party config. *)
+Corollary projected_config_subject_reduction :
+  forall p q G P Q c', p <> q -> two_party p q G ->
+    pty [] P (proj G p) -> pty [] Q (proj G q) ->
+    cstep (Conf P Q) c' -> wf_config c'.
+Proof.
+  intros p q G P Q c' Hpq Htp HP HQ Hstep.
+  apply (config_subject_reduction (Conf P Q) c').
+  - apply (projected_config_wf p q G P Q Hpq Htp HP HQ).
+  - exact Hstep.
+Qed.
+
+(* FIDELITY: a step of a projected config advances the SHARED    *)
+(* protocol (= proj G p) by exactly one head action.             *)
+Corollary projected_session_fidelity :
+  forall p q G P Q c', p <> q -> two_party p q G ->
+    pty [] P (proj G p) -> pty [] Q (proj G q) ->
+    cstep (Conf P Q) c' ->
+    exists s' P' Q', c' = Conf P' Q'
+      /\ sty_step (proj G p) s' /\ pty [] P' s' /\ pty [] Q' (dual s').
+Proof.
+  intros p q G P Q c' Hpq Htp HP HQ Hstep.
+  apply (session_fidelity P Q c' (proj G p)).
+  - exact HP.
+  - rewrite (proj_q_dual_p p q G Hpq Htp) in HQ. exact HQ.
+  - exact Hstep.
+Qed.
+
+(* LIVENESS: a projected two-party config is never stuck — every *)
+(* projectable choreography is deadlock-free BY CONSTRUCTION.    *)
+Corollary projected_config_progress :
+  forall p q G P Q, p <> q -> two_party p q G ->
+    pty [] P (proj G p) -> pty [] Q (proj G q) ->
+    Conf P Q = Conf QEnd QEnd \/ exists c', cstep (Conf P Q) c'.
+Proof.
+  intros p q G P Q Hpq Htp HP HQ.
+  apply config_progress. apply (projected_config_wf p q G P Q Hpq Htp HP HQ).
+Qed.
+
+(* ================= executable witnesses ===================== *)
+
+(* The two-party ping-pong choreography:  0 -> 1 : Nat . end.    *)
+Definition gpingpong : gty := GMsg 0 1 VTNat GEnd.
+
+Example proj_ping_0 : proj gpingpong 0 = SSend VTNat SEnd. Proof. reflexivity. Qed.
+Example proj_ping_1 : proj gpingpong 1 = SRecv VTNat SEnd. Proof. reflexivity. Qed.
+Example two_party_ping : two_party 0 1 gpingpong.
+Proof. apply TP_PQ. apply TP_End. Qed.
+
+(* A 3-party choreography:  0 -> 1 : Nat . 1 -> 2 : Bool . end.  *)
+(* Projecting it on EACH role fires a DIFFERENT projection       *)
+(* branch on one term — role 0 hits the uninvolved (case 3)      *)
+(* branch on the 1->2 node, the one a purely-binary gty could    *)
+(* never reach.                                                  *)
+Definition g3 : gty := GMsg 0 1 VTNat (GMsg 1 2 VTBool GEnd).
+Example proj_g3_role0 : proj g3 0 = SSend VTNat SEnd. Proof. reflexivity. Qed.
+Example proj_g3_role1 : proj g3 1 = SRecv VTNat (SSend VTBool SEnd). Proof. reflexivity. Qed.
+Example proj_g3_role2 : proj g3 2 = SRecv VTBool SEnd. Proof. reflexivity. Qed.
+
+(* ...and g3 is genuinely OUTSIDE the two-party theorems: it is  *)
+(* not two_party 0 1 (the inner 1->2 node refutes it), so the    *)
+(* uninvolved branch is witnessed without contaminating duality. *)
+Example g3_not_two_party_01 : ~ two_party 0 1 g3.
+Proof.
+  unfold g3. intro H. inversion H; subst.
+  match goal with Hi : two_party 0 1 (GMsg 1 2 _ _) |- _ => inversion Hi end.
+Qed.
+
+(* The keystone, instantiated: the config obtained by PROJECTING *)
+(* gpingpong onto its two roles is deadlock-free — a one-line    *)
+(* instance of the general projected_config_progress.           *)
+Example projected_pingpong_deadlock_free :
+  Conf (QSend (VNat 7) QEnd) (QRecv QEnd) = Conf QEnd QEnd
+  \/ exists c', cstep (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) c'.
+Proof.
+  apply (projected_config_progress 0 1 gpingpong).
+  - discriminate.
+  - apply two_party_ping.
+  - simpl. apply PT_Send; [ apply VT_Nat | apply PT_End ].
+  - simpl. apply PT_Recv. apply PT_End.
+Qed.

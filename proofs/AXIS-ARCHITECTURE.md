@@ -127,8 +127,11 @@ my-lang is parametric over **both**, and identifies **neither**.
       config_subject_reduction; S1.2 ✓ session
       fidelity + progress/deadlock-freedom; all
       axiom-free. S1.3 choice/μ/congruence = open)
- S2 ☐ duet = ensemble │2-party  (by projection,
-      falls out of S1)
+ S2 ◑ duet = ensemble │2-party by projection
+      (S2.0 ✓ gty/proj/two_party + witnesses;
+      S2.1 ✓ projection_duality + projected_*
+      {wf, subj.red., fidelity, progress},
+      axiom-free. S2.2 choice/μ, S3 n≥3 = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -258,6 +261,28 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   (so no `EchoMode`/`EchoResidue` artefact enters the file). Greenfield **overtake** vs
   AffineScript: AS@main (surveyed 2026-06-02) records no concurrency / session-types / π-calculus
   / multiparty metatheory in any form — a category AS does not enter.
+- **S2.0/S2.1 DONE — duet by projection, axiom-free 2026-06-14.** The duet thesis
+  "duet = ensemble │ 2-party" rendered as a theorem, appended to `SessionPi.v`. Adds the
+  multiparty-SHAPED global-type layer `gty` (message-passing + end), the three-case projection
+  `proj G r` (sender `!` / receiver `?` / uninvolved passthrough — faithful to
+  `formal-system.md:250-252`; `role := nat` so the uninvolved branch is *syntactically* reachable),
+  and the two-party restriction `two_party p q G`. **`projection_duality`** (`Qed`, axiom-free):
+  for a two-party choreography, `proj G p = dual (proj G q)` — projection yields DUAL binary local
+  types (`p≠q` is load-bearing — at `p=q` it is FALSE, witnessed by a self-send). **`projected_config_wf`**
+  + the corollaries `projected_config_subject_reduction` / `projected_session_fidelity` /
+  `projected_config_progress` (+ the round-trip `global_projects_to_dual_channel`) transport the
+  WHOLE S1.1b/S1.2 guarantee across projection: a config built from the two role-projections is
+  well-formed BY CONSTRUCTION and inherits subject reduction, fidelity, and progress/deadlock-freedom.
+  Witnesses `gpingpong`/`g3` project by `reflexivity` (the 3-party `g3` fires all three projection
+  branches on one term and is provably *not* `two_party 0 1`); `projected_pingpong_deadlock_free` is
+  a one-line instance. All axiom-free, CI-guarded (dedicated `proofs.yml` step). **Honest fence:**
+  message-passing + end ONLY — the syntax is multiparty-shaped but every theorem's `two_party`
+  hypothesis collapses to a single fixed pair, so this INSTANTIATES the thesis on two-party
+  choreographies; it does NOT prove a general n-party result, and `proj` is total only because
+  there is no choice (no merge / no coherence / no projectability predicate). OUT: choice global
+  types (S2.2), μ-recursion (S2.2), n≥3 coherence/merge/projection-existence (S3). **Echo-types
+  audit: NOT-RELEVANT** (axis-2 STRUCTURE; projection emits no obligation/residue — re-checked for
+  the multiparty-syntax layer specifically).
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without
