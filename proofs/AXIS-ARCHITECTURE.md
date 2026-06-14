@@ -122,8 +122,9 @@ my-lang is parametric over **both**, and identifies **neither**.
       mirror subst2 fix + parametric design
  M1 ✓ me elab→solo (M1.0/1.1/1.1b, whole me_tm)           SEAM CAPSTONE (joint): E4 needs R2 (a SEMIRING)
  ──structure climb (last, hardest)──                 + a solid echo core. It is where "interaction,
- S1 ☐ ensemble π metatheory (subject red.,                not identification" becomes a theorem.
-      session fidelity)
+ S1 ◑ ensemble π metatheory (S1.0 ✓ session-pi             not identification" becomes a theorem.
+      core + witnesses, axiom-free; subject red.
+      = S1.1, session fidelity / congruence = S1.2)
  S2 ☐ duet = ensemble │2-party  (by projection,
       falls out of S1)
 ```
@@ -235,6 +236,26 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   `me_wt_aff`. **MeSeq closed too** (`MW_Seq`, reusing the F1.4 `ht_shift0` weakening lemma — e1
   erased at multiplicity Zero, e2 weakened under the discarded binder), so `me_wt` spans the
   WHOLE `me_tm` (all 12 constructors): **M1 is complete.**
+- **S1.0 DONE — ensemble session-π core, axiom-free 2026-06-14.** The first step of the
+  structure climb (axis 2, the PROCESS side, done ensemble-first per `solo ⊄ ensemble`). A NEW
+  standalone Coq development `SessionPi.v` (module `SoloCore.SessionPi`) — deliberately NOT an
+  extension of `SoloCore.v`: processes are a different term language, so nothing carrier-bearing
+  is imported (reuse audit confirmed). It mechanises a synchronous binary session-typed π core
+  after `proofs/duet/session-types/` + `proofs/ensemble/agent-calculus/`: base-value payloads,
+  session types `sty` (send/recv/end) with a computed duality + `dual_involutive` (`Qed`),
+  polarised endpoints (`Pos`/`Neg`, `co_involutive`), processes `proc` (nil/send/recv/par/ν), a
+  **linear** channel-typing judgement `wt` with context splitting `csplit`, and small-step `step`
+  for the communication redex under par/ν contexts. Executable witnesses are real `Qed`: a
+  well-typed ping-pong (`wt_pingpong`) that reduces (`step_pingpong`/`step_sys`). All axiom-free
+  (`Print Assumptions` closed) and CI-guarded (`proofs.yml` dedicated assertion step). **Subject
+  reduction is the S1.1 obligation — NOT claimed at S1.0.** Honest OUT (deferred): name-passing /
+  mobility (payloads are base values ⇒ capture-safe, no scope extrusion), structural congruence
+  + choice (S1.2), replication, mismatch, μ-recursion, bisimulation, the AI primitives, and
+  multiparty `G`/projection (the S2 hook). **Echo-types audit: NOT-RELEVANT** — echo-types is
+  axis-3 MODALITY, this is axis-2 STRUCTURE; an echo index would re-collapse the axes §3 forbids
+  (so no `EchoMode`/`EchoResidue` artefact enters the file). Greenfield **overtake** vs
+  AffineScript: AS@main (surveyed 2026-06-02) records no concurrency / session-types / π-calculus
+  / multiparty metatheory in any form — a category AS does not enter.
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without
