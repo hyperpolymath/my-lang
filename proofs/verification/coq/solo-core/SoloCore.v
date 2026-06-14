@@ -2767,3 +2767,133 @@ Proof.
   apply aff_type_iff. exists (USnoc UEmpty Quantity.Zero).
   split; [ reflexivity | simpl; split; [ reflexivity | exact I ] ].
 Qed.
+
+(* ========================================================== *)
+(* M1.1: universal elaboration adequacy (Visual Soundness).    *)
+(*                                                            *)
+(* formal-model.md Theorem 1 (Visual Soundness):              *)
+(*   well_formed(V) ==> Gamma |- translate(V) : tau           *)
+(* mechanised for the NO-LINEAR-USE fragment of `me` (data    *)
+(* construction + discard-sequencing + sum injections): EVERY  *)
+(* such me-term elaborates to a solo term the R5 usage-walk    *)
+(* ACCEPTS, in ANY type context, synthesising the all-zero     *)
+(* usage [uzero G] (it spends none of G's resources). Via      *)
+(* check_correct this is `has_type G (uzero G) (elab e) a`,    *)
+(* and it relaxes to the affine budget layer (any surplus is   *)
+(* discarded). This is the first MECHANISED surface->core      *)
+(* elaboration-correctness theorem in either sibling language. *)
+(*                                                            *)
+(* The fragment is exactly the constructs whose elaboration    *)
+(* uses no linear binder, so the synthesised usage stays       *)
+(* [uzero G] and no usage-counting lemma is needed. The        *)
+(* linear-USE constructs (MeLet-consume, MeUsePair) are        *)
+(* machine-checked above as concrete Examples; their UNIVERSAL *)
+(* adequacy needs a `check`-weakening lemma and is the next     *)
+(* rung (M1.1b). The data fragment already covers the affine    *)
+(* DISCARD (MeSeq, via the Zero-binder) and the sum/products.   *)
+(* ========================================================== *)
+
+(** The no-linear-use ("data") fragment: unit, sequencing (discard),
+    both product flavours, and the sum injections. A boolean predicate
+    so the universal theorem is guarded by [me_data e = true]; the
+    excluded constructors fail it and are discharged by [discriminate]. *)
+Fixpoint me_data (e : me_tm) : bool :=
+  match e with
+  | MeUnit         => true
+  | MeSeq e1 e2    => andb (me_data e1) (me_data e2)
+  | MeTensor e1 e2 => andb (me_data e1) (me_data e2)
+  | MeWith e1 e2   => andb (me_data e1) (me_data e2)
+  | MeInl _ e1     => me_data e1
+  | MeInr _ e1     => me_data e1
+  | _              => false
+  end.
+
+(** The all-zero usage is an additive idempotent (Zero + Zero = Zero
+    pointwise) — the one usage fact the data fragment leans on. *)
+Lemma uadd_uzero_self : forall G, uadd (uzero G) (uzero G) = Some (uzero G).
+Proof. intros G. apply uadd_zero_l. apply uzero_len. Qed.
+
+(** Data terms elaborate to Var-free solo terms, so [shift] is the
+    identity on them (needed for the sequencing body, which is pushed
+    under the discarded binder). *)
+Lemma elab_data_shift : forall e c, me_data e = true -> shift c (elab e) = elab e.
+Proof.
+  intros e; induction e as
+    [ | n | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+    | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | b e1 IH1 | a e1 IH1
+    | a e1 IH1 | e1 IH1 ];
+    intros c Hd; simpl in Hd; try discriminate; simpl.
+  - (* MeUnit *) reflexivity.
+  - (* MeSeq *)
+    destruct (me_data e1); simpl in Hd; [|discriminate].
+    rewrite (IH1 c eq_refl), (IH2 0 Hd), (IH2 (S c) Hd). reflexivity.
+  - (* MeTensor *)
+    destruct (me_data e1); simpl in Hd; [|discriminate].
+    rewrite (IH1 c eq_refl), (IH2 c Hd). reflexivity.
+  - (* MeWith *)
+    destruct (me_data e1); simpl in Hd; [|discriminate].
+    rewrite (IH1 c eq_refl), (IH2 c Hd). reflexivity.
+  - (* MeInl *) rewrite (IH1 c Hd). reflexivity.
+  - (* MeInr *) rewrite (IH1 c Hd). reflexivity.
+Qed.
+
+(** ** Visual Soundness, mechanised (the M1.1 theorem).
+
+    Every well-formed data me-term elaborates to a solo term accepted by
+    the verified usage-walk [check], in any context, at usage [uzero G]. *)
+Theorem elab_data_check :
+  forall e G, me_data e = true -> exists a, check G (elab e) = Some (a, uzero G).
+Proof.
+  intros e; induction e as
+    [ | n | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
+    | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | b e1 IH1 | a e1 IH1
+    | a e1 IH1 | e1 IH1 ];
+    intros G Hd; simpl in Hd; try discriminate.
+  - (* MeUnit *)
+    exists TUnit. reflexivity.
+  - (* MeSeq — sequencing/discard via the Zero-binder *)
+    destruct (me_data e1); simpl in Hd; [|discriminate].
+    destruct (IH1 G eq_refl) as [a1 H1].
+    destruct (IH2 (TSnoc G a1) Hd) as [a2 H2].
+    exists a2. simpl.
+    rewrite (elab_data_shift e2 0 Hd).
+    rewrite H1. cbn. rewrite H2. cbn.
+    rewrite (uscale_zero Quantity.Zero G), uadd_uzero_self. reflexivity.
+  - (* MeTensor — multiplicative pair, split usage = uzero+uzero *)
+    destruct (me_data e1); simpl in Hd; [|discriminate].
+    destruct (IH1 G eq_refl) as [a1 H1]. destruct (IH2 G Hd) as [a2 H2].
+    exists (TTensor a1 a2). simpl.
+    rewrite H1. simpl. rewrite H2. simpl.
+    rewrite uadd_uzero_self. reflexivity.
+  - (* MeWith — additive pair, shared usage uzero = uzero *)
+    destruct (me_data e1); simpl in Hd; [|discriminate].
+    destruct (IH1 G eq_refl) as [a1 H1]. destruct (IH2 G Hd) as [a2 H2].
+    exists (TWith a1 a2). simpl.
+    rewrite H1. simpl. rewrite H2. simpl.
+    destruct (uvec_eq_dec (uzero G) (uzero G)) as [_|ne]; [reflexivity|congruence].
+  - (* MeInl *)
+    destruct (IH1 G Hd) as [a1 H1].
+    exists (TSum a1 b). simpl. rewrite H1. reflexivity.
+  - (* MeInr *)
+    destruct (IH1 G Hd) as [a1 H1].
+    exists (TSum a a1). simpl. rewrite H1. reflexivity.
+Qed.
+
+(** Cleanest form: well-formed data me-terms are SOLO-WELL-TYPED (via
+    check_correct) — the mechanised `well_formed(V) ==> G |- translate(V) : tau`. *)
+Corollary elab_data_typed : forall e G,
+  me_data e = true -> exists a, has_type G (uzero G) (elab e) a.
+Proof.
+  intros e G Hd. destruct (elab_data_check e G Hd) as [a Hc].
+  exists a. apply check_correct. exact Hc.
+Qed.
+
+(** ...and it fits any AFFINE budget at or above [uzero G]: the surplus
+    is discarded (R3). The visual 'a token need not be consumed' reading,
+    universally, over the data fragment. *)
+Corollary elab_data_aff_budget : forall e G D,
+  me_data e = true -> ule (uzero G) D -> exists a, aff_type G D (elab e) a.
+Proof.
+  intros e G D Hd Hle. destruct (elab_data_check e G Hd) as [a Hc].
+  exists a. apply aff_type_iff. exists (uzero G). split; [exact Hc | exact Hle].
+Qed.
