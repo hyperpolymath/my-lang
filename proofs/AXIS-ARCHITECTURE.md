@@ -140,7 +140,9 @@ my-lang is parametric over **both**, and identifies **neither**.
       (projectable_wf, first n-party theorem);
       S3b ✓ static n-party config (role_assignment,
       wf_assignment, conf_is_role_assignment2);
-      all axiom-free. S3c union/operational = open)
+      S3c.0 ✓ full label-union merge (umerge,
+      umerge_idem); all axiom-free. S3c.1-4
+      union-proj/coherence/n-ary opsem/SR/progress = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -355,6 +357,25 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   verified map (duplicate-tolerant, vacuous on `[]`). Deferred to **S3c**: n-party operational
   semantics, n-party SR/progress/fidelity, full-union merge + coherence.
   **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
+- **S3c.0 DONE — full label-union merge, axiom-free 2026-06-14.** The first S3c sub-rung,
+  design-panel-validated (4 lenses, empirically compiled on Coq 8.18; the panel adjudicated the
+  keystone empirically — `umerge_idem` is **unconditional**, the `bremove`-threaded design beating a
+  `branch_free`-fenced alternative). The Honda-Yoshida-Carbone label-**UNION** merge `umerge`/`umerge_br`
+  is **added ALONGSIDE** the plain identity-meet `merge` (touches nothing S2/S3a/S3b use — baseline
+  rebuild byte-identical). At an **external** choice (`SBranch &`) a merged uninvolved role offers the
+  UNION of the branches' labels (shared continuations recursively `umerge`d, unshared carried over); the
+  message fragment + the **internal** choice (`SSelect ⊕`) require EQUALITY (`sty_eqb`) — unioning a
+  *sender's* choice is HYC-unsound. Keystone **`umerge_idem : ∀ s, umerge s s = Some s`**. The WIN is
+  witnessed: a different-**label** `&` choice plain `merge` rejects, `umerge` unions
+  (`umerge_widens_strictly`). **Fences:** TYPE-ALGEBRA only — NOT wired into `proj`/`projectable_wf`/`cstep`
+  (= S3c.1); NO coherence/safety claim (the name is deliberately not `coherent_merge`); `SSelect ⊕` is NOT
+  unioned (the ⊕/& asymmetry is load-bearing); it does **NOT** unlock the `g_excluded` (different-PAYLOAD)
+  class — `umerge` unions *labels*, not payloads (`umerge_still_rejects_payload_divergence`); only
+  idempotence proved (not commutative/associative — later rungs reason up to branch-SET equality).
+  **Remaining S3c (solo):** S3c.1 union-projection + coherence predicate; S3c.2 n-ary located config +
+  `nstep` (operational adequacy); S3c.3 message-fragment n-party subject reduction (the first *earned*
+  n-party safety half); S3c.4 n-party progress (research-hard — fence, witness binary collapse +
+  3-cycle deadlock by example). **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)
   in the fused form; `sty`/`party` gain `SSelect`/`SBranch`/`QSel`/`QBra` over dedicated mutual

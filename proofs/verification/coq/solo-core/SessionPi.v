@@ -2157,3 +2157,221 @@ Proof.
   split; [ reflexivity | ].
   intro P. apply svar_uninhabited.
 Qed.
+
+(* ============================================================ *)
+(* S3c.0 — full label-UNION merge.  ADD ALONGSIDE plain merge.   *)
+(* The Honda-Yoshida-Carbone label-union: at an EXTERNAL choice  *)
+(* (SBranch &), a merged uninvolved role may offer the UNION of  *)
+(* the branches' labels — a SAFE protocol the plain identity-    *)
+(* meet `merge` REJECTS (witnessed). Adds NOTHING to proj /      *)
+(* projectable_wf / cstep — wiring umerge into projection is the *)
+(* SEPARATE S3c.1.  Reuses sty_mut / vty_eqb / bget.             *)
+(* ============================================================ *)
+
+(* Remove the FIRST entry keyed l (non-fixpoint helper of umerge).*)
+Fixpoint bremove (l : nat) (bs : sbranch) : sbranch :=
+  match bs with
+  | SBnil => SBnil
+  | SBcons k s rest =>
+      if Nat.eqb l k then rest else SBcons k s (bremove l rest)
+  end.
+
+(* Decidable structural equality on sty/sbranch — so the SSelect *)
+(* (internal +) case can require EQUALITY (the HYC-sound rule:   *)
+(* NEVER union a SENDER's own choice).                           *)
+Fixpoint sty_eqb (a b : sty) {struct a} : bool :=
+  match a, b with
+  | SEnd, SEnd => true
+  | SSend t1 k1, SSend t2 k2 => vty_eqb t1 t2 && sty_eqb k1 k2
+  | SRecv t1 k1, SRecv t2 k2 => vty_eqb t1 t2 && sty_eqb k1 k2
+  | SSelect b1, SSelect b2 => sbranch_eqb b1 b2
+  | SBranch b1, SBranch b2 => sbranch_eqb b1 b2
+  | SVar n1, SVar n2 => Nat.eqb n1 n2
+  | SMu a1, SMu a2 => sty_eqb a1 a2
+  | _, _ => false
+  end
+with sbranch_eqb (b1 b2 : sbranch) {struct b1} : bool :=
+  match b1, b2 with
+  | SBnil, SBnil => true
+  | SBcons l1 s1 r1, SBcons l2 s2 r2 =>
+      Nat.eqb l1 l2 && sty_eqb s1 s2 && sbranch_eqb r1 r2
+  | _, _ => false
+  end.
+
+Lemma sty_eqb_refl : forall s, sty_eqb s s = true.
+Proof.
+  intro s. induction s using sty_mut
+    with (P0 := fun bs => sbranch_eqb bs bs = true); simpl; try reflexivity.
+  - rewrite vty_eqb_refl, IHs. reflexivity.   (* SSend *)
+  - rewrite vty_eqb_refl, IHs. reflexivity.   (* SRecv *)
+  - exact IHs.                                (* SSelect *)
+  - exact IHs.                                (* SBranch *)
+  - apply Nat.eqb_refl.                       (* SVar *)
+  - exact IHs.                                (* SMu *)
+  - rewrite Nat.eqb_refl, IHs, IHs0. reflexivity.   (* SBcons *)
+Qed.
+Lemma sbranch_eqb_refl : forall bs, sbranch_eqb bs bs = true.
+Proof. intro bs. exact (sty_eqb_refl (SSelect bs)). Qed.
+
+(* umerge : the label-UNION merge.                               *)
+(*  message fragment (SEnd/SSend/SRecv/SVar/SMu) : EQUALITY.     *)
+(*  SSelect (internal +) : EQUALITY (HYC-sound — a SENDER's      *)
+(*    choice is never unioned).                                  *)
+(*  SBranch (external &) : LABEL UNION — shared labels' conts     *)
+(*    recursively umerged, unshared labels carried over.         *)
+(* GUARD: umerge_br {struct b1} recurses on b1; b2 is threaded   *)
+(* through bremove (a NON-fixpoint subroutine), so every         *)
+(* recursive call's principal arg is a strict subterm of b1.     *)
+(* Coq 8.18 ACCEPTS this (verified).                             *)
+Fixpoint umerge (s1 s2 : sty) {struct s1} : option sty :=
+  match s1, s2 with
+  | SEnd, SEnd => Some SEnd
+  | SSend t1 k1, SSend t2 k2 =>
+      if vty_eqb t1 t2
+      then match umerge k1 k2 with Some k => Some (SSend t1 k) | None => None end
+      else None
+  | SRecv t1 k1, SRecv t2 k2 =>
+      if vty_eqb t1 t2
+      then match umerge k1 k2 with Some k => Some (SRecv t1 k) | None => None end
+      else None
+  | SSelect b1, SSelect b2 =>
+      if sbranch_eqb b1 b2 then Some (SSelect b1) else None
+  | SBranch b1, SBranch b2 =>
+      match umerge_br b1 b2 with Some b => Some (SBranch b) | None => None end
+  | SVar n1, SVar n2 => if Nat.eqb n1 n2 then Some (SVar n1) else None
+  | SMu a1, SMu a2 =>
+      match umerge a1 a2 with Some a => Some (SMu a) | None => None end
+  | _, _ => None
+  end
+with umerge_br (b1 b2 : sbranch) {struct b1} : option sbranch :=
+  match b1 with
+  | SBnil => Some b2                       (* carry over b2-only labels *)
+  | SBcons l1 s1 r1 =>
+      match bget l1 b2 with
+      | Some s2 =>                         (* SHARED label: umerge conts *)
+          match umerge s1 s2, umerge_br r1 (bremove l1 b2) with
+          | Some s, Some r => Some (SBcons l1 s r)
+          | _, _ => None
+          end
+      | None =>                           (* b1-only label: carry s1 *)
+          match umerge_br r1 b2 with
+          | Some r => Some (SBcons l1 s1 r)
+          | None => None
+          end
+      end
+  end.
+
+(* ===== KEYSTONE: umerge is reflexive (UNCONDITIONAL). =====    *)
+(* NOTE (adjudicated empirically): unlike a two-phase-walk        *)
+(* encoding, the bremove-threaded design makes idem hold for ALL  *)
+(* s — including duplicate-divergent-label branch lists — because *)
+(* the head's own key is found (n=?n) and bremove strips it       *)
+(* before the tail recursion. No branch_free fence is needed.    *)
+Lemma umerge_idem : forall s, umerge s s = Some s.
+Proof.
+  intro s. induction s using sty_mut
+    with (P0 := fun bs => umerge_br bs bs = Some bs); simpl; try reflexivity.
+  - rewrite vty_eqb_refl, IHs. reflexivity.   (* SSend *)
+  - rewrite vty_eqb_refl, IHs. reflexivity.   (* SRecv *)
+  - rewrite sbranch_eqb_refl. reflexivity.    (* SSelect: EQUALITY *)
+  - rewrite IHs. reflexivity.                 (* SBranch: union path *)
+  - rewrite Nat.eqb_refl. reflexivity.        (* SVar *)
+  - rewrite IHs. reflexivity.                 (* SMu *)
+  - rewrite Nat.eqb_refl. rewrite IHs, IHs0. reflexivity.  (* SBcons *)
+Qed.
+
+(* ===== WITNESSES: the unlocked class + the honest fences ===== *)
+(* (i) the WIN: a different-LABEL external choice plain merge     *)
+(*     REJECTS, umerge ACCEPTS (the union). *)
+Example merge_rejects_disjoint :
+  merge (SBranch (SBcons 0 SEnd SBnil)) (SBranch (SBcons 1 SEnd SBnil)) = None.
+Proof. reflexivity. Qed.
+Example umerge_accepts_disjoint :
+  umerge (SBranch (SBcons 0 SEnd SBnil)) (SBranch (SBcons 1 SEnd SBnil))
+    = Some (SBranch (SBcons 0 SEnd (SBcons 1 SEnd SBnil))).
+Proof. reflexivity. Qed.
+Example umerge_widens_strictly :
+  merge   (SBranch (SBcons 0 SEnd SBnil)) (SBranch (SBcons 1 SEnd SBnil)) = None
+  /\ umerge (SBranch (SBcons 0 SEnd SBnil)) (SBranch (SBcons 1 SEnd SBnil)) <> None.
+Proof. split; [ reflexivity | discriminate ]. Qed.
+Example umerge_overlap :
+  umerge (SBranch (SBcons 0 SEnd (SBcons 1 SEnd SBnil)))
+         (SBranch (SBcons 1 SEnd (SBcons 2 SEnd SBnil)))
+    = Some (SBranch (SBcons 0 SEnd (SBcons 1 SEnd (SBcons 2 SEnd SBnil)))).
+Proof. reflexivity. Qed.
+
+(* (ii) HONEST FENCE: SSelect (internal +) is NOT unioned. *)
+Example umerge_select_disjoint_rejected :
+  umerge (SSelect (SBcons 0 SEnd SBnil)) (SSelect (SBcons 1 SEnd SBnil)) = None.
+Proof. reflexivity. Qed.
+
+(* (iii) HONEST FENCE: the EXISTING g_excluded class (same-       *)
+(*     direction DIFFERENT-PAYLOAD message) is STILL rejected —   *)
+(*     umerge unions LABELS, it does NOT reconcile divergent      *)
+(*     message payloads. So S3c.0 does NOT yet unlock g_excluded; *)
+(*     it unlocks a DIFFERENT class (different-label & choices).  *)
+Example umerge_still_rejects_payload_divergence :
+  umerge (SRecv VTNat SEnd) (SRecv VTBool SEnd) = None.
+Proof. reflexivity. Qed.
+
+(* (iv) CONSERVATIVE-on-agreement: umerge = merge where branches  *)
+(*     AGREE (the overlapping domain).  Witnessed by example;     *)
+(*     the full lemma is S3c.0 grind, not claimed here.           *)
+Example agree_end  : merge SEnd SEnd = umerge SEnd SEnd.
+Proof. reflexivity. Qed.
+Example agree_send :
+  merge (SSend VTNat SEnd) (SSend VTNat SEnd)
+  = umerge (SSend VTNat SEnd) (SSend VTNat SEnd).
+Proof. reflexivity. Qed.
+Example agree_branch_identical :
+  merge (SBranch (SBcons 0 SEnd SBnil)) (SBranch (SBcons 0 SEnd SBnil))
+  = umerge (SBranch (SBcons 0 SEnd SBnil)) (SBranch (SBcons 0 SEnd SBnil)).
+Proof. reflexivity. Qed.
+
+(* ============================================================ *)
+(* S3c.0 FENCE (each clause literally true vs the code above):   *)
+(*  (1) umerge is a TYPE-ALGEBRA combinator ONLY: sty->sty->     *)
+(*      option sty.  It is NOT wired into proj (proj still uses   *)
+(*      plain merge — union-projection is the SEPARATE S3c.1).    *)
+(*      No theorem here quantifies over a gty, a role, or a       *)
+(*      configuration.                                           *)
+(*  (2) Keystone is umerge_idem (reflexivity).  It is NOT         *)
+(*      commutative syntactically (label ORDER of the union is    *)
+(*      argument-order dependent) and NOT proved associative —    *)
+(*      only idempotence holds.  Future rungs must reason up to   *)
+(*      branch-SET equality, not syntactic sty equality.         *)
+(*  (3) NO coherence / safety claim.  The name 'umerge' claims a  *)
+(*      defined widening only; it is deliberately NOT             *)
+(*      'coherent_merge' / 'safe_merge'.  Safety is EARNED no     *)
+(*      earlier than S3c.3 (n-party subject reduction).          *)
+(*  (4) The SELECT (+, SSelect) case does NOT widen — it requires *)
+(*      EQUALITY (sbranch_eqb).  Unioning a SENDER's internal     *)
+(*      choice is HYC-UNSOUND (it would claim the role can select *)
+(*      a label with no continuation in one branch).  Only the    *)
+(*      external & (SBranch) case unions.  This asymmetry is      *)
+(*      load-bearing (umerge_select_disjoint_rejected).          *)
+(*  (5) umerge is NOT a syntactic conservative extension of merge:*)
+(*      merge s1 s2 = Some s does NOT always give umerge = Some s *)
+(*      with the SAME s (branch ORDER can differ).  So proj may   *)
+(*      NOT be re-pointed at umerge and reuse projection_total's  *)
+(*      proof — S3c.1 introduces a SEPARATE proj_uninv_u and      *)
+(*      re-proves totality.  Agreement is witnessed (agree_end /  *)
+(*      agree_send / agree_branch_identical).                     *)
+(*  (6) The CLASS umerge unlocks is DIFFERENT-LABEL external      *)
+(*      choices (&{0:end} vs &{1:end} -> &{0:end,1:end}), which   *)
+(*      plain merge rejects (merge_rejects_disjoint).  It does    *)
+(*      NOT unlock the EXISTING g_excluded / gchoice_disagree     *)
+(*      witnesses — those are same-direction DIFFERENT-PAYLOAD    *)
+(*      message clashes (SRecv VTNat vs SRecv VTBool), which      *)
+(*      umerge STILL rejects (umerge_still_rejects_payload_       *)
+(*      divergence).  Do not over-read the headline.             *)
+(*  (7) mu (SMu/SVar) is unioned structurally; divergent mu-      *)
+(*      structure across branches still fails to umerge (S2.2     *)
+(*      fence b / S3a fence 4 inherited — UNPRUNED mu).           *)
+(*  (8) Branch label-sets are NOT required NoDup.  umerge_idem    *)
+(*      holds unconditionally regardless (bget/bremove first-     *)
+(*      match), but any non-idempotent use on duplicate keys      *)
+(*      needs a NoDup side-condition (S3b fence 6 analogue).      *)
+(*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE — a type-    *)
+(*  merge operation emits no obligation / residue / attestation). *)
+(* ============================================================ *)

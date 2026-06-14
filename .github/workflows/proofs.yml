@@ -213,6 +213,28 @@ jobs:
               || { echo "::error::EchoMeasure.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S3c.0 full label-union merge is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.0 (axis-2 STRUCTURE): the FIRST S3c sub-rung -- the
+          # Honda-Yoshida-Carbone label-UNION merge (umerge) ADDED ALONGSIDE
+          # the plain identity-meet merge (touches nothing S2/S3a/S3b use).
+          # Keystone umerge_idem (unconditional). Witnesses pin the WIN
+          # (different-label & choices plain merge rejects, umerge unions)
+          # and the honest fences (SSelect + is NOT unioned; same-direction
+          # different-PAYLOAD is STILL rejected -- umerge unions labels, it
+          # does not reconcile payloads). Type-algebra only: NOT wired into
+          # proj/coherence/safety (that is S3c.1+). All bare global ctx.
+          for thm in umerge_idem sty_eqb_refl \
+                     umerge_widens_strictly umerge_accepts_disjoint \
+                     umerge_select_disjoint_rejected \
+                     umerge_still_rejects_payload_divergence; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c0_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c0_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest
