@@ -83,11 +83,14 @@ jobs:
           # S1 (axis-2 STRUCTURE): the ensemble session-typed π-calculus
           # core lives in the standalone SessionPi.v (module
           # SoloCore.SessionPi). S1.0 = definitions + executable witnesses.
-          # The duality involution, the well-typed ping-pong, and its
-          # reductions must all rest on the bare global context. (Subject
-          # reduction is the S1.1 obligation — not asserted yet.)
+          # The duality involution, the well-typed ping-pong, its
+          # reductions, and the S1.1a metatheory (value substitution +
+          # communication-redex subject reduction) must all rest on the
+          # bare global context. (The full closed-system subject_reduction
+          # is the S1.1b obligation — not asserted yet.)
           for thm in dual_involutive co_involutive \
-                     wt_pingpong step_pingpong step_sys; do
+                     wt_pingpong step_pingpong step_sys \
+                     vtype_subst wt_subst wt_subst0 sr_comm; do
             echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
               | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_sp_${thm}.txt"
             grep -q "Closed under the global context" "/tmp/assum_sp_${thm}.txt" \

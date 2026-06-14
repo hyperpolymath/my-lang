@@ -43,6 +43,7 @@
 (* ============================================================ *)
 
 Require Import PeanoNat.
+Require Import Lia.
 Require Import List.
 Import ListNotations.
 
@@ -233,3 +234,173 @@ Proof. unfold sP, sQ. apply St_Comm. Qed.
 Example step_sys :
   step sys (PRes 0 sproto (PPar PNil PNil)).
 Proof. unfold sys, sP, sQ. apply St_Res. apply St_Comm. Qed.
+
+(* ============================================================ *)
+(* S1.1a — value-substitution + communication-redex preservation *)
+(*                                                              *)
+(* The load-bearing core of subject reduction, isolated as two   *)
+(* axiom-free lemmas. These are architecture-INVARIANT (they act *)
+(* at the payload / PPar level and never touch the ν binder), so *)
+(* they stand regardless of how the full closed-system           *)
+(* subject_reduction (S1.1b) resolves the ν re-typing question.  *)
+(*                                                              *)
+(* Because payloads are BASE values, the substitution lemma is   *)
+(* FIRST-ORDER — strictly easier than the solo core's `ht_subst` *)
+(* (no channel-context splitting inside the substitution).       *)
+(* ============================================================ *)
+
+(* Shift every payload variable up by [k]. Sound to apply with no *)
+(* cutoff when the value's variables all point into the suffix    *)
+(* context it is typed against (the only use below).              *)
+Definition vshift (k : nat) (v : val) : val :=
+  match v with VVar j => VVar (j + k) | _ => v end.
+
+Lemma vshift_0 : forall v, vshift 0 v = v.
+Proof. destruct v; simpl; try reflexivity. f_equal. apply Nat.add_0_r. Qed.
+
+Lemma vlift0_vshift : forall k v, vlift 0 (vshift k v) = vshift (S k) v.
+Proof.
+  destruct v; simpl; try reflexivity.
+  f_equal. rewrite Nat.add_succ_r. reflexivity.
+Qed.
+
+(* Value typing is stable under prefixing the context with G'     *)
+(* (de Bruijn indices shift up by |G'|).                          *)
+Lemma vtype_shift_app : forall G' G2 v t,
+  vtype G2 v t -> vtype (G' ++ G2) (vshift (length G') v) t.
+Proof.
+  intros G' G2 v t H. inversion H; subst; simpl; try constructor.
+  rewrite nth_error_app2 by apply Nat.le_add_l.
+  rewrite Nat.add_sub. assumption.
+Qed.
+
+(* Inversion helper: a typed payload variable is a context lookup. *)
+Lemma vtype_var_inv : forall G n t, vtype G (VVar n) t -> nth_error G n = Some t.
+Proof. intros G n t H. inversion H; subst; assumption. Qed.
+
+(* Substituting a value of the bound type into a value preserves   *)
+(* value typing (the VVar bookkeeping under vsubst).               *)
+Lemma vtype_subst : forall w G1 G2 t t' v,
+  vtype (G1 ++ t :: G2) w t' ->
+  vtype G2 v t ->
+  vtype (G1 ++ G2) (vsubst (length G1) (vshift (length G1) v) w) t'.
+Proof.
+  intros w G1 G2 t t' v Hw Hv.
+  destruct w; simpl; [ | inversion Hw; subst; constructor
+                       | inversion Hw; subst; constructor
+                       | inversion Hw; subst; constructor ].
+  (* VVar n : decide n vs |G1| *)
+  apply vtype_var_inv in Hw.
+  destruct (Nat.compare n (length G1)) eqn:E.
+  - (* Eq : n = |G1|, so t' = t; substitute v (shifted) *)
+    apply Nat.compare_eq in E. subst n.
+    rewrite nth_error_app2 in Hw by apply Nat.le_refl.
+    rewrite Nat.sub_diag in Hw. simpl in Hw. inversion Hw; subst t'.
+    apply vtype_shift_app. assumption.
+  - (* Lt : n < |G1|, lookup stays in G1 *)
+    apply Nat.compare_lt_iff in E.
+    apply VT_Var. rewrite nth_error_app1 in Hw by assumption.
+    rewrite nth_error_app1 by assumption. assumption.
+  - (* Gt : n > |G1|, drop the removed slot *)
+    apply Nat.compare_gt_iff in E.
+    destruct n as [|n']; [ lia | ].
+    apply VT_Var. simpl.
+    rewrite nth_error_app2 in Hw by lia.
+    rewrite nth_error_app2 by lia.
+    replace (S n' - length G1) with (S (n' - length G1)) in Hw by lia.
+    simpl in Hw. exact Hw.
+Qed.
+
+(* Per-constructor inversion lemmas (named cleanly, so the          *)
+(* substitution induction never depends on auto-generated names).   *)
+Lemma wt_nil_inv : forall G D, wt G D PNil -> ended D.
+Proof. intros G D H; inversion H; subst; assumption. Qed.
+
+Lemma wt_send_inv : forall G D p n v P, wt G D (PSend p n v P) ->
+  exists Drest t k, csplit D [(p,n,SSend t k)] Drest
+                 /\ vtype G v t /\ wt G ((p,n,k)::Drest) P.
+Proof. intros G D p n v P H. inversion H; subst. do 3 eexists; repeat split; eassumption. Qed.
+
+Lemma wt_recv_inv : forall G D p n P, wt G D (PRecv p n P) ->
+  exists Drest t k, csplit D [(p,n,SRecv t k)] Drest
+                 /\ wt (t::G) ((p,n,k)::Drest) P.
+Proof. intros G D p n P H. inversion H; subst. do 3 eexists; repeat split; eassumption. Qed.
+
+Lemma wt_par_inv : forall G D P Q, wt G D (PPar P Q) ->
+  exists D1 D2, csplit D D1 D2 /\ wt G D1 P /\ wt G D2 Q.
+Proof. intros G D P Q H. inversion H; subst. do 2 eexists; repeat split; eassumption. Qed.
+
+Lemma wt_res_inv : forall G D n s P, wt G D (PRes n s P) ->
+  wt G ((Pos,n,s)::(Neg,n,dual s)::D) P.
+Proof. intros G D n s P H. inversion H; subst; assumption. Qed.
+
+(* The value-substitution lemma: substituting a value of type [t]  *)
+(* for the bound payload variable preserves process typing. The    *)
+(* general (binder-depth |G1|) form is needed so the induction can *)
+(* descend under PRecv.                                            *)
+Lemma wt_subst : forall Q G1 G2 D t v,
+  wt (G1 ++ t :: G2) D Q ->
+  vtype G2 v t ->
+  wt (G1 ++ G2) D (psubst (length G1) (vshift (length G1) v) Q).
+Proof.
+  induction Q as [ | pol ch w Qc IHQ | pol ch Qc IHQ | Qa IHa Qb IHb | ch s Qc IHQ ];
+    intros G1 G2 D t v Hwt Hv; simpl.
+  - (* PNil *)
+    apply wt_nil_inv in Hwt. apply WT_Nil; assumption.
+  - (* PSend *)
+    apply wt_send_inv in Hwt. destruct Hwt as (Drest & ts & k & Hsp & Hvt & Hcont).
+    eapply WT_Send.
+    + eassumption.
+    + eapply vtype_subst; eassumption.
+    + apply IHQ with (t:=t); assumption.
+  - (* PRecv : descend, |G1| grows by one *)
+    apply wt_recv_inv in Hwt. destruct Hwt as (Drest & tr & k & Hsp & Hcont).
+    eapply WT_Recv; [ eassumption | ].
+    rewrite vlift0_vshift.
+    apply (IHQ (tr :: G1) G2 ((pol, ch, k) :: Drest) t v); assumption.
+  - (* PPar *)
+    apply wt_par_inv in Hwt. destruct Hwt as (D1 & D2 & Hsp & HP & HQ).
+    eapply WT_Par.
+    + eassumption.
+    + apply IHa with (t:=t); assumption.
+    + apply IHb with (t:=t); assumption.
+  - (* PRes : channel binder, value context untouched *)
+    apply wt_res_inv in Hwt.
+    apply WT_Res. apply IHQ with (t:=t); assumption.
+Qed.
+
+(* Substituting at the outermost binder (the comm-redex shape).     *)
+Corollary wt_subst0 : forall G D Q t v,
+  wt (t :: G) D Q -> vtype G v t -> wt G D (open v Q).
+Proof.
+  intros G D Q t v Hwt Hv.
+  pose proof (wt_subst Q [] G D t v Hwt Hv) as HH.
+  simpl in HH. rewrite vshift_0 in HH. unfold open. exact HH.
+Qed.
+
+(* csplit lemmas: a context is the disjoint append of its halves.   *)
+Lemma csplit_nil_l : forall B, csplit B [] B.
+Proof. induction B; [ apply Csp_nil | apply Csp_r; assumption ]. Qed.
+
+Lemma csplit_app : forall A B, csplit (A ++ B) A B.
+Proof. induction A; intros; simpl; [ apply csplit_nil_l | apply Csp_l; apply IHA ]. Qed.
+
+(* ----- communication-redex preservation ----- *)
+(* Given a sender continuing at [k] and a receiver that — by        *)
+(* DUALITY (exactly what holds for a ν-bound channel) — expects the *)
+(* sent type [t] and continues at [dual k], the reduct of the comm  *)
+(* redex is well-typed at the session-ADVANCED context. This is the *)
+(* heart of subject reduction for R-Comm.                           *)
+Theorem sr_comm : forall G DP DQ p n t k v P Q,
+  vtype G v t ->
+  wt G ((p, n, k) :: DP) P ->
+  wt (t :: G) ((co p, n, dual k) :: DQ) Q ->
+  wt G (((p, n, k) :: DP) ++ ((co p, n, dual k) :: DQ))
+       (PPar P (open v Q)).
+Proof.
+  intros G DP DQ p n t k v P Q Hv HP HQ.
+  eapply WT_Par.
+  - apply csplit_app.
+  - exact HP.
+  - eapply wt_subst0; eassumption.
+Qed.
