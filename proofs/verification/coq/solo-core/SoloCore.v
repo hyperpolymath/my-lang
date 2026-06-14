@@ -2654,9 +2654,10 @@ Proof. exact I. Qed.
     INTRODUCTION (MeInl/MeInr).
 
     Faithfulness caveats (so nothing masquerades as a `me` block it is not):
-    - MeInl/MeInr are sum INTRODUCTION; they do NOT model the paper
-      IfBlock(E,V1,V2), which is a two-branch CONDITIONAL = sum ELIMINATION
-      (the core `Case`). A faithful `MeIf -> Case` is a future rung.
+    - MeInl/MeInr are sum INTRODUCTION; the paper IfBlock(E,V1,V2) is a
+      two-branch CONDITIONAL = sum ELIMINATION, modelled faithfully by MeIf
+      (-> the core `Case`: scrutinee + two branches, each binding the
+      payload once).
     - The paper token rules are AFFINE (at-most-once: a created token need
       NOT be consumed -- Dead-Code-Elimination drops an unused LetBlock
       binding). The strict-LINEAR must-use behaviour exercised below via
@@ -2679,7 +2680,8 @@ Inductive me_tm : Type :=
   | MeInl     : ty -> me_tm -> me_tm        (* sum INTRO, left (annot = right summand) -- NOT IfBlock (= sum ELIM/Case) *)
   | MeInr     : ty -> me_tm -> me_tm        (* sum INTRO, right (annot = left summand) *)
   | MeEcho    : ty -> me_tm -> me_tm        (* core probe (NOT in me paper): keep a residue [a => a], Linear mode *)
-  | MeWeaken  : me_tm -> me_tm.             (* core probe (NOT in me paper): weaken a linear echo residue to affine *)
+  | MeWeaken  : me_tm -> me_tm              (* core probe (NOT in me paper): weaken a linear echo residue to affine *)
+  | MeIf      : me_tm -> me_tm -> me_tm -> me_tm. (* IfBlock(E,V1,V2): two-branch conditional = sum ELIM (-> Case) *)
 
 (** The elaboration — a CORE-LANDING analogue of the paper `translate`
     (which targets surface Solo; this lands in the lower de Bruijn `tm`, and
@@ -2702,6 +2704,7 @@ Fixpoint elab (e : me_tm) : tm :=
   | MeInr a e1    => Inr a (elab e1)
   | MeEcho a e1   => MkEcho Linear a a (elab e1)
   | MeWeaken e1   => Weaken (elab e1)
+  | MeIf s l r    => Case (elab s) (elab l) (elab r)
   end.
 
 (* ----- M1.0 non-vacuity: concrete elaborations the R5 checker accepts -----
@@ -2795,6 +2798,15 @@ Proof.
   split; [ reflexivity | simpl; split; [ reflexivity | exact I ] ].
 Qed.
 
+(* IfBlock faithfully = sum ELIMINATION (Case): scrutinise an Inl, take the
+   left branch and consume its payload once. (MeInl/MeInr are sum INTRO;
+   MeIf is the conditional the paper IfBlock actually denotes.) *)
+Example me_elab_if :
+  check TEmpty
+    (elab (MeIf (MeInl TUnit MeUnit) (MeVar 0) (MeVar 0)))
+    = Some (TUnit, UEmpty).
+Proof. reflexivity. Qed.
+
 (* ========================================================== *)
 (* M1.1: universal elaboration adequacy (Visual Soundness).    *)
 (*                                                            *)
@@ -2848,7 +2860,7 @@ Proof.
   intros e; induction e as
     [ | n | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
     | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | b e1 IH1 | a e1 IH1
-    | a e1 IH1 | e1 IH1 ];
+    | a e1 IH1 | e1 IH1 | s IHs l IHl r IHr ];
     intros c Hd; simpl in Hd; try discriminate; simpl.
   - (* MeUnit *) reflexivity.
   - (* MeSeq *)
@@ -2882,7 +2894,7 @@ Proof.
   intros e; induction e as
     [ | n | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | e1 IH1 e2 IH2
     | e1 IH1 e2 IH2 | e1 IH1 e2 IH2 | b e1 IH1 | a e1 IH1
-    | a e1 IH1 | e1 IH1 ];
+    | a e1 IH1 | e1 IH1 | s IHs l IHl r IHr ];
     intros G Hd; simpl in Hd; try discriminate.
   - (* MeUnit *)
     exists TUnit. reflexivity.
@@ -2931,4 +2943,144 @@ Corollary elab_data_aff_budget : forall e G D,
 Proof.
   intros e G D Hd Hle. destruct (elab_data_check e G Hd) as [a Hc].
   exists a. apply aff_type_iff. exists (uzero G). split; [exact Hc | exact Hle].
+Qed.
+
+(* ========================================================== *)
+(* M1.1b: universal LINEAR-USE elaboration adequacy.           *)
+(*                                                            *)
+(* M1.1 (elab_data_check) covers only the no-linear-use data  *)
+(* fragment (synthesised usage always [uzero G]). The         *)
+(* resource-INTERESTING constructs -- token consumption        *)
+(* (MeVar), let-binding consumed once (MeLet), pair-splitting  *)
+(* (MeUsePair), the conditional (MeIf) -- were so far only     *)
+(* machine-checked at concrete points (M1.0 Examples). This    *)
+(* rung gives the UNIVERSAL result for them, via a me-level    *)
+(* typing/usage judgement [me_wt] (the visual linear token     *)
+(* discipline of formal-model.md, with colours/ports           *)
+(* abstracted) and a soundness theorem mapping every me_wt     *)
+(* derivation to a solo [has_type] derivation of the           *)
+(* elaboration -- hence accepted by the verified [check].      *)
+(*                                                            *)
+(* me_wt mirrors the separated-context QTT discipline on       *)
+(* me_tm; the elaboration content it certifies is the de       *)
+(* Bruijn index alignment and the QTT-quantity choices         *)
+(* (MeLet/MeUsePair/MeIf binders are consumed EXACTLY once,    *)
+(* q=One; MeVar spends [onehot]).                              *)
+(*                                                            *)
+(* MeSeq is the one omission: its elaboration shifts the body  *)
+(* under the discarded Zero-binder, so its universal adequacy  *)
+(* needs a has_type WEAKENING lemma (deferred). MeSeq stays    *)
+(* covered at the data fragment by elab_data_check.            *)
+(* ========================================================== *)
+
+Inductive me_wt : tctx -> uvec -> me_tm -> ty -> Prop :=
+  | MW_Unit : forall G,
+      me_wt G (uzero G) MeUnit TUnit
+  | MW_Var : forall G D n a,
+      has_var G D n a ->
+      me_wt G D (MeVar n) a
+  | MW_Let : forall G D D1 D2 a b e1 e2,
+      me_wt G D1 e1 a ->
+      me_wt (TSnoc G a) (USnoc D2 Quantity.One) e2 b ->
+      uadd D1 D2 = Some D ->
+      me_wt G D (MeLet e1 e2) b
+  | MW_Tensor : forall G D D1 D2 a b e1 e2,
+      me_wt G D1 e1 a ->
+      me_wt G D2 e2 b ->
+      uadd D1 D2 = Some D ->
+      me_wt G D (MeTensor e1 e2) (TTensor a b)
+  | MW_With : forall G D a b e1 e2,
+      me_wt G D e1 a ->
+      me_wt G D e2 b ->
+      me_wt G D (MeWith e1 e2) (TWith a b)
+  | MW_UsePair : forall G D D1 D2 a b c e1 e2,
+      me_wt G D1 e1 (TTensor a b) ->
+      me_wt (TSnoc (TSnoc G a) b) (USnoc (USnoc D2 Quantity.One) Quantity.One) e2 c ->
+      uadd D1 D2 = Some D ->
+      me_wt G D (MeUsePair e1 e2) c
+  | MW_Inl : forall G D a b e,
+      me_wt G D e a ->
+      me_wt G D (MeInl b e) (TSum a b)
+  | MW_Inr : forall G D a b e,
+      me_wt G D e b ->
+      me_wt G D (MeInr a e) (TSum a b)
+  | MW_If : forall G D D1 D2 a b c s l r,
+      me_wt G D1 s (TSum a b) ->
+      me_wt (TSnoc G a) (USnoc D2 Quantity.One) l c ->
+      me_wt (TSnoc G b) (USnoc D2 Quantity.One) r c ->
+      uadd D1 D2 = Some D ->
+      me_wt G D (MeIf s l r) c
+  | MW_Echo : forall G D a e,
+      me_wt G D e a ->
+      me_wt G D (MeEcho a e) (TEcho Linear a a)
+  | MW_Weaken : forall G D a b e,
+      me_wt G D e (TEcho Linear a b) ->
+      me_wt G D (MeWeaken e) (TEcho Affine a b).
+
+(** [uscale One] is the identity, restated with the concrete [Quantity.One]
+    so it rewrites against the elaboration's [Let Quantity.One ...]. *)
+Lemma uscale_one_q : forall D, uscale Quantity.One D = D.
+Proof. intro D. apply uscale_one. Qed.
+
+(** Soundness of the me typing discipline into the solo core: every me_wt
+    derivation elaborates to a solo [has_type] derivation (same context and
+    usage). The elaboration is type- AND usage-preserving. *)
+Lemma me_wt_sound : forall G D e a, me_wt G D e a -> has_type G D (elab e) a.
+Proof.
+  intros G D e a H. induction H; simpl.
+  - apply T_Unit.
+  - apply T_Var; assumption.
+  - eapply T_Let; [ eassumption | eassumption | rewrite uscale_one_q; assumption ].
+  - eapply T_Tensor; [ eassumption | eassumption | eassumption ].
+  - apply T_With; assumption.
+  - eapply T_LetPair; [ eassumption | eassumption | eassumption ].
+  - apply T_Inl; assumption.
+  - apply T_Inr; assumption.
+  - eapply T_Case; [ eassumption | eassumption | eassumption | eassumption ].
+  - apply T_Echo; assumption.
+  - apply T_Weaken; assumption.
+Qed.
+
+(** Hence accepted by the verified usage-walk (via check_complete): the
+    UNIVERSAL linear-use adequacy. *)
+Corollary me_wt_check : forall G D e a,
+  me_wt G D e a -> check G (elab e) = Some (a, D).
+Proof. intros G D e a H. apply check_complete. apply me_wt_sound. exact H. Qed.
+
+(** ...and at any affine budget at or above the realised usage (R3). *)
+Corollary me_wt_aff : forall G D D' e a,
+  me_wt G D e a -> ule D D' -> aff_type G D' (elab e) a.
+Proof.
+  intros G D D' e a H Hle.
+  eapply aff_weaken; [ apply has_type_aff; apply me_wt_sound; exact H | exact Hle ].
+Qed.
+
+(* ----- M1.1b non-vacuity: the linear-USE constructs, now UNIVERSAL ----- *)
+
+(* the token create-and-consume program (previously only check-executed at a
+   point, me_elab_let_consume) is typed by the me discipline itself... *)
+Example me_wt_let_consume :
+  me_wt TEmpty UEmpty (MeLet MeUnit (MeVar 0)) TUnit.
+Proof.
+  eapply MW_Let.
+  - apply MW_Unit.
+  - apply MW_Var. apply HVHere.
+  - reflexivity.
+Qed.
+
+(* ...so by the theorem it is solo-well-typed and check-accepted. *)
+Example me_wt_let_consume_solo :
+  has_type TEmpty UEmpty (elab (MeLet MeUnit (MeVar 0))) TUnit.
+Proof. apply me_wt_sound. apply me_wt_let_consume. Qed.
+
+(* the conditional, faithfully = sum elimination (Case), typed universally:
+   scrutinise an Inl, consume the payload once in each branch. *)
+Example me_wt_if :
+  me_wt TEmpty UEmpty (MeIf (MeInl TUnit MeUnit) (MeVar 0) (MeVar 0)) TUnit.
+Proof.
+  eapply MW_If.
+  - apply MW_Inl. apply MW_Unit.
+  - apply MW_Var. apply HVHere.
+  - apply MW_Var. apply HVHere.
+  - reflexivity.
 Qed.
