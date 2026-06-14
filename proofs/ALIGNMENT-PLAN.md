@@ -127,6 +127,19 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   isation, the affine analogue of `check_correct`) and `ule_dec` — all
   axiom-free, CI-guarded, inherited free at the tropical carrier.
 
+  **Surface (M1, axis-4) — DONE (partial), 2026-06-14.** Beyond F1, the
+  visual/block `me` surface (`proofs/me/`, axis-4 in
+  `AXIS-ARCHITECTURE.md`) now elaborates into the solo core: a Coq
+  `me_tm` + `elab : me_tm → tm` (the mechanised `translate`), with
+  **M1.0** `check`-executed `Example` witnesses and **M1.1** the
+  universal axiom-free Visual-Soundness theorem `elab_data_check`
+  (formal-model.md Theorem 1) for the no-linear-use fragment, plus
+  `elab_data_typed` / `elab_data_aff_budget`. This is the first
+  mechanised surface→core elaboration-correctness result in either
+  sibling and a clean **overtake** — AffineScript is solo-only with no
+  `me`-like dialect and nothing analogous even on paper. **M1.1b** (the
+  linear-USE constructs, needing a `check`-weakening lemma) remains open.
+
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
 mechanised effect-row calculus with an effect-soundness statement, then

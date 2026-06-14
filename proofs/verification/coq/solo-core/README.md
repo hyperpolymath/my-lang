@@ -20,7 +20,7 @@ by choice.
 | `Quantity.v` | Three-point QTT semiring + semiring/ordering laws | **machine-checked** (`destruct; reflexivity`, real `Qed`) |
 | `EchoMode.v` | Two-point linearity poset (`Linear ⊑ Affine`) + no-section | **machine-checked** |
 | `ResourceAlgebra.v` | `Module Type SEMIRING` (10-law resource-algebra boundary) + the live `ORDERED_SEMIRING` (preorder `qle`, R3) with decidable carrier equality `Q_eq_dec` (R5); the `Linear3` instance and the sealed boundary-check `Linear3_Sealed` | **machine-checked** |
-| `SoloCore.v` | **Consolidated functor** `SoloCoreF (M : ORDERED_SEMIRING)`: syntax + de Bruijn terms, usage vectors, context-splitting QTT typing, CBV operational semantics, `progress` / `preservation` / `affine_pres`, **and the R5 usage-walk checker** `check` with `check_correct : has_type ↔ check` (sound + complete — decidability/adequacy of QTT typing). `Include SoloCoreF Linear3` recovers the concrete development under bare names. | **machine-checked, axiom-free** |
+| `SoloCore.v` | **Consolidated functor** `SoloCoreF (M : ORDERED_SEMIRING)`: syntax + de Bruijn terms, usage vectors, context-splitting QTT typing, CBV operational semantics, `progress` / `preservation` / `affine_pres`, **and the R5 usage-walk checker** `check` with `check_correct : has_type ↔ check` (sound + complete — decidability/adequacy of QTT typing). `Include SoloCoreF Linear3` recovers the concrete development under bare names. It also carries the **M1 me→solo elaboration** (`me_tm`, `elab`, and the axiom-free Visual-Soundness theorem `elab_data_check`). | **machine-checked, axiom-free** |
 | `Context.v` / `ContextProps.v` | Alternative conflated-`ctx` algebra (a parallel presentation; *not* on the soundness path) | **machine-checked** |
 | `EchoResidue.v` | Echo residue object + the subtyping facts the Rust checker relies on | **machine-checked** |
 
@@ -43,7 +43,13 @@ corollary `typing_unique` — the decidability/adequacy of QTT typing, and
 the spec the Rust `dialects/solo` checker must meet. **R5b** decides the
 affine layer too: `aff_type_dec` (the affine judgement `aff_type` is
 decidable), via `aff_type_iff` (its `check`-characterisation) and
-`ule_dec` (the budget order). The authoritative state is
+`ule_dec` (the budget order). **M1 (me→solo elaboration)** pins the
+visual `me` surface (`proofs/me/`) as a Coq `me_tm` with
+`elab : me_tm → tm` into this core: M1.0 gives `check`-executed
+`Example` witnesses and M1.1 the universal, axiom-free Visual-Soundness
+theorem `elab_data_check` (with `elab_data_typed` / `elab_data_aff_budget`)
+for the no-linear-use fragment — the first mechanised surface→core
+elaboration in either sibling. The authoritative state is
 `proofs/STATUS.md`.
 
 ## Building

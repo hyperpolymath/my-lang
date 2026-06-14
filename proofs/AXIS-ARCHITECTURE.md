@@ -120,7 +120,7 @@ my-lang is parametric over **both**, and identifies **neither**.
  ──parity / surface──                                T3 ☐ firm the Lean↔Isabelle cross-links
  P1 ☐ Idris twin of solo (close ?todo) +             T4 ☐ WithTop ∞ (drop tcZero=1e6 hack)
       mirror subst2 fix + parametric design
- M1 ☐ me elaboration-correctness (→ solo)           SEAM CAPSTONE (joint): E4 needs R2 (a SEMIRING)
+ M1 ◑ me elab→solo (M1.0+M1.1 ✓, M1.1b ☐)           SEAM CAPSTONE (joint): E4 needs R2 (a SEMIRING)
  ──structure climb (last, hardest)──                 + a solid echo core. It is where "interaction,
  S1 ☐ ensemble π metatheory (subject red.,                not identification" becomes a theorem.
       session fidelity)
@@ -213,6 +213,24 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   binder, so the rejection is exactly the linearity check. The affine *discard* is the
   precise separator: the SAME `UnitT` at budget `One` is `aff_type`-accepted (realises
   `Zero ≤ One`) yet `has_type`-rejected.
+- **M1 DONE (partial) — me→solo elaboration adequacy, axiom-free 2026-06-14.** The visual /
+  block `me` surface (`proofs/me/`, no settled AST in code — only the paper block grammar in
+  `visual-semantics/formal-model.md`) is pinned as a Coq `me_tm` (the affine/token fragment)
+  with `elab : me_tm → tm` landing in the de Bruijn solo core — the mechanised analogue of the
+  paper `translate` (which targets Rust-ish surface syntax and is never mechanised). **M1.0:**
+  `Example`s execute `elab` + the R5 `check` on the concrete carrier (linear token
+  create-and-consume accepted; the dropped token rejected linearly but accepted via sequencing
+  and via the R3 `aff_type` layer; the echo linear→affine bridge end-to-end). **M1.1:** the
+  UNIVERSAL adequacy theorem `elab_data_check : ∀ e G, me_data e = true → ∃ a, check G (elab e)
+  = Some (a, uzero G)` (formal-model.md Theorem 1, Visual Soundness) for the no-linear-use
+  fragment (data + discard-sequencing + injections), with corollaries `elab_data_typed`
+  (`has_type` via `check_correct`) and `elab_data_aff_budget` (fits any affine budget ≥
+  `uzero G`). All real `Qed`, `Print Assumptions` closed, CI-guarded. The first MECHANISED
+  surface→core elaboration-correctness result in either sibling — a clean **overtake of
+  AffineScript** (solo-only, no `me`-like dialect, nothing analogous even on paper).
+  Echo-types audit: NOT-RELEVANT (axis-4 surface vs axis-3 modality). **M1.1b ☐:** universal
+  adequacy for the linear-USE constructs (`MeLet`-consume, `MeUsePair`) needs a `check`-
+  weakening lemma — next rung.
 - **Echo side (echo-types):** `echo.index.thinposet`, `echo.modality.core`, and
   `echo.separation.notresourceinstance` are done. The Coq `EchoMode.v` / `EchoResidue.v` /
   `TEcho` are already **`Quantity`-independent**, so the measure seam can attach without
