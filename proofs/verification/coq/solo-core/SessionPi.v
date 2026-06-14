@@ -26,8 +26,8 @@
 (*  OUT (deferred): name-passing / channel mobility (payloads    *)
 (*       are BASE values only -- so no scope extrusion and no     *)
 (*       capture is possible), structural congruence as a        *)
-(*       relation (S1.2), internal/external choice select/branch *)
-(*       (S1.2), replication !P, mismatch, mu-recursion,         *)
+(*       relation (S1.3c), internal/external choice select/branch*)
+(*       (S1.3a), replication !P, mismatch, mu-recursion (S1.3b),*)
 (*       bisimulation, the agent/delegate/await/orchestrate/     *)
 (*       refine AI primitives, and multiparty global types G     *)
 (*       with projection G|^p (the S2 = duet-by-projection hook). *)
@@ -72,20 +72,83 @@ Inductive vtype : list vty -> val -> vty -> Prop :=
 
 (* ================= Session type layer ================= *)
 
+(* Labelled choice branches are a DEDICATED mutual inductive        *)
+(* [sbranch] (not [list (nat*sty)]) so that [dual] below is a       *)
+(* well-guarded mutual fixpoint: Coq's guard checker accepts a      *)
+(* recursive call into the [sty] field of [SBcons] but NOT one      *)
+(* buried under [List.map] / a list pair-projection.                *)
 Inductive sty : Type :=
-| SEnd  : sty                 (* end *)
-| SSend : vty -> sty -> sty   (* !t.s  : send a t, continue as s *)
-| SRecv : vty -> sty -> sty.  (* ?t.s  : receive a t, continue as s *)
+| SEnd    : sty                          (* end *)
+| SSend   : vty -> sty -> sty            (* !t.s  : send a t, continue as s *)
+| SRecv   : vty -> sty -> sty            (* ?t.s  : receive a t, continue as s *)
+| SSelect : sbranch -> sty               (* +{l_i:s_i} : internal choice (S1.3a) *)
+| SBranch : sbranch -> sty               (* &{l_i:s_i} : external choice (S1.3a) *)
+with sbranch : Type :=
+| SBnil  : sbranch
+| SBcons : nat -> sty -> sbranch -> sbranch.
 
+(* Duality.  Choice dualises pointwise over the branch list,       *)
+(* preserving labels: select (internal) <-> branch (external),     *)
+(* the paper's dual(+{l_i:S_i}) = &{l_i:dual S_i}.                  *)
 Fixpoint dual (s : sty) : sty :=
   match s with
-  | SEnd      => SEnd
-  | SSend t k => SRecv t (dual k)
-  | SRecv t k => SSend t (dual k)
+  | SEnd       => SEnd
+  | SSend t k  => SRecv t (dual k)
+  | SRecv t k  => SSend t (dual k)
+  | SSelect bs => SBranch (dual_br bs)
+  | SBranch bs => SSelect (dual_br bs)
+  end
+with dual_br (bs : sbranch) : sbranch :=
+  match bs with
+  | SBnil           => SBnil
+  | SBcons l s rest => SBcons l (dual s) (dual_br rest)
   end.
 
 Lemma dual_involutive : forall s, dual (dual s) = s.
-Proof. induction s; simpl; congruence. Qed.
+Proof.
+  fix IH 1.
+  intros [ | t k | t k | bs | bs ]; simpl.
+  - reflexivity.
+  - rewrite IH; reflexivity.
+  - rewrite IH; reflexivity.
+  - f_equal. induction bs as [ | l s' rest IHrest ]; simpl;
+      [ reflexivity | rewrite IH, IHrest; reflexivity ].
+  - f_equal. induction bs as [ | l s' rest IHrest ]; simpl;
+      [ reflexivity | rewrite IH, IHrest; reflexivity ].
+Qed.
+
+(* Session-branch lookup (first match), used by the choice layer    *)
+(* (S1.3a).  [bget] is FUNCTIONAL — a selected label has at most    *)
+(* one continuation — so no NoDup side-condition is needed for      *)
+(* subject reduction.                                               *)
+Fixpoint bget (l : nat) (bs : sbranch) : option sty :=
+  match bs with
+  | SBnil           => None
+  | SBcons k s rest => if Nat.eqb l k then Some s else bget l rest
+  end.
+
+(* bget commutes with the dual of a branch list (forward + back):  *)
+(* the dual of the looked-up continuation is what you get by       *)
+(* looking up in the dualised list.  Load-bearing for choice SR.   *)
+Lemma bget_dual_br : forall l bs s,
+  bget l bs = Some s -> bget l (dual_br bs) = Some (dual s).
+Proof.
+  intros l bs; induction bs as [ | k s0 rest IH ]; simpl; intros s H.
+  - discriminate.
+  - destruct (Nat.eqb l k) eqn:E.
+    + injection H as ->. reflexivity.
+    + apply IH. exact H.
+Qed.
+
+Lemma bget_dual_br_inv : forall l bs sl,
+  bget l (dual_br bs) = Some sl -> exists sB, bget l bs = Some sB /\ sl = dual sB.
+Proof.
+  intros l bs; induction bs as [ | k s0 rest IH ]; simpl; intros sl H.
+  - discriminate.
+  - destruct (Nat.eqb l k) eqn:E.
+    + injection H as <-. exists s0. split; reflexivity.
+    + apply IH. exact H.
+Qed.
 
 (* ================= Endpoints (polarity) ================= *)
 
@@ -177,7 +240,7 @@ Inductive wt : list vty -> cctx -> proc -> Prop :=
 (* ================= Reduction (small-step) ================= *)
 (* Communication is synchronous on co-endpoints (p,n)/(co p,n).  *)
 (* Both adjacency orders are given directly since structural     *)
-(* congruence (Par-Comm) is deferred to S1.2.                    *)
+(* congruence (Par-Comm) is deferred to S1.3c.                   *)
 
 Inductive step : proc -> proc -> Prop :=
 | St_Comm : forall p n v P Q,
@@ -432,26 +495,76 @@ Qed.
 (* ============================================================ *)
 
 (* A party = one endpoint's sequential session behaviour. *)
+(* As with [sty]/[sbranch], party branches are a dedicated mutual   *)
+(* inductive [pbranch] so [psubst_party] below is a well-guarded    *)
+(* mutual fixpoint (recursion into the [party] field of [PBcons]).  *)
 Inductive party : Type :=
 | QEnd  : party                       (* close *)
 | QSend : val -> party -> party       (* send v, continue *)
-| QRecv : party -> party.             (* receive (bind payload de Bruijn 0), continue *)
+| QRecv : party -> party              (* receive (bind payload de Bruijn 0), continue *)
+| QSel  : nat -> party -> party       (* select label l, continue        (S1.3a) *)
+| QBra  : pbranch -> party            (* offer labelled continuations    (S1.3a) *)
+with pbranch : Type :=
+| PBnil  : pbranch
+| PBcons : nat -> party -> pbranch -> pbranch.
+
+(* Mutual induction principle (party + pbranch), needed for         *)
+(* pty_subst's QBra case to recurse structurally into the branches. *)
+Scheme party_mut := Induction for party Sort Prop
+  with pbranch_mut := Induction for pbranch Sort Prop.
+
+(* Party-branch lookup (first match); used in the typing rule below. *)
+Fixpoint pget (l : nat) (bs : pbranch) : option party :=
+  match bs with
+  | PBnil           => None
+  | PBcons k q rest => if Nat.eqb l k then Some q else pget l rest
+  end.
 
 (* Party typing: [pty G p s] — under payload context G, party p    *)
 (* follows session type s exactly.                                 *)
 Inductive pty : list vty -> party -> sty -> Prop :=
 | PT_End  : forall G, pty G QEnd SEnd
 | PT_Send : forall G v p t s, vtype G v t -> pty G p s -> pty G (QSend v p) (SSend t s)
-| PT_Recv : forall G p t s, pty (t :: G) p s -> pty G (QRecv p) (SRecv t s).
+| PT_Recv : forall G p t s, pty (t :: G) p s -> pty G (QRecv p) (SRecv t s)
+| PT_Sel  : forall G l p s bs,                          (* S1.3a: select *)
+    bget l bs = Some s -> pty G p s ->
+    pty G (QSel l p) (SSelect bs)
+| PT_Bra  : forall G bsP bs,                            (* S1.3a: branch *)
+    (* every branch DECLARED in the type has a matching offered, *)
+    (* correctly-typed continuation (label-coverage / mismatch   *)
+    (* safety).                                                   *)
+    (forall l sB, bget l bs = Some sB ->
+                  exists q, pget l bsP = Some q /\ pty G q sB) ->
+    pty G (QBra bsP) (SBranch bs).
 
 Fixpoint psubst_party (c : nat) (u : val) (p : party) : party :=
   match p with
   | QEnd      => QEnd
   | QSend v q => QSend (vsubst c u v) (psubst_party c u q)
   | QRecv q   => QRecv (psubst_party (S c) (vlift 0 u) q)
+  | QSel l q  => QSel l (psubst_party c u q)
+  | QBra bs   => QBra (psubst_pbranch c u bs)
+  end
+with psubst_pbranch (c : nat) (u : val) (bs : pbranch) : pbranch :=
+  match bs with
+  | PBnil           => PBnil
+  | PBcons l q rest => PBcons l (psubst_party c u q) (psubst_pbranch c u rest)
   end.
 
 Definition open_party (u : val) (p : party) : party := psubst_party 0 u p.
+
+(* [pget] (defined above, before [pty]) commutes with payload       *)
+(* substitution into the branch list.                               *)
+Lemma pget_psubst : forall l bs c u q,
+  pget l bs = Some q ->
+  pget l (psubst_pbranch c u bs) = Some (psubst_party c u q).
+Proof.
+  intros l bs; induction bs as [ | k q0 rest IH ]; simpl; intros c u q H.
+  - discriminate.
+  - destruct (Nat.eqb l k) eqn:E.
+    + injection H as ->. reflexivity.
+    + apply IH. exact H.
+Qed.
 
 (* Party inversion helpers (clean names). *)
 Lemma pty_send_inv : forall G v p s, pty G (QSend v p) s ->
@@ -462,6 +575,27 @@ Lemma pty_recv_inv : forall G p s, pty G (QRecv p) s ->
   exists t s', s = SRecv t s' /\ pty (t :: G) p s'.
 Proof. intros G p s H. inversion H; subst. do 2 eexists; repeat split; eassumption. Qed.
 
+Lemma pty_sel_inv : forall G l p s, pty G (QSel l p) s ->
+  exists sl bs, s = SSelect bs /\ bget l bs = Some sl /\ pty G p sl.
+Proof. intros G l p s H. inversion H; subst. do 2 eexists; repeat split; eassumption. Qed.
+
+Lemma pty_bra_inv : forall G bsP s, pty G (QBra bsP) s ->
+  exists bs, s = SBranch bs /\
+    (forall l sB, bget l bs = Some sB -> exists q, pget l bsP = Some q /\ pty G q sB).
+Proof. intros G bsP s H. inversion H; subst. eexists; split; [ reflexivity | eassumption ]. Qed.
+
+(* Type-directed inversions: when only the TYPE is known to be a    *)
+(* choice (the party is abstract — e.g. the partner in progress),   *)
+(* the party MUST be the corresponding select/branch process.       *)
+Lemma pty_select_ty_inv : forall G p bs, pty G p (SSelect bs) ->
+  exists l p' sl, p = QSel l p' /\ bget l bs = Some sl /\ pty G p' sl.
+Proof. intros G p bs H. inversion H; subst. do 3 eexists; repeat split; eassumption. Qed.
+
+Lemma pty_branch_ty_inv : forall G p bs, pty G p (SBranch bs) ->
+  exists bsP, p = QBra bsP /\
+    (forall l sB, bget l bs = Some sB -> exists q, pget l bsP = Some q /\ pty G q sB).
+Proof. intros G p bs H. inversion H; subst. eexists; split; [ reflexivity | eassumption ]. Qed.
+
 (* Party value-substitution lemma (the party analogue of wt_subst, *)
 (* reusing the same value-shift machinery).                        *)
 Lemma pty_subst : forall p G1 G2 s t v,
@@ -469,14 +603,33 @@ Lemma pty_subst : forall p G1 G2 s t v,
   vtype G2 v t ->
   pty (G1 ++ G2) (psubst_party (length G1) (vshift (length G1) v) p) s.
 Proof.
-  induction p as [ | w q IHq | q IHq ]; intros G1 G2 s t v Hp Hv; simpl.
-  - (* QEnd *) inversion Hp; subst. constructor.
-  - (* QSend *) inversion Hp; subst. constructor.
+  intro p.
+  induction p as [ | v0 p0 IH | p0 IH | l0 p0 IH | b IH0 | | l0 p0 IHp rest IHrest ]
+    using party_mut
+    with (P0 := fun b => forall G1 G2 t v l q sB,
+                 vtype G2 v t -> pget l b = Some q -> pty (G1 ++ t :: G2) q sB ->
+                 pty (G1 ++ G2) (psubst_party (length G1) (vshift (length G1) v) q) sB).
+  - (* QEnd *) intros G1 G2 s t v Hp Hv. simpl. inversion Hp; subst. constructor.
+  - (* QSend v0 p0 *) intros G1 G2 s t v Hp Hv. simpl. inversion Hp; subst. constructor.
     + eapply vtype_subst; eassumption.
-    + apply IHq with (t:=t); assumption.
-  - (* QRecv *) inversion Hp; subst. constructor.
-    rewrite vlift0_vshift.
-    apply (IHq (t0 :: G1) G2 s0 t v); assumption.
+    + apply IH with (t:=t); assumption.
+  - (* QRecv p0 *) intros G1 G2 s t v Hp Hv. simpl. inversion Hp; subst. constructor.
+    rewrite vlift0_vshift. apply (IH (t0 :: G1) G2 s0 t v); assumption.
+  - (* QSel l0 p0 *) intros G1 G2 s t v Hp Hv. simpl.
+    apply pty_sel_inv in Hp. destruct Hp as (sl & bs & Es & Hb & Hq). subst s.
+    eapply PT_Sel; [ exact Hb | apply IH with (t:=t); assumption ].
+  - (* QBra b *) intros G1 G2 s t v Hp Hv. simpl.
+    apply pty_bra_inv in Hp. destruct Hp as (bs & Es & Hcov). subst s.
+    apply PT_Bra. intros l sB Hb.
+    destruct (Hcov l sB Hb) as [q [Hq Htq]].
+    exists (psubst_party (length G1) (vshift (length G1) v) q). split.
+    + apply pget_psubst. exact Hq.
+    + apply (IH0 G1 G2 t v l q sB); assumption.
+  - (* PBnil *) intros G1 G2 t v l q sB Hv Hpg Hq. simpl in Hpg. discriminate.
+  - (* PBcons l0 p0 rest *) intros G1 G2 t v l q sB Hv Hpg Hq. simpl in Hpg.
+    destruct (Nat.eqb l l0) eqn:E.
+    + inversion Hpg; subst. apply IHp with (t:=t); assumption.
+    + apply (IHrest G1 G2 t v l q sB); assumption.
 Qed.
 
 Corollary pty_subst0 : forall G p s t v,
@@ -500,7 +653,11 @@ Definition wf_config (c : config) : Prop :=
 (* locally to its continuation, the free context is unchanged.     *)
 Inductive cstep : config -> config -> Prop :=
 | CStep  : forall v P Q, cstep (Conf (QSend v P) (QRecv Q)) (Conf P (open_party v Q))
-| CStepR : forall v P Q, cstep (Conf (QRecv Q) (QSend v P)) (Conf (open_party v Q) P).
+| CStepR : forall v P Q, cstep (Conf (QRecv Q) (QSend v P)) (Conf (open_party v Q) P)
+| CSel   : forall l P bsP Q, pget l bsP = Some Q ->         (* S1.3a: R-Choice *)
+    cstep (Conf (QSel l P) (QBra bsP)) (Conf P Q)
+| CSelR  : forall l P bsP Q, pget l bsP = Some Q ->
+    cstep (Conf (QBra bsP) (QSel l P)) (Conf Q P).
 
 (* ----- the S1.1b headline: closed-system subject reduction ----- *)
 (* Well-formedness (both parties dual) is preserved by reduction —  *)
@@ -508,7 +665,8 @@ Inductive cstep : config -> config -> Prop :=
 Theorem config_subject_reduction : forall c c',
   wf_config c -> cstep c c' -> wf_config c'.
 Proof.
-  intros c c' Hwf Hstep. destruct Hstep as [v P Q | v P Q].
+  intros c c' Hwf Hstep.
+  destruct Hstep as [v P Q | v P Q | l P bsP Q HIn | l P bsP Q HIn].
   - (* CStep : sender on the left *)
     destruct Hwf as [s [HP HQ]].
     apply pty_send_inv in HP. destruct HP as (t & s' & Es & Hv & HPc). subst s.
@@ -521,6 +679,25 @@ Proof.
     simpl in HQ. apply pty_send_inv in HQ. destruct HQ as (t2 & s2 & Es2 & Hv & HPc).
     inversion Es2; subst t2 s2.
     exists s'. split; [ eapply pty_subst0; eassumption | exact HPc ].
+  - (* CSel : selector (QSel) on the left, brancher (QBra) on the right *)
+    destruct Hwf as [s [HP HQ]].
+    apply pty_sel_inv in HP. destruct HP as (sl & bs & Es & Hasl & HPc). subst s.
+    simpl in HQ. apply pty_bra_inv in HQ. destruct HQ as (B & EB & Hcov).
+    injection EB as EB'. subst B.
+    exists sl. split.
+    + exact HPc.
+    + assert (Hd : bget l (dual_br bs) = Some (dual sl)) by (apply bget_dual_br; exact Hasl).
+      destruct (Hcov l (dual sl) Hd) as [q [Hq Htq]].
+      assert (q = Q) by congruence. subst q. exact Htq.
+  - (* CSelR : brancher (QBra) on the left, selector (QSel) on the right *)
+    destruct Hwf as [s [HP HQ]].
+    apply pty_bra_inv in HP. destruct HP as (bs & Es & Hcov). subst s.
+    simpl in HQ. apply pty_sel_inv in HQ. destruct HQ as (sl & B & EB & Hasl & HPc).
+    injection EB as EB'. subst B.
+    apply bget_dual_br_inv in Hasl. destruct Hasl as [sB [HsB Esl]]. subst sl.
+    destruct (Hcov l sB HsB) as [q [Hq Htq]].
+    assert (q = Q) by congruence. subst q.
+    exists sB. split; [ exact Htq | exact HPc ].
 Qed.
 
 (* ----- executable witnesses for the fused form ----- *)
@@ -558,15 +735,20 @@ Qed.
 (* and each step advances the shared protocol by exactly its     *)
 (* head action.                                                  *)
 (*                                                              *)
-(* Still OUT (S1.3+): internal/external choice (select/branch),  *)
-(* μ-recursive sessions, structural congruence over the open     *)
-(* `proc` calculus, and multiparty G / projection (the S2 hook). *)
+(* Choice (select/branch) is now done — S1.3a, below, extends the *)
+(* three theorems above with the n-ary labelled choice cases.     *)
+(* Still OUT: μ-recursive sessions (S1.3b — type layer below,     *)
+(* typing/SR deferred), structural congruence over the open      *)
+(* `proc` calculus (S1.3c), and multiparty G / projection (S2,   *)
+(* done separately above).                                       *)
 (* ============================================================ *)
 
 (* A single session-type transition: consume the head action. *)
 Inductive sty_step : sty -> sty -> Prop :=
 | SS_Send : forall t s, sty_step (SSend t s) s
-| SS_Recv : forall t s, sty_step (SRecv t s) s.
+| SS_Recv : forall t s, sty_step (SRecv t s) s
+| SS_Sel  : forall l s bs, bget l bs = Some s -> sty_step (SSelect bs) s  (* S1.3a *)
+| SS_Bra  : forall l s bs, bget l bs = Some s -> sty_step (SBranch bs) s. (* S1.3a *)
 
 (* ----- session fidelity ----- *)
 (* A communication of a well-formed two-party config advances the *)
@@ -596,6 +778,26 @@ Proof.
     + apply SS_Recv.
     + eapply pty_subst0; eassumption.
     + exact HPc.
+  - (* CSel : selector on the left; the chosen label drives SS_Sel *)
+    apply pty_sel_inv in HP. destruct HP as (sl & bs & Es & Hasl & HPc). subst s.
+    simpl in HQ. apply pty_bra_inv in HQ. destruct HQ as (Bb & EB & Hcov).
+    injection EB as EB'. subst Bb.
+    assert (Hd : bget _ (dual_br bs) = Some (dual sl)) by (apply bget_dual_br; exact Hasl).
+    destruct (Hcov _ (dual sl) Hd) as [q0 [Hq Htq]].
+    exists sl, P0, Q0. repeat split.
+    + eapply SS_Sel; exact Hasl.
+    + exact HPc.
+    + assert (Q0 = q0) by congruence. subst q0. exact Htq.
+  - (* CSelR : brancher on the left; the chosen label drives SS_Bra *)
+    apply pty_bra_inv in HP. destruct HP as (bs & Es & Hcov). subst s.
+    simpl in HQ. apply pty_sel_inv in HQ. destruct HQ as (sl & Bb & EB & Hasl & HPc).
+    injection EB as EB'. subst Bb.
+    apply bget_dual_br_inv in Hasl. destruct Hasl as [sB [HsB Esl]]. subst sl.
+    destruct (Hcov _ sB HsB) as [q0 [Hq Htq]].
+    exists sB, Q0, P0. repeat split.
+    + eapply SS_Bra; exact HsB.
+    + assert (Q0 = q0) by congruence. subst q0. exact Htq.
+    + exact HPc.
 Qed.
 
 (* ----- progress / deadlock freedom ----- *)
@@ -607,7 +809,7 @@ Theorem config_progress : forall c,
   wf_config c -> c = Conf QEnd QEnd \/ exists c', cstep c c'.
 Proof.
   intros [P Q] [s [HP HQ]].
-  destruct P as [ | v P0 | P0 ].
+  destruct P as [ | v P0 | P0 | l P0 | bsP ].
   - (* P = QEnd : s = SEnd, so dual s = SEnd, so Q = QEnd *)
     inversion HP; subst. simpl in HQ. inversion HQ; subst.
     left. reflexivity.
@@ -617,6 +819,19 @@ Proof.
   - (* P = QRecv : Q must be QSend (dual), so CStepR fires *)
     inversion HP; subst. simpl in HQ. inversion HQ; subst.
     right. eexists. apply CStepR.
+  - (* P = QSel l P0 : Q must be QBra (dual), and l is offered, so CSel fires *)
+    apply pty_sel_inv in HP. destruct HP as (sl & bs & Es & Hasl & HPc). subst s.
+    simpl in HQ. apply pty_branch_ty_inv in HQ. destruct HQ as (bsP & EQ & Hcov). subst Q.
+    assert (Hd : bget l (dual_br bs) = Some (dual sl)) by (apply bget_dual_br; exact Hasl).
+    destruct (Hcov l (dual sl) Hd) as [q0 [Hq _]].
+    right. eexists. apply CSel. exact Hq.
+  - (* P = QBra bsP : Q must be QSel (dual), which selects an offered label, so CSelR fires *)
+    apply pty_bra_inv in HP. destruct HP as (bs & Es & Hcov). subst s.
+    simpl in HQ. apply pty_select_ty_inv in HQ.
+    destruct HQ as (l & P1 & sl & EQ & Hasl & HPc). subst Q.
+    apply bget_dual_br_inv in Hasl. destruct Hasl as [sB [HsB Esl]]. subst sl.
+    destruct (Hcov l sB HsB) as [q0 [Hq _]].
+    right. eexists. apply CSelR. exact Hq.
 Qed.
 
 (* Witness: the ping-pong config is not stuck — it can step. *)
@@ -624,6 +839,37 @@ Example progress_pingpong :
   (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) = Conf QEnd QEnd
   \/ exists c', cstep (Conf (QSend (VNat 7) QEnd) (QRecv QEnd)) c'.
 Proof. apply config_progress. apply wf_pingpong_config. Qed.
+
+(* ----- executable witnesses for the S1.3a CHOICE layer ----- *)
+(* A 2-branch labelled choice: the selector picks label 0, the     *)
+(* brancher offers {0:end, 1:end}.  All real Qed.                  *)
+Definition choice_sty : sty := SSelect (SBcons 0 SEnd (SBcons 1 SEnd SBnil)).
+Definition choice_sel : party := QSel 0 QEnd.
+Definition choice_bra : party := QBra (PBcons 0 QEnd (PBcons 1 QEnd PBnil)).
+
+Example wf_choice_config : wf_config (Conf choice_sel choice_bra).
+Proof.
+  exists choice_sty. unfold choice_sel, choice_bra, choice_sty. split.
+  - eapply PT_Sel; [ reflexivity | apply PT_End ].
+  - simpl. apply PT_Bra. intros l sB Hb. simpl in Hb.
+    destruct (Nat.eqb l 0) eqn:E0.
+    + injection Hb as <-. exists QEnd. simpl. rewrite E0. split; [ reflexivity | apply PT_End ].
+    + destruct (Nat.eqb l 1) eqn:E1.
+      * injection Hb as <-. exists QEnd. simpl. rewrite E0, E1.
+        split; [ reflexivity | apply PT_End ].
+      * discriminate.
+Qed.
+
+(* The choice config steps (label 0 selected) to the ended config. *)
+Example cstep_choice_config :
+  cstep (Conf choice_sel choice_bra) (Conf QEnd QEnd).
+Proof. unfold choice_sel, choice_bra. apply CSel. reflexivity. Qed.
+
+(* ...and it is deadlock-free (a one-line instance of progress).   *)
+Example progress_choice :
+  Conf choice_sel choice_bra = Conf QEnd QEnd
+  \/ exists c', cstep (Conf choice_sel choice_bra) c'.
+Proof. apply config_progress. apply wf_choice_config. Qed.
 
 (* ============================================================ *)
 (* S2 — duet by projection (axis-2 STRUCTURE).                  *)
