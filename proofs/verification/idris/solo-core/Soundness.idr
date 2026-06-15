@@ -245,7 +245,7 @@ progress (Tensor t1 t2) (THTensor d1 d2 d1d d2d prf) =
        Left v1 => case progress t2 d2' of
          Right (MkStepsTo _ s2) => Right (MkStepsTo _ (STensor2 v1 s2))
          Left v2 => Left (VTensor v1 v2)
-progress (LetPair t1 t2) (THLetPair d1 d2 d1d _ prf) =
+progress (LetPair t1 t2) (THLetPair d1 d2 _ _ d1d _ prf) =
   let (e1, _) = uaddEmpty d1 d2 prf
       d1' = coeUse e1 d1d
   in case progress t1 d1' of
@@ -261,7 +261,7 @@ progress (Inr a t) (THInr d) =
   case progress t d of
     Left v => Left (VInr v)
     Right (MkStepsTo _ s) => Right (MkStepsTo _ (SInr1 s))
-progress (Case t tL tR) (THCase d1 d2 d dL dR prf) =
+progress (Case t tL tR) (THCase d1 d2 _ _ d dL dR prf) =
   let (e1, _) = uaddEmpty d1 d2 prf
       d' = coeUse e1 d
   in case progress t d' of
@@ -273,7 +273,7 @@ progress (Case t tL tR) (THCase d1 d2 d dL dR prf) =
          Right r =>
            let (_ ** _ ** (eq, v')) = r in
            rewrite eq in Right (MkStepsTo _ (SCaseR v'))
-progress (Let q t1 t2) (THLet d1 d2 _ d1d _ prf) =
+progress (Let q t1 t2) (THLet d1 d2 _ _ d1d _ prf) =
   let (es, _) = uaddEmpty (uscale q d1) d2 prf
       d1' = coeUse (uscaleEmpty q d1 es) d1d
   in case progress t1 d1' of
