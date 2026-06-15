@@ -22,15 +22,30 @@
 --                                     — PENDING; Soundness.preservation stays
 --                                     the honest hole until 4d lands)
 --
--- STATUS (Idris track, #108): this module is HOLE-FREE for the layers it
--- currently contains (4a + the shape invariant). It does NOT yet prove
--- preservation. The remaining layers each thread the type context (and term)
--- RELEVANTLY because Idris erases the indices of `Has`/`HasVar` (ADR-003) —
--- the same wall the `progress` proof navigated with explicit-term recursion.
--- That makes the Idris port heavier than the Coq original (whose `Prop`
--- indices erase without blocking the proofs), but the technique is settled
--- (see `shapeType`/`shapeVar` below): pass `g`/`t` explicitly, recurse on the
--- non-binding premise so erased branch-binder types are never demanded.
+-- STATUS (Idris track, #108): HOLE-FREE for the layers it currently contains —
+-- 4a (append algebra), the shape invariant, `hvShift` (has_var weakening),
+-- the structural shift index `shiftIdx`/`shiftIdxCorrect`/`shiftVarLemma`, and
+-- the `htShift` SUPPORT lemmas (`unitInv`, `usplitLemma`, `uaddUshift`,
+-- `ushiftUscale`). It does NOT yet prove preservation.
+--
+-- ARCHITECTURAL BLOCKER on `htShift` (term weakening) — DECISION NEEDED.
+-- `htShift` shifts under binders, so its binder cases must extend the type
+-- context with the binder's type and recurse on the BODY. For `Lam q a body`
+-- the bound type `a` is IN THE TERM, so it is relevant and recoverable — that
+-- case (and Var/Unit/App/With/Fst/Snd/Tensor/Inl/Inr/MkEcho/Weaken) all
+-- typecheck. But `Let q t1 t2`, `Case t tL tR`, and `LetPair t1 t2` do NOT
+-- annotate their bound types in the term; those types live only as ERASED
+-- indices of the typing derivation (`THLet`/`THCase`/`THLetPair`). Idris erases
+-- them, so the extended context `TSnoc i <bound-type>` for the body recursion
+-- CANNOT be constructed. (Coq is unaffected — `Prop` indices are erased there
+-- without blocking proofs; `progress` is unaffected too — it never recurses
+-- into those bodies.)
+--
+-- Resolution requires making the bound types available, e.g. adding explicit
+-- type fields to `THLet`/`THCase`/`THLetPair` (the ADR-003-consistent fix,
+-- already done for the usage fields), or annotating the binder types in the
+-- terms. Both touch the merged kernel and need `progress` re-verified. Pending
+-- that decision, the verified lemmas below stand as the shift-layer scaffolding.
 
 module Substitution
 
@@ -309,3 +324,64 @@ hvShift (TSnoc i' a') g c dg (USnoc di' qd) (S n0) hlen hv =
           hv'' = rewrite hdgdi in rewrite predEq' hn in hv'
           ih = hvShift i' g c dg di' n0 (predEq' hlen) hv''
       in rewrite hqd in HVThere ih
+
+------------------------------------------------------------
+-- 4b (cont). Term weakening: htShift
+------------------------------------------------------------
+
+trueNotFalse : True = False -> Void
+trueNotFalse Refl impossible
+
+||| `shiftIdx` vs the kernel `<`, split by the boolean (avoids the surface-form
+||| mismatch `n < c` vs `compareNat n c == LT` that breaks `rewrite`).
+shiftIdxTrue : (c, n : Nat) -> (n < c) = True -> shiftIdx c n = n
+shiftIdxTrue Z     n     prf = void (trueNotFalse (trans (sym prf) (nLtZero n)))
+shiftIdxTrue (S c) Z     prf = Refl
+shiftIdxTrue (S c) (S n) prf = cong S (shiftIdxTrue c n prf)
+
+shiftIdxFalse : (c, n : Nat) -> (n < c) = False -> shiftIdx c n = S n
+shiftIdxFalse Z     n     prf = Refl
+shiftIdxFalse (S c) Z     prf = void (trueNotFalse prf)
+shiftIdxFalse (S c) (S n) prf = cong S (shiftIdxFalse c n prf)
+
+||| The kernel `shift` on a variable equals `Var` of the structural `shiftIdx`.
+public export
+shiftVarLemma : (c, n : Nat) -> shift c (Var n) = Var (shiftIdx c n)
+shiftVarLemma c n with (n < c) proof prf
+  shiftVarLemma c n | True  = rewrite shiftIdxTrue c n prf in Refl
+  shiftVarLemma c n | False = rewrite shiftIdxFalse c n prf in Refl
+
+||| UnitT inversion (its usage `uzero g` is not a free field; direct `case`
+||| would be stuck, same as `HVHere`). Also yields the type equation, since
+||| the caller's result type is not yet refined to `TUnit`.
+public export
+unitInv : Has g dd UnitT aa -> (dd = uzero g, aa = TUnit)
+unitInv THUnit = (Refl, Refl)
+
+||| Split a derivation's usage along the `G`/`I` append boundary via the shape
+||| invariant. `g`,`i`,`t` relevant (shapeType needs the context + term).
+public export
+usplitLemma : (g, i : Tctx) -> (dd : Uvec) -> (t : Tm) -> Has (tappend g i) dd t a
+           -> (dg : Uvec ** di : Uvec ** (dd = uappend dg di, ulen di = tlen i))
+usplitLemma g i dd t h =
+  uappendSplit (tlen i) dd
+    (rewrite trans (shapeType (tappend g i) t h) (tappendLen g i) in
+     rewrite plusCommutative (tlen g) (tlen i) in lteAddRight (tlen i))
+
+||| Boundary-insert: add two `(USnoc _ Zero)`-headed appends.
+public export
+uaddUshift : (ag, ai, bg, bi, cg, ci : Uvec)
+          -> uadd ag bg = Just cg -> uadd ai bi = Just ci
+          -> uadd (uappend (USnoc ag Zero) ai) (uappend (USnoc bg Zero) bi)
+             = Just (uappend (USnoc cg Zero) ci)
+uaddUshift ag ai bg bi cg ci hg hi =
+  uaddUappend ai bi ci (USnoc ag Zero) (USnoc bg Zero) (USnoc cg Zero)
+    hi (rewrite hg in Refl)
+
+||| Scaling commutes with the boundary-insert.
+public export
+ushiftUscale : (q : Q) -> (dg, di : Uvec)
+            -> uscale q (uappend (USnoc dg Zero) di)
+               = uappend (USnoc (uscale q dg) Zero) (uscale q di)
+ushiftUscale q dg di =
+  rewrite uscaleUappend q (USnoc dg Zero) di in rewrite qMulZeroR q in Refl
