@@ -544,3 +544,79 @@ uaddUscaleZeroR (USnoc d qd) (USnoc e qe) prf =
   rewrite uaddUscaleZeroR d e (predEq' prf) in
   rewrite qMulZeroL qe in
   rewrite qAddZeroR qd in Refl
+
+||| The `Just`-headed tail-combinator `uadd` uses on a USnoc/USnoc pair:
+||| `uadd (USnoc a p) (USnoc b s) = combMaybe (qAdd p s) (uadd a b)`.
+combMaybe : Q -> Maybe Uvec -> Maybe Uvec
+combMaybe p Nothing  = Nothing
+combMaybe p (Just d) = Just (USnoc d p)
+
+||| `uadd` on a USnoc pair reduces to `combMaybe` of the tail sum (definitional
+||| once the tail sum is scrutinised).
+uaddUSnocReduce : (a, b : Uvec) -> (p, s : Q)
+               -> uadd (USnoc a p) (USnoc b s) = combMaybe (qAdd p s) (uadd a b)
+uaddUSnocReduce a b p s with (uadd a b)
+  _ | Nothing = Refl
+  _ | Just d  = Refl
+
+||| Invert a successful USnoc/USnoc sum: recover the tail sum and the head.
+uaddSnocSplit : (a, b : Uvec) -> (p, s : Q) -> (z : Uvec)
+             -> uadd (USnoc a p) (USnoc b s) = Just z
+             -> (c : Uvec ** (uadd a b = Just c, z = USnoc c (qAdd p s)))
+uaddSnocSplit a b p s z prf with (uadd a b)
+  _ | Nothing = void (nothingNotJust' prf)
+  _ | Just cc = (cc ** (Refl, sym (justInj' prf)))
+
+||| Lift `qReassoc` to usage vectors: the two reassociations of the additive
+||| substitution accounting agree as `Maybe Uvec` (mirrors Coq `vec_reassoc`).
+vecReassoc : (du, dg1, dg2 : Uvec) -> (q', q1, q2 : Q) -> (dgr1, dgr2, dg : Uvec)
+          -> uadd dg1 (uscale q1 du) = Just dgr1
+          -> uadd dg2 (uscale q2 du) = Just dgr2
+          -> uadd dg1 (uscale q' dg2) = Just dg
+          -> uadd dgr1 (uscale q' dgr2) = uadd dg (uscale (qAdd q1 (qMul q' q2)) du)
+vecReassoc UEmpty UEmpty UEmpty q' q1 q2 dgr1 dgr2 dg h1 h2 h3 =
+  rewrite sym (justInj' h1) in rewrite sym (justInj' h2) in rewrite sym (justInj' h3) in Refl
+vecReassoc UEmpty (USnoc _ _) _ q' q1 q2 dgr1 dgr2 dg h1 h2 h3 = void (nothingNotJust' h1)
+vecReassoc UEmpty UEmpty (USnoc _ _) q' q1 q2 dgr1 dgr2 dg h1 h2 h3 = void (nothingNotJust' h2)
+vecReassoc (USnoc du0 qd) UEmpty _ q' q1 q2 dgr1 dgr2 dg h1 h2 h3 = void (nothingNotJust' h1)
+vecReassoc (USnoc du0 qd) (USnoc _ _) UEmpty q' q1 q2 dgr1 dgr2 dg h1 h2 h3 = void (nothingNotJust' h2)
+vecReassoc (USnoc du0 qd) (USnoc dg1' dgq1) (USnoc dg2' dgq2) q' q1 q2 dgr1 dgr2 dg h1 h2 h3 =
+  let (r1 ** (e1, hr1)) = uaddSnocSplit dg1' (uscale q1 du0) dgq1 (qMul q1 qd) dgr1 h1
+      (r2 ** (e2, hr2)) = uaddSnocSplit dg2' (uscale q2 du0) dgq2 (qMul q2 qd) dgr2 h2
+      (dm ** (e3, hdg)) = uaddSnocSplit dg1' (uscale q' dg2') dgq1 (qMul q' dgq2) dg h3
+      ih = vecReassoc du0 dg1' dg2' q' q1 q2 r1 r2 dm e1 e2 e3
+  in rewrite hr1 in rewrite hr2 in rewrite hdg in
+     trans (uaddUSnocReduce r1 (uscale q' r2) (qAdd dgq1 (qMul q1 qd))
+              (qMul q' (qAdd dgq2 (qMul q2 qd))))
+       (trans (cong2 combMaybe (sym (qReassoc dgq1 dgq2 qd q' q1 q2)) ih)
+              (sym (uaddUSnocReduce dm (uscale (qAdd q1 (qMul q' q2)) du0)
+                      (qAdd dgq1 (qMul q' dgq2)) (qMul (qAdd q1 (qMul q' q2)) qd))))
+
+||| The additive-split substitution accounting: combine the two recursive
+||| residuals (mirrors Coq `subst_reassoc_add`).
+public export
+substReassocAdd : (dg1, dgr1, dg2, dgr2, dg, du : Uvec) -> (q', q1, q2 : Q)
+               -> uadd dg1 (uscale q1 du) = Just dgr1
+               -> uadd dg2 (uscale q2 du) = Just dgr2
+               -> uadd dg1 (uscale q' dg2) = Just dg
+               -> (dgr : Uvec ** (uadd dg (uscale (qAdd q1 (qMul q' q2)) du) = Just dgr,
+                                  uadd dgr1 (uscale q' dgr2) = Just dgr))
+substReassocAdd dg1 dgr1 dg2 dgr2 dg du q' q1 q2 h1 h2 h3 =
+  let hlen = trans (uaddLen dg1 (uscale q' dg2) dg h3)
+               (trans (uaddLenEq dg1 (uscale q1 du) dgr1 h1)
+                 (trans (uscaleLen q1 du) (sym (uscaleLen (qAdd q1 (qMul q' q2)) du))))
+      (dgr ** hdgr) = uaddTotal dg (uscale (qAdd q1 (qMul q' q2)) du) hlen
+  in (dgr ** (hdgr, trans (vecReassoc du dg1 dg2 q' q1 q2 dgr1 dgr2 dg h1 h2 h3) hdgr))
+
+||| Multiplicative-split variant (`q' = One`) — mirrors Coq `subst_reassoc_mult`.
+public export
+substReassocMult : (dg1, dgr1, dg2, dgr2, dg, du : Uvec) -> (q1, q2 : Q)
+                -> uadd dg1 (uscale q1 du) = Just dgr1
+                -> uadd dg2 (uscale q2 du) = Just dgr2
+                -> uadd dg1 dg2 = Just dg
+                -> (dgr : Uvec ** (uadd dg (uscale (qAdd q1 q2) du) = Just dgr,
+                                   uadd dgr1 dgr2 = Just dgr))
+substReassocMult dg1 dgr1 dg2 dgr2 dg du q1 q2 h1 h2 h3 =
+  let (dgr ** (ha, hb)) = substReassocAdd dg1 dgr1 dg2 dgr2 dg du One q1 q2 h1 h2
+                            (rewrite uscaleOne dg2 in h3)
+  in (dgr ** (rewrite sym (qMulOneL q2) in ha, rewrite sym (uscaleOne dgr2) in hb))
