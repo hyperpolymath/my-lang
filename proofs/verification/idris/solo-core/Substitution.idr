@@ -487,3 +487,60 @@ htShift i g c dg di (Let q t1 t2) hlen (THLet d1 d2 _ a' h1 h2 prf) =
             uaddUshift (uscale q d1g) (uscale q d1i) d2g d2i dg di hg hi)
 htShift i g c dg di (MkEcho m aE bE t) hlen (THEcho h) = THEcho (htShift i g c dg di t hlen h)
 htShift i g c dg di (Weaken t) hlen (THWeaken h) = THWeaken (htShift i g c dg di t hlen h)
+
+------------------------------------------------------------
+-- 4c. Substitution core — accounting algebra
+------------------------------------------------------------
+
+||| Iterated weakening shift: `shiftn k = (shift 0)` iterated `k` times.
+||| The cumulative shift the substituted term carries after descending `k`
+||| binders (mirrors Coq `shiftn`).
+public export
+shiftn : Nat -> Tm -> Tm
+shiftn Z     u = u
+shiftn (S k) u = shift 0 (shiftn k u)
+
+||| `ht_shift0`: weaken a derivation by one fresh `Zero`-usage binder — the
+||| `htShift` instance at `i = TEmpty`.
+public export
+htShift0 : (g : Tctx) -> (c : Ty) -> (dg : Uvec) -> (t : Tm)
+        -> Has g dg t a -> Has (TSnoc g c) (USnoc dg Zero) (shift 0 t) a
+htShift0 g c dg t h = htShift TEmpty g c dg UEmpty t Refl h
+
+||| Middle-four exchange for `qAdd` (pure semiring rearrangement): groups the
+||| inner pair so the additive accounting can be re-associated.
+qAddRearrange : (w, x, y, z : Q)
+             -> qAdd (qAdd w x) (qAdd y z) = qAdd (qAdd w y) (qAdd x z)
+qAddRearrange w x y z =
+  trans (qAddAssoc w x (qAdd y z))
+    (trans (cong (qAdd w) midSwap) (sym (qAddAssoc w y (qAdd x z))))
+  where
+    midSwap : qAdd x (qAdd y z) = qAdd y (qAdd x z)
+    midSwap = trans (sym (qAddAssoc x y z))
+                (trans (cong (\u => qAdd u z) (qAddComm x y)) (qAddAssoc y x z))
+
+||| The Q-semiring identity behind substituting through an additive split
+||| (mirrors Coq `q_reassoc`; derived from the named semiring laws, no
+||| 3^6-case enumeration).
+qReassoc : (dg1, dg2, du, q', q1, q2 : Q)
+        -> qAdd (qAdd dg1 (qMul q' dg2)) (qMul (qAdd q1 (qMul q' q2)) du)
+         = qAdd (qAdd dg1 (qMul q1 du)) (qMul q' (qAdd dg2 (qMul q2 du)))
+qReassoc dg1 dg2 du q' q1 q2 =
+  trans (cong (qAdd (qAdd dg1 (qMul q' dg2)))
+              (trans (qMulDistribR q1 (qMul q' q2) du)
+                     (cong (qAdd (qMul q1 du)) (qMulAssoc q' q2 du))))
+    (trans (qAddRearrange dg1 (qMul q' dg2) (qMul q1 du) (qMul q' (qMul q2 du)))
+           (cong (qAdd (qAdd dg1 (qMul q1 du)))
+                 (sym (qMulDistribL q' dg2 (qMul q2 du)))))
+
+||| `uadd D (Zero · E) = D` (lengths matched): the zero-scaled right summand
+||| is the additive identity. (Mirrors Coq `uadd_uscaleZero_r`.)
+public export
+uaddUscaleZeroR : (d, e : Uvec) -> ulen d = ulen e -> uadd d (uscale Zero e) = Just d
+uaddUscaleZeroR UEmpty UEmpty _ = Refl
+uaddUscaleZeroR UEmpty (USnoc _ _) prf = void (zNotS' prf)
+uaddUscaleZeroR (USnoc _ _) UEmpty prf = void (sNotZ' prf)
+uaddUscaleZeroR (USnoc d qd) (USnoc e qe) prf =
+  rewrite uaddUscaleZeroR d e (predEq' prf) in
+  rewrite qMulZeroL qe in
+  rewrite qAddZeroR qd in Refl
