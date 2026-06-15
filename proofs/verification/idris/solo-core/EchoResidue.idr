@@ -40,7 +40,7 @@ import Soundness
 ||| in the SAME context — no resources are spent, only a distinction is
 ||| dropped. (= kernel rule `THWeaken`; `EchoLinear.weaken`.)
 public export
-echoWeakenTyped : Has g t (TEcho Linear a b) -> Has g (Weaken t) (TEcho Affine a b)
+echoWeakenTyped : Has g d t (TEcho Linear a b) -> Has g d (Weaken t) (TEcho Affine a b)
 echoWeakenTyped = THWeaken
 
 ||| Operational weaken: once the residue is a value, `Weaken` takes the
@@ -115,6 +115,6 @@ echoAssignableTrans m1 m2 m3 a b (h12, _, _) (h23, _, _) =
 ||| relation `EchoAssignable Affine Linear`. The proof-relevant residue
 ||| and the type-algebra subtyping agree.
 public export
-weakenRealisesAssignable : {a, b : Ty} -> Has g t (TEcho Linear a b)
-  -> (Has g (Weaken t) (TEcho Affine a b), EchoAssignable Affine Linear a b a b)
+weakenRealisesAssignable : {a, b : Ty} -> Has g d t (TEcho Linear a b)
+  -> (Has g d (Weaken t) (TEcho Affine a b), EchoAssignable Affine Linear a b a b)
 weakenRealisesAssignable d = (echoWeakenTyped d, echoAssignableWeaken a b)
