@@ -219,3 +219,93 @@ shapeType g (Let q t1 t2)  (THLet d1 d2 _ h1 h2 prf)  =
   trans (uaddLen (uscale q d1) d2 _ prf) (trans (uscaleLen q d1) (shapeType g t1 h1))
 shapeType g (MkEcho m a b t1) (THEcho h)              = shapeType g t1 h
 shapeType g (Weaken t1)    (THWeaken h)               = shapeType g t1 h
+
+||| `n < 0` is `False` (the shift base case needs this; `<` does not reduce
+||| on an abstract `n` without casing it).
+nLtZero : (n : Nat) -> (n < 0) = False
+nLtZero Z     = Refl
+nLtZero (S _) = Refl
+
+-- HasVar inversion. Idris cannot pattern-match `HVHere` when the usage is a
+-- stuck term (e.g. `uappend dg di`): `HVHere`'s usage index `USnoc (uzero g)
+-- One` will not unify with it. The standard fix is an inversion lemma taking
+-- the usage as a FLEXIBLE parameter and returning the constructor disjunction
+-- with PROPOSITIONAL equalities — which the caller consumes without matching.
+||| Inversion result for `HasVar (TSnoc g0 a0) dd nn aa`. Equations are
+||| PROPOSITIONAL (not in the indices), so the caller matches `VIH`/`VIT`
+||| without unifying its abstract `dd` against a constructor's usage shape;
+||| the `HVThere` witnesses `d0`/`n0` are ERASED (the caller recovers a
+||| relevant index from its own `nn`-pattern + the equations).
+public export
+data VarInvR : Tctx -> Ty -> Uvec -> Nat -> Ty -> Type where
+  VIH : (dd = USnoc (uzero g0) One) -> (nn = Z) -> (aa = a0) -> VarInvR g0 a0 dd nn aa
+  VIT : {0 d0 : Uvec} -> {0 n0 : Nat}
+     -> (dd = USnoc d0 Zero) -> (nn = S n0) -> HasVar g0 d0 n0 aa
+     -> VarInvR g0 a0 dd nn aa
+
+public export
+varInv : HasVar (TSnoc g0 a0) dd nn aa -> VarInvR g0 a0 dd nn aa
+varInv HVHere       = VIH Refl Refl Refl
+varInv (HVThere hv) = VIT Refl Refl hv
+
+||| The de Bruijn shift index, defined STRUCTURALLY (not via `if n < c`):
+||| inserting a binder at cutoff `c` keeps indices below `c` and bumps the
+||| rest. `shiftIdx c n` reduces definitionally on its arguments — so the
+||| shift-lemma index arithmetic needs no lazy-`if`/`Ord` rewriting. The
+||| bridge to the kernel's `shift` (which uses `if`) is `shiftIdxCorrect`.
+public export
+shiftIdx : Nat -> Nat -> Nat
+shiftIdx Z     n     = S n
+shiftIdx (S c) Z     = Z
+shiftIdx (S c) (S n) = S (shiftIdx c n)
+
+||| Push `S` through the shift-index conditional (used only in the bridge).
+sPushIf : (b : Bool) -> (x, y : Nat) -> S (ifThenElse b x y) = ifThenElse b (S x) (S y)
+sPushIf True  x y = Refl
+sPushIf False x y = Refl
+
+||| `shiftIdx` agrees with the kernel `shift`'s `if n < c then n else S n`.
+||| Proven once (the only place the lazy-`if` index reasoning is needed);
+||| consumed by `htShift`'s `Var` case to connect `hvShift` to
+||| `shift (tlen i) (Var n)`.
+public export
+shiftIdxCorrect : (c, n : Nat) -> shiftIdx c n = ifThenElse (n < c) n (S n)
+shiftIdxCorrect Z     n     = rewrite nLtZero n in Refl
+shiftIdxCorrect (S c) Z     = Refl
+shiftIdxCorrect (S c) (S n) = rewrite shiftIdxCorrect c n in sPushIf (n < c) n (S n)
+
+||| has_var weakening: insert a fresh Zero-usage binder `c` at cutoff `tlen i`,
+||| shifting the looked-up index by `shiftIdx (tlen i)`. `i`,`g`,`c`,`dg`,`di`,
+||| `n` are explicit/relevant (the `HVHere` reconstruction needs the contexts;
+||| Idris erases the indices). With `shiftIdx`, every index step is definitional.
+public export
+hvShift : (i, g : Tctx) -> (c : Ty) -> (dg, di : Uvec) -> (n : Nat)
+       -> ulen di = tlen i
+       -> HasVar (tappend g i) (uappend dg di) n a
+       -> HasVar (tappend (TSnoc g c) i) (uappend (USnoc dg Zero) di)
+                 (shiftIdx (tlen i) n) a
+hvShift TEmpty g c dg UEmpty n hlen hv = HVThere hv
+hvShift TEmpty g c dg (USnoc _ _) n hlen hv = void (sNotZ' hlen)
+hvShift (TSnoc i' a') g c dg UEmpty n hlen hv = void (zNotS' hlen)
+hvShift (TSnoc i' a') g c dg (USnoc di' qd) Z hlen hv =
+  -- shiftIdx (S (tlen i')) Z = Z : the head variable stays at 0 (HVHere).
+  case varInv hv of
+    VIH heq _ ha =>
+      let (hdgdi, hqd) = usnocInj heq
+          (hdg, hdi)   = uappendInj di' (uzero i') dg (uzero g)
+                           (trans (predEq' hlen) (sym (uzeroLen i')))
+                           (trans hdgdi (uzeroTappend g i'))
+      in rewrite hqd in rewrite hdg in rewrite hdi in
+         rewrite sym (uzeroTappend (TSnoc g c) i') in
+         rewrite ha in HVHere
+    VIT _ hn _ => void (zNotS' hn)
+hvShift (TSnoc i' a') g c dg (USnoc di' qd) (S n0) hlen hv =
+  -- shiftIdx (S (tlen i')) (S n0) = S (shiftIdx (tlen i') n0) : recurse (HVThere).
+  case varInv hv of
+    VIH _ hn _ => void (sNotZ' hn)
+    VIT heq hn hv' =>
+      let (hdgdi, hqd) = usnocInj heq
+          hv'' : HasVar (tappend g i') (uappend dg di') n0 a
+          hv'' = rewrite hdgdi in rewrite predEq' hn in hv'
+          ih = hvShift i' g c dg di' n0 (predEq' hlen) hv''
+      in rewrite hqd in HVThere ih
