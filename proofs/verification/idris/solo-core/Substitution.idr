@@ -620,3 +620,61 @@ substReassocMult dg1 dgr1 dg2 dgr2 dg du q1 q2 h1 h2 h3 =
   let (dgr ** (ha, hb)) = substReassocAdd dg1 dgr1 dg2 dgr2 dg du One q1 q2 h1 h2
                             (rewrite uscaleOne dg2 in h3)
   in (dgr ** (rewrite sym (qMulOneL q2) in ha, rewrite sym (uscaleOne dgr2) in hb))
+
+------------------------------------------------------------
+-- 4c (cont). USnoc-headed boundary splitters + var arithmetic
+------------------------------------------------------------
+
+eqNotGT : (Prelude.EQ = Prelude.GT) -> Void
+eqNotGT Refl impossible
+
+ltNotGT : (Prelude.LT = Prelude.GT) -> Void
+ltNotGT Refl impossible
+
+lteFromEq : (d : Uvec) -> (k, m : Nat) -> ulen d = S k + m -> LTE m (ulen d)
+lteFromEq d k m hl =
+  rewrite hl in lteSuccRight (rewrite plusCommutative k m in lteAddRight m)
+
+||| Split a usage whose length puts the substituted variable at the `USnoc`
+||| boundary: `ulen d = S k + m` factors `d = uappend (USnoc dg q) di` with the
+||| top `m` entries in `di`. (Mirrors Coq `usplit3`; the `ulen dg = k` conjunct
+||| is unused downstream and dropped.)
+public export
+usplit3 : (d : Uvec) -> (k, m : Nat) -> ulen d = S k + m
+       -> (dg : Uvec ** q : Q ** di : Uvec ** (d = uappend (USnoc dg q) di, ulen di = m))
+usplit3 d k m hl with (uappendSplit m d (lteFromEq d k m hl))
+  _ | (UEmpty ** di ** (heq, hldi)) =
+    void (sNotZ' (plusRightCancel (S k) Z m
+            (trans (sym hl)
+                   (trans (cong ulen heq) (trans (uappendLen UEmpty di) hldi)))))
+  _ | (USnoc dg q ** di ** (heq, hldi)) = (dg ** q ** di ** (heq, hldi))
+
+||| USnoc-headed boundary split of a sum: the heads add (`q = q1 + q2`), the
+||| G-parts add, the I-parts add. (Mirrors Coq `uadd_split_boundary2`.)
+public export
+uaddSplitBoundary2 : (dg1 : Uvec) -> (q1 : Q) -> (di1 : Uvec)
+                  -> (dg2 : Uvec) -> (q2 : Q) -> (di2 : Uvec)
+                  -> (dg : Uvec) -> (q : Q) -> (di : Uvec)
+                  -> ulen di1 = ulen di2 -> ulen di = ulen di1
+                  -> uadd (uappend (USnoc dg1 q1) di1) (uappend (USnoc dg2 q2) di2)
+                     = Just (uappend (USnoc dg q) di)
+                  -> (uadd dg1 dg2 = Just dg, q = qAdd q1 q2, uadd di1 di2 = Just di)
+uaddSplitBoundary2 dg1 q1 di1 dg2 q2 di2 dg q di h12 hd heq =
+  let (hhead, htail) = uaddSplitBoundary (USnoc dg1 q1) di1 (USnoc dg2 q2) di2 (USnoc dg q) di
+                         h12 hd heq
+      (dd ** (hadd, heqd)) = uaddSnocSplit dg1 dg2 q1 q2 (USnoc dg q) hhead
+      (hdg, hq) = usnocInj heqd
+  in (rewrite hdg in hadd, hq, htail)
+
+||| Substituting at a deeper index commutes with one extra weakening shift
+||| (mirrors Coq `subst_var_succ`); the engine behind `hvSubst`'s `HVThere` step.
+public export
+substVarSucc : (k : Nat) -> (u : Tm) -> (n : Nat)
+            -> substAt (S k) (shiftn (S k) u) (Var (S n))
+             = shift 0 (substAt k (shiftn k u) (Var n))
+substVarSucc k u n with (compare n k) proof eq
+  substVarSucc k     u n      | LT = sym (shiftVarLemma 0 n)
+  substVarSucc k     u n      | EQ = Refl
+  substVarSucc Z     u Z      | GT = void (eqNotGT eq)
+  substVarSucc (S j) u Z      | GT = void (ltNotGT eq)
+  substVarSucc k     u (S n0) | GT = rewrite minusZeroRight n0 in sym (shiftVarLemma 0 n0)
