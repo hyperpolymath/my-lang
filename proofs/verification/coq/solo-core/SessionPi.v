@@ -2866,8 +2866,23 @@ Proof. apply wf_assignment_to_f. apply wf_ra_ring. Qed.
 (* The global-type reduction (message fragment).  Consuming the    *)
 (* head message advances the choreography to its continuation.     *)
 (* The choice fragment (GBra branch selection) is S3c.3-choice.    *)
+(* gbranch label-lookup (first match): the GLOBAL-side analogue of  *)
+(* bget (sbranch) / pget (pbranch).  No such gbranch lookup existed  *)
+(* in the file -- only proj_br / proj_uninv consume a gbranch, and   *)
+(* neither performs a label lookup.  gbget is FUNCTIONAL (a selected *)
+(* label has at most one branch body), so no NoDup side-condition is *)
+(* needed for choice subject reduction.  Defined HERE (immediately   *)
+(* before gstep) because the new GStep_Bra constructor references it.*)
+Fixpoint gbget (l : nat) (bs : gbranch) : option gty :=
+  match bs with
+  | GBnil           => None
+  | GBcons k G rest => if Nat.eqb l k then Some G else gbget l rest
+  end.
+
 Inductive gstep : gty -> gty -> Prop :=
-| GStep_Msg : forall p q t G, gstep (GMsg p q t G) G.
+| GStep_Msg : forall p q t G, gstep (GMsg p q t G) G
+| GStep_Bra : forall p q bs l G,                       (* S3c.3-choice *)
+    gbget l bs = Some G -> gstep (GBra p q bs) G.
 
 Inductive gstar : gty -> gty -> Prop :=
 | GS_refl : forall G, gstar G G
@@ -3233,3 +3248,307 @@ Proof.
   - intro H. destruct (H 2 QEnd eq_refl) as [s [Hp Ht]].
     cbn in Hp. injection Hp as Hs. subst s. inversion Ht.
 Qed.
+
+(* ============================================================ *)
+(* S3c.3-choice — head-coupled SELECT/BRANCH n-party SR.        *)
+(*   The CHOICE analogue of S3c.3-msg (nstep_sr_msg_head).      *)
+(*   Mirrors that theorem's 3-way LOCATED role case-split       *)
+(*   (selector p / offerer q / uninvolved r), with the head     *)
+(*   GMsg replaced by a head GBra, the message redex            *)
+(*   (QSend/QRecv, NStep_Comm) replaced by the choice redex     *)
+(*   (QSel l P / QBra bsP, NStep_Sel), and the unique           *)
+(*   continuation G' replaced by the SELECTED branch body       *)
+(*   Gl = gbget l bs.  The label l drives BOTH the global step  *)
+(*   (GStep_Bra) and the located step (NStep_Sel) onto the      *)
+(*   SAME Gl; the firing pair (p,q) AND the choice node are     *)
+(*   structurally PINNED to the head by stating wf at           *)
+(*   (GBra p q bs).  The ONE structural difference from the     *)
+(*   message head: the uninvolved arm is no longer DEFINITIONAL *)
+(*   (there is no single continuation) but rides proj_uninv,    *)
+(*   the PLAIN-merge fold over all branches; the new lemma      *)
+(*   proj_uninv_selected discharges it via merge_forces_eq      *)
+(*   (plain merge = identity-meet, so EVERY branch projects an  *)
+(*   uninvolved r to the SAME type, hence so does the selected  *)
+(*   branch Gl).  Strictly ADDITIVE; the sole prior-region edit *)
+(*   is the gbget fixpoint + the GStep_Bra constructor on the   *)
+(*   gstep Inductive (sanctioned additive edit).                *)
+(* ============================================================ *)
+
+(* HELPER 1 (involved roles, sender p / offerer q): proj_br is the   *)
+(* POSITIONAL, label-preserving branch projection (NO merge), so the *)
+(* l-entry of the projected sbranch IS proj (selected body) r.       *)
+(* Straight induction; serves BOTH the SSelect and SBranch arms.     *)
+Lemma proj_br_selected :
+  forall bs r sbs l Gl,
+    proj_br bs r = Some sbs ->
+    gbget l bs = Some Gl ->
+    exists sl, bget l sbs = Some sl /\ proj Gl r = Some sl.
+Proof.
+  induction bs as [ | k G rest IH ]; intros r sbs l Gl Hpb Hg.
+  - cbn in Hg. discriminate.
+  - cbn [proj_br] in Hpb.
+    destruct (proj G r) as [sH|] eqn:EH; [ | discriminate ].
+    destruct (proj_br rest r) as [sT|] eqn:ET; [ | discriminate ].
+    injection Hpb as Esbs. subst sbs.
+    cbn [gbget] in Hg. cbn [bget].
+    destruct (Nat.eqb l k) eqn:Elk.
+    + injection Hg as EGl. subst Gl.
+      exists sH. split; [ reflexivity | exact EH ].
+    + destruct (IH r sT l Gl ET Hg) as [sl [Hbg HprojGl]].
+      exists sl. split; [ exact Hbg | exact HprojGl ].
+Qed.
+
+(* HELPER 2 (THE CRUX — uninvolved-role merge-coupling): proj_uninv  *)
+(* folds the branch projections with PLAIN merge.  By merge_forces_eq*)
+(* a DEFINED proj_uninv forces every branch to project the           *)
+(* uninvolved r to the SAME type s, so the gbget-selected branch Gl  *)
+(* projects r to that same s.  This is the choice analogue of the    *)
+(* message head's DEFINITIONAL uninvolved case.  COMPILE NOTE: the   *)
+(* >=2 case uses an explicit ONE-LEVEL unfold by reflexivity (NOT    *)
+(* cbn [proj_uninv], which over-unfolds the recursive inner call and *)
+(* desyncs the destructs).                                           *)
+Lemma proj_uninv_selected :
+  forall bs r s l Gl,
+    proj_uninv bs r = Some s ->
+    gbget l bs = Some Gl ->
+    proj Gl r = Some s.
+Proof.
+  induction bs as [ | k G rest IH ]; intros r s l Gl Hpu Hg.
+  - cbn in Hpu. discriminate.
+  - cbn [gbget] in Hg.
+    destruct rest as [ | k2 G2 rest2 ].
+    + (* SINGLETON: proj_uninv (GBcons k G GBnil) r = proj G r *)
+      cbn [proj_uninv] in Hpu.
+      destruct (Nat.eqb l k) eqn:Elk.
+      * injection Hg as EGl. subst Gl. exact Hpu.
+      * cbn in Hg. discriminate.
+    + (* >= 2 branches: one-level unfold, KEEP the inner call folded *)
+      assert (Hunf :
+        proj_uninv (GBcons k G (GBcons k2 G2 rest2)) r =
+          match proj G r, proj_uninv (GBcons k2 G2 rest2) r with
+          | Some a, Some b => merge a b
+          | _, _ => None
+          end) by reflexivity.
+      rewrite Hunf in Hpu.
+      destruct (proj G r) as [sH|] eqn:EH; [ | discriminate ].
+      destruct (proj_uninv (GBcons k2 G2 rest2) r) as [sT|] eqn:ET;
+        [ | discriminate ].
+      (* Hpu : merge sH sT = Some s ; plain merge = identity-meet *)
+      pose proof (merge_forces_eq _ _ _ Hpu) as Eeq. subst sT.
+      rewrite merge_idem in Hpu. injection Hpu as Es. subst s.
+      destruct (Nat.eqb l k) eqn:Elk.
+      * injection Hg as EGl. subst Gl. exact EH.
+      * (* recurse on the tail fold (proj_uninv rest r = Some sH) *)
+        apply (IH r sH l Gl ET Hg).
+Qed.
+
+(* ===== CORE: head-coupled SELECT/BRANCH SR, 3-way LOCATED split ===== *)
+Theorem nstep_sr_choice_head :
+  forall p q bs l Gl ra P bsP Q,
+    p <> q ->
+    gbget l bs = Some Gl ->
+    wf_assignment_f (GBra p q bs) ra ->
+    ra_get ra p = Some (QSel l P) ->
+    ra_get ra q = Some (QBra bsP) ->
+    pget l bsP = Some Q ->
+    wf_assignment_f Gl (ra_set (ra_set ra p P) q Q).
+Proof.
+  intros p q bs l Gl ra P bsP Q Hpq Hgl Hwf HgetP HgetQ HgetQbr.
+  assert (Hqne : (q =? p) = false) by (apply Nat.eqb_neq; auto).
+  (* selector p: proj(GBra p q bs)p = option_map SSelect (proj_br bs p) *)
+  destruct (Hwf p (QSel l P) HgetP) as [sp [Hprojp Htp]].
+  cbn [proj] in Hprojp. rewrite Nat.eqb_refl in Hprojp.
+  destruct (proj_br bs p) as [bp|] eqn:EpB; cbn [option_map] in Hprojp;
+    [ | discriminate ].
+  injection Hprojp as Esp. subst sp.
+  apply pty_sel_inv in Htp. destruct Htp as (slp & bs0 & Es & Hbget & HPc).
+  injection Es as Ebs0. subst bs0.
+  (* offerer q: proj(GBra p q bs)q = option_map SBranch (proj_br bs q) *)
+  destruct (Hwf q (QBra bsP) HgetQ) as [sq [Hprojq Htq]].
+  cbn [proj] in Hprojq. rewrite Hqne, Nat.eqb_refl in Hprojq.
+  destruct (proj_br bs q) as [bq|] eqn:EqB; cbn [option_map] in Hprojq;
+    [ | discriminate ].
+  injection Hprojq as Esq. subst sq.
+  apply pty_bra_inv in Htq. destruct Htq as (bs1 & Es' & Hcov).
+  injection Es' as Ebs1. subst bs1.
+  (* 3-way role case-split on the stepped ra *)
+  intros r R Hget.
+  destruct (Nat.eqb r p) eqn:Erp.
+  - (* r = p (selector): the SELECTED-branch continuation slp *)
+    apply Nat.eqb_eq in Erp. subst r.
+    rewrite ra_set_get_neq in Hget by auto.
+    erewrite ra_set_get_eq in Hget by exact HgetP.
+    injection Hget as ER. subst R.
+    exists slp. split; [ | exact HPc ].
+    destruct (proj_br_selected bs p bp l Gl EpB Hgl) as [slp' [Hbget' HprojGl]].
+    rewrite Hbget in Hbget'. injection Hbget' as ->. exact HprojGl.
+  - apply Nat.eqb_neq in Erp.
+    destruct (Nat.eqb r q) eqn:Erq.
+    + (* r = q (offerer): the chosen branch type sBl is what Q follows *)
+      apply Nat.eqb_eq in Erq. subst r.
+      assert (Hgetq' : ra_get (ra_set ra p P) q = Some (QBra bsP)).
+      { rewrite ra_set_get_neq by auto. exact HgetQ. }
+      erewrite ra_set_get_eq in Hget by exact Hgetq'.
+      injection Hget as ER. subst R.
+      destruct (proj_br_selected bs q bq l Gl EqB Hgl) as [sBl [HbgetBl HprojGl]].
+      destruct (Hcov l sBl HbgetBl) as [q' [Hpgetq' Htq']].
+      rewrite HgetQbr in Hpgetq'. injection Hpgetq' as ->.
+      exists sBl. split; [ exact HprojGl | exact Htq' ].
+    + (* r uninvolved: ra_get unchanged; proj rides proj_uninv *)
+      apply Nat.eqb_neq in Erq.
+      rewrite ra_set_get_neq in Hget by auto.
+      rewrite ra_set_get_neq in Hget by auto.
+      destruct (Hwf r R Hget) as [s [Hprojr Htr]].
+      exists s. split; [ | exact Htr ].
+      cbn [proj] in Hprojr.
+      assert (Hrp : (r =? p) = false) by (apply Nat.eqb_neq; exact Erp).
+      assert (Hrq : (r =? q) = false) by (apply Nat.eqb_neq; exact Erq).
+      rewrite Hrp, Hrq in Hprojr.
+      eapply proj_uninv_selected; [ exact Hprojr | exact Hgl ].
+Qed.
+
+(* ===== COUPLED COROLLARY: gstep + nstep + wf together =====
+   NOTE: use `split; [|split]`, NOT `repeat split` -- gstep now has
+   TWO constructors (GStep_Msg, GStep_Bra), so `repeat split` could
+   mis-apply.  The gstep premise is the head-consume tag (GStep_Bra
+   selecting label l); the nstep is the head fire (NStep_Sel output
+   config).  Both are PINNED to the SAME head (p,q,bs), the SAME
+   label l, and the SAME ra_set output, so this is the HEAD wrapper
+   -- it does NOT state general gstep/nstep SR (FALSE for run-ahead). *)
+Corollary nstep_gstep_sr_choice_head :
+  forall p q bs l Gl ra ra' P bsP Q,
+    p <> q ->
+    gbget l bs = Some Gl ->
+    wf_assignment_f (GBra p q bs) ra ->
+    ra_get ra p = Some (QSel l P) ->
+    ra_get ra q = Some (QBra bsP) ->
+    pget l bsP = Some Q ->
+    ra' = ra_set (ra_set ra p P) q Q ->
+    gstep (GBra p q bs) Gl /\ nstep ra ra' /\ wf_assignment_f Gl ra'.
+Proof.
+  intros p q bs l Gl ra ra' P bsP Q Hpq Hgl Hwf HgetP HgetQ HgetQbr Hra'.
+  subst ra'. split; [ | split ].
+  - eapply GStep_Bra. exact Hgl.
+  - eapply NStep_Sel; eassumption.
+  - eapply nstep_sr_choice_head; eassumption.
+Qed.
+
+(* ===== NON-VACUITY WITNESS: the choice rung fires end-to-end ===== *)
+(* g_choice3 = GBra 0 1 { 0: GMsg 0 2 VTNat GEnd ; 1: GMsg 0 2 VTNat GEnd } *)
+(* (the AGREEING 3-party choice already in the file, ~line 1898).    *)
+(* Role 0 (selector) selects label 0 and ships a nat to role 2 in    *)
+(* the body; role 1 (offerer) is IDLE in the bodies (each branch is  *)
+(* uninvolved for role 1 -> projects to SEnd, so role 1's type is    *)
+(* SBranch{0:SEnd;1:SEnd} and its continuations are QEnd, NOT QRecv); *)
+(* role 2 receives the nat.                                          *)
+Definition ra_choice3 : role_assignment :=
+  [ (0, QSel 0 (QSend (VNat 7) QEnd))
+  ; (1, QBra (PBcons 0 QEnd (PBcons 1 QEnd PBnil)))
+  ; (2, QRecv QEnd) ].
+
+Example proj_choice3_0 :
+  proj g_choice3 0
+  = Some (SSelect (SBcons 0 (SSend VTNat SEnd) (SBcons 1 (SSend VTNat SEnd) SBnil))).
+Proof. reflexivity. Qed.
+Example proj_choice3_1 :
+  proj g_choice3 1 = Some (SBranch (SBcons 0 SEnd (SBcons 1 SEnd SBnil))).
+Proof. reflexivity. Qed.
+Example proj_choice3_2 : proj g_choice3 2 = Some (SRecv VTNat SEnd).
+Proof. reflexivity. Qed.
+
+Example wf_ra_choice3 : wf_assignment_f g_choice3 ra_choice3.
+Proof.
+  intros r R Hget. cbn [ra_get ra_choice3] in Hget.
+  destruct (Nat.eqb r 0) eqn:E0.
+  - apply Nat.eqb_eq in E0. subst r. injection Hget as ER. subst R.
+    eexists. split; [ reflexivity | ].
+    eapply PT_Sel; [ reflexivity | ].
+    apply PT_Send; [ apply VT_Nat | apply PT_End ].
+  - destruct (Nat.eqb r 1) eqn:E1.
+    + apply Nat.eqb_eq in E1. subst r. injection Hget as ER. subst R.
+      eexists. split; [ reflexivity | ].
+      apply PT_Bra. intros l sB Hbg. cbn [bget] in Hbg.
+      destruct (Nat.eqb l 0) eqn:Hl0.
+      * injection Hbg as <-. exists QEnd.
+        split; [ apply Nat.eqb_eq in Hl0; subst l; reflexivity | apply PT_End ].
+      * destruct (Nat.eqb l 1) eqn:Hl1.
+        -- injection Hbg as <-. exists QEnd.
+           split; [ apply Nat.eqb_eq in Hl1; subst l; reflexivity | apply PT_End ].
+        -- discriminate.
+    + destruct (Nat.eqb r 2) eqn:E2.
+      * apply Nat.eqb_eq in E2. subst r. injection Hget as ER. subst R.
+        eexists. split; [ reflexivity | ].
+        apply PT_Recv. apply PT_End.
+      * discriminate.
+Qed.
+
+(* The selected branch body (label 0). *)
+Definition g_choice3_sel0 : gty := GMsg 0 2 VTNat GEnd.
+
+Example gbget_choice3_0 :
+  gbget 0 (GBcons 0 (GMsg 0 2 VTNat GEnd) (GBcons 1 (GMsg 0 2 VTNat GEnd) GBnil))
+  = Some g_choice3_sel0.
+Proof. reflexivity. Qed.
+
+(* END TO END: ONE choice step (gstep + nstep + wf) earned by the core. *)
+Example choice3_head_fires_end_to_end :
+  gstep g_choice3 g_choice3_sel0
+  /\ nstep ra_choice3
+       (ra_set (ra_set ra_choice3 0 (QSend (VNat 7) QEnd)) 1 QEnd)
+  /\ wf_assignment_f g_choice3_sel0
+       (ra_set (ra_set ra_choice3 0 (QSend (VNat 7) QEnd)) 1 QEnd).
+Proof.
+  eapply nstep_gstep_sr_choice_head
+    with (p:=0) (q:=1) (l:=0)
+         (bs:=(GBcons 0 (GMsg 0 2 VTNat GEnd) (GBcons 1 (GMsg 0 2 VTNat GEnd) GBnil)))
+         (P:=QSend (VNat 7) QEnd)
+         (bsP:=PBcons 0 QEnd (PBcons 1 QEnd PBnil))
+         (Q:=QEnd).
+  - discriminate.
+  - reflexivity.
+  - exact wf_ra_choice3.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+(* ============================================================ *)
+(* S3c.3-choice FENCE (each clause literally true vs the code above):*)
+(*  (1) HEAD CHOICE SR ONLY.  wf is stated at (GBra p q bs), which   *)
+(*      structurally PINS the firing pair (p,q) AND the choice node  *)
+(*      to G's head; the conclusion is wf at the SELECTED branch     *)
+(*      continuation Gl = gbget l bs.  The label l drives BOTH the   *)
+(*      global step (GStep_Bra) and the located step (NStep_Sel)     *)
+(*      onto the same Gl.  No over-general 'any pair / any node'.    *)
+(*  (2) RUN-AHEAD / NON-HEAD selection is NOT covered = S3c.3-perm,  *)
+(*      out of scope (a non-head/deeper selection has no matching    *)
+(*      head GStep_Bra).  Honest boundary, mirroring the message     *)
+(*      run-ahead fence (g_runahead, self-witnessed above).          *)
+(*  (3) PLAIN proj (NOT proj_u): the uninvolved arm rides proj_uninv *)
+(*      (the plain-merge fold); proj_uninv_selected leans on         *)
+(*      merge_forces_eq = plain merge is the IDENTITY-MEET, so every *)
+(*      branch projects an uninvolved r to the SAME type.  The full  *)
+(*      label-UNION merge (union-typed uninvolved continuation) is   *)
+(*      explicitly NOT used (= S3, separate).  REGRESSION PIN: if a  *)
+(*      future rung widens merge (reorder/union), merge_forces_eq    *)
+(*      and proj_uninv_selected BOTH break and this theorem becomes  *)
+(*      FALSE-as-stated -- that is exactly the S3 fence, not a bug.  *)
+(*  (4) COUPLED COROLLARY nstep_gstep_sr_choice_head is a HEAD       *)
+(*      WRAPPER for ONE step (gstep + nstep + wf all pinned to the   *)
+(*      same head (p,q,bs), label l, ra_set output), NOT general SR  *)
+(*      / bisimulation / operational correspondence / multi-step.    *)
+(*  (5) p<>q carried as a HYPOTHESIS (two_party does not entail it;  *)
+(*      inherited fence from the message head).  FUNCTIONAL wf only  *)
+(*      (wf_assignment_f, ra_get-based), matching S3c.3-msg.         *)
+(*  (6) NEW definitions: gbget (gbranch label-lookup, FUNCTIONAL     *)
+(*      first-match, the global analogue of bget/pget -- no such     *)
+(*      lookup pre-existed in the file) and GStep_Bra (the SOLE      *)
+(*      additive edit to an existing Inductive, gstep).              *)
+(*  (7) PRESERVATION (subject reduction) ONLY -- no progress /       *)
+(*      deadlock-freedom / fidelity.  Naming: nstep_sr_choice_head   *)
+(*      (NOT n_party_safety).                                        *)
+(*  Echo-types audit: NOT-RELEVANT (axis-2 STRUCTURE -- a located    *)
+(*  reduction emits no obligation / residue / attestation; matches   *)
+(*  the S3c.2 / S3c.3-msg verdict).                                  *)
+(* ============================================================ *)

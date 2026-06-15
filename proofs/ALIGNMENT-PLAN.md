@@ -210,6 +210,19 @@ canonical track; Idris2 is a definitions + `progress` cross-check only.)*
   rule + soundness); full-union merge + n-party SR/progress/coherence (**S3c** — where "duet" stops
   and "ensemble" begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
 
+  **S3c done through S3c.3-choice (2026-06-14/15):** the n-party operational frontier, all axiom-free
+  (per-rung detail in STATUS.md). S3c.0 full label-union merge (`umerge`/`umerge_idem`); S3c.1
+  union-projection (`proj_u`/`projection_total_u`, `merge_forces_eq`); S3c.2 n-ary located opsem
+  (`nstep`/`gstep`, ring run, with the honesty witness `nstep_breaks_wf_at_fixed_G` proving SR must be
+  stated against a *stepping* G); S3c.3-msg the first EARNED n-party safety half — head-coupled MESSAGE
+  subject reduction (`nstep_sr_msg_head`); and **S3c.3-choice** the head-coupled SELECT/BRANCH SR
+  (`nstep_sr_choice_head`), whose uninvolved-role arm is the genuinely-new part (rides `proj_uninv`,
+  discharged by the new `proj_uninv_selected` via `merge_forces_eq` = plain-merge-is-identity-meet).
+  Both SR rungs are design-panel-validated + independently adversary-verified. **Remaining:** S3c.3-perm
+  (run-ahead / asynchronous-permutation SR — a bigger swap theory); S3c.4 n-party progress /
+  deadlock-freedom (**research-hard** — the MPST liveness frontier where "ensemble" earns its keep); and
+  μ typing/SR up-to-unfolding (**S1.3b-meta**, still deferred).
+
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
 mechanised effect-row calculus with an effect-soundness statement, then

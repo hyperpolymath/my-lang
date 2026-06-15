@@ -316,6 +316,32 @@ jobs:
               || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
           done
 
+      - name: Assert S3c.3-choice head-coupled select/branch subject reduction is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.3-choice (axis-2 STRUCTURE): the CHOICE analogue of
+          # S3c.3-msg. The HEAD select/branch sanctioned by a head
+          # GBra p q {l_i:G_i} carries wf from G to its SELECTED branch
+          # continuation Gl = gbget l bs (nstep_sr_choice_head, 3-way
+          # located role split: selector p / offerer q / uninvolved r).
+          # The label l drives BOTH the global step (GStep_Bra) and the
+          # located step (NStep_Sel) onto the SAME Gl. The genuinely-new
+          # part vs the message head: the uninvolved arm is no longer
+          # definitional -- it rides proj_uninv (the plain-merge fold) and
+          # is discharged by proj_uninv_selected via merge_forces_eq
+          # (plain merge = identity-meet, so every branch projects an
+          # uninvolved r to the SAME type, hence so does the selected one).
+          # PLAIN proj only (label-UNION merge = S3); HEAD choice only
+          # (run-ahead = S3c.3-perm); PRESERVATION only (NO progress = S3c.4).
+          for thm in proj_br_selected proj_uninv_selected \
+                     nstep_sr_choice_head nstep_gstep_sr_choice_head \
+                     wf_ra_choice3 choice3_head_fires_end_to_end; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c3choice_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c3choice_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
   idris:
     name: Idris2 solo-core
     runs-on: ubuntu-latest

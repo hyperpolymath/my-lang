@@ -147,8 +147,11 @@ my-lang is parametric over **both**, and identifies **neither**.
       (nstep/gstep, ring run, adequacy-only);
       S3c.3-msg ✓ head-coupled message subject
       reduction (nstep_sr_msg_head, first EARNED
-      n-party safety half); all axiom-free.
-      S3c.3-choice/perm + S3c.4 progress = open)
+      n-party safety half); S3c.3-choice ✓
+      head-coupled select/branch SR
+      (nstep_sr_choice_head, uninvolved arm via
+      proj_uninv_selected/merge_forces_eq); all
+      axiom-free. S3c.3-perm + S3c.4 progress = open)
 ```
 
 Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core → E4` ; `S1 → S2`.
@@ -454,6 +457,27 @@ Dependency spine: `R0 → R1 → R2 → {R3, R4} ; R3 → R5` ; `R2 + echo-core 
   (select/branch SR, reusing `pty_sel_inv`/`pty_bra_inv`/`pget`); S3c.3-perm (run-ahead, needs a
   gstep-with-swap relation); S3c.4 n-party progress (research-hard — fence). **Echo-types audit:
   NOT-RELEVANT** (axis-2 STRUCTURE).
+- **S3c.3-choice DONE — head-coupled select/branch subject reduction, axiom-free 2026-06-15.** The fifth S3c
+  sub-rung — the CHOICE analogue of S3c.3-msg. Design-panel-validated (3 lenses) + **independently
+  adversary-verified** (a SEPARATE adversary recompiled all 11 modules clean, re-instantiated at a fresh
+  4-role label-1 choreography exercising the recursive arms of `gbget`/`proj_br_selected`/`proj_uninv_selected`,
+  and ran run-ahead + disagreeing-branch break attempts; verdict *sound-and-honest, land as-is*). The HEAD
+  select/branch sanctioned by a head `GBra p q {lᵢ:Gᵢ}` carries wf to its SELECTED branch continuation
+  `Gl = gbget l bs`: **`nstep_sr_choice_head`** (same 3-way located role split as the message head — selector
+  `p` via `pty_sel_inv`, offerer `q` via `pty_bra_inv` + the per-label coverage, uninvolved `r`). The label `l`
+  drives BOTH the new global step **`GStep_Bra`** (on the new functional gbranch lookup **`gbget`** — no such
+  lookup pre-existed; only `proj_br`/`proj_uninv` consumed `gbranch`) and the located **`NStep_Sel`** onto the
+  SAME `Gl`. **The genuinely-new part:** the uninvolved arm is no longer DEFINITIONAL (as in the message head)
+  — it rides `proj_uninv` (the plain-merge fold) and is discharged by the new **`proj_uninv_selected`** via
+  **`merge_forces_eq`** (plain merge = identity-meet ⇒ every branch projects an uninvolved `r` to the SAME type,
+  so the selected branch does too; the ≥2-branch case needs an explicit one-level unfold to avoid `cbn` over-
+  unfolding). Coupled corollary `nstep_gstep_sr_choice_head`; non-vacuity `choice3_head_fires_end_to_end` on the
+  agreeing 3-party `g_choice3`. Strictly ADDITIVE (bytes 1-2868 SHA-identical to baseline; sole prior-region
+  edit = `gbget` + the `GStep_Bra` constructor). **Fences:** HEAD choice only (run-ahead = S3c.3-perm); PLAIN
+  `proj` (label-UNION merge = S3, with a **regression pin** — widening `merge` breaks `proj_uninv_selected` and
+  the theorem becomes false-as-stated); coupled corollary is a head wrapper, NOT general SR; PRESERVATION only
+  (NO progress = S3c.4). Naming `_choice_head`, not `n_party_safety`. **Remaining S3c (solo):** S3c.3-perm
+  (run-ahead), S3c.4 n-party progress (research-hard — fence). **Echo-types audit: NOT-RELEVANT** (axis-2 STRUCTURE).
 - **S1.3 DONE — choice / congruence / μ type-layer, axiom-free 2026-06-14.** The last/hardest S1
   sub-rungs, design-panel-validated. **S1.3a (choice):** n-ary LABELLED select/branch (`⊕/&{lᵢ:Sᵢ}`)
   in the fused form; `sty`/`party` gain `SSelect`/`SBranch`/`QSel`/`QBra` over dedicated mutual
