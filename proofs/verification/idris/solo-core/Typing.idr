@@ -106,7 +106,7 @@ data Has : Tctx -> Uvec -> Tm -> Ty -> Type where
 
   ||| T-LetPair: eliminate a tensor. The body `t2` binds two variables —
   ||| x:a at de Bruijn index 1, y:b at index 0 — each used linearly (One).
-  THLetPair : (d1, d2 : Uvec)
+  THLetPair : (d1, d2 : Uvec) -> (a, b : Ty)
            -> Has g d1 t1 (TTensor a b)
            -> Has (TSnoc (TSnoc g a) b) (USnoc (USnoc d2 One) One) t2 c
            -> uadd d1 d2 = Just d
@@ -123,7 +123,7 @@ data Has : Tctx -> Uvec -> Tm -> Ty -> Type where
   ||| value with quantity One and is typed under `d2` extended with that
   ||| binder. Branches agree on `d2` and on the result type. The whole
   ||| `case` is typed under `d1 + d2`.
-  THCase : (d1, d2 : Uvec)
+  THCase : (d1, d2 : Uvec) -> (a, b : Ty)
         -> Has g d1 t (TSum a b)
         -> Has (TSnoc g a) (USnoc d2 One) tL c
         -> Has (TSnoc g b) (USnoc d2 One) tR c
@@ -132,7 +132,7 @@ data Has : Tctx -> Uvec -> Tm -> Ty -> Type where
 
   ||| T-Let: bind `t1` with declared quantity `q`. The RHS is typed
   ||| under `d1`, scaled by `q`, then added to `d2` (the body's usage).
-  THLet : (d1, d2 : Uvec) -> (q : Q)
+  THLet : (d1, d2 : Uvec) -> (q : Q) -> (a : Ty)
        -> Has g d1 t1 a
        -> Has (TSnoc g a) (USnoc d2 q) t2 b
        -> uadd (uscale q d1) d2 = Just d

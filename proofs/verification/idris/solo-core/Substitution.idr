@@ -226,11 +226,11 @@ shapeType g (With t1 t2)   (THWith h1 h2)             = shapeType g t1 h1
 shapeType g (Fst t1)       (THFst h)                  = shapeType g t1 h
 shapeType g (Snd t1)       (THSnd h)                  = shapeType g t1 h
 shapeType g (Tensor t1 t2) (THTensor d1 d2 h1 h2 prf) = trans (uaddLen d1 d2 _ prf) (shapeType g t1 h1)
-shapeType g (LetPair t1 t2)(THLetPair d1 d2 h1 hb prf)= trans (uaddLen d1 d2 _ prf) (shapeType g t1 h1)
+shapeType g (LetPair t1 t2)(THLetPair d1 d2 _ _ h1 hb prf)= trans (uaddLen d1 d2 _ prf) (shapeType g t1 h1)
 shapeType g (Inl b t1)     (THInl h)                  = shapeType g t1 h
 shapeType g (Inr a t1)     (THInr h)                  = shapeType g t1 h
-shapeType g (Case t tL tR) (THCase d1 d2 h hL hR prf) = trans (uaddLen d1 d2 _ prf) (shapeType g t h)
-shapeType g (Let q t1 t2)  (THLet d1 d2 _ h1 h2 prf)  =
+shapeType g (Case t tL tR) (THCase d1 d2 _ _ h hL hR prf) = trans (uaddLen d1 d2 _ prf) (shapeType g t h)
+shapeType g (Let q t1 t2)  (THLet d1 d2 _ _ h1 h2 prf)  =
   trans (uaddLen (uscale q d1) d2 _ prf) (trans (uscaleLen q d1) (shapeType g t1 h1))
 shapeType g (MkEcho m a b t1) (THEcho h)              = shapeType g t1 h
 shapeType g (Weaken t1)    (THWeaken h)               = shapeType g t1 h
