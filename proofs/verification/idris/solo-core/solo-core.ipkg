@@ -17,5 +17,6 @@ modules = Quantity
         , Typing
         , Soundness
         , EchoResidue
+        , Substitution
 
 main = Soundness
