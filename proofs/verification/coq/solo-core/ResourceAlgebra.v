@@ -106,20 +106,42 @@ Module Type SEMIRING.
   Parameter zero : Q.
   Parameter one  : Q.
 
+  (* TRUSTED-BASE NOTE (Trusted-base reduction policy). Every [Axiom] in
+     this and the two module types below is a MODULE-TYPE INTERFACE FIELD
+     — an abstract parameter of the parametric soundness functor
+     [SoloCoreF], NOT a global assumption admitted into the trusted base.
+     Each is DISCHARGED by every concrete instance: [Module Linear3 <:
+     ORDERED_SEMIRING] proves them by [destruct; reflexivity] (real [Qed]),
+     [Module Tropical <: ORDERED_SEMIRING] likewise at the infinite carrier.
+     That is exactly why [Print Assumptions progress] / [preservation] is
+     "Closed under the global context" for the CONCRETE development
+     ([Include SoloCoreF Linear3]) — CI asserts this in proofs.yml. The
+     per-line [AXIOM:] annotations below satisfy the policy scanner. *)
+
   (* --- additive structure --- *)
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qadd_comm  : forall a b, qadd a b = qadd b a.
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qadd_assoc : forall a b c, qadd (qadd a b) c = qadd a (qadd b c).
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qadd_zero_l : forall q, qadd zero q = q.
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qadd_zero_r : forall q, qadd q zero = q.
 
   (* --- multiplicative structure --- *)
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qmul_assoc  : forall a b c, qmul (qmul a b) c = qmul a (qmul b c).
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qmul_one_l  : forall q, qmul one q = q.
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qmul_zero_r : forall q, qmul q zero = zero.
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qmul_zero_l : forall q, qmul zero q = zero.
 
   (* --- distributivity (both sides genuinely cited) --- *)
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qmul_distrib_l : forall a b c, qmul a (qadd b c) = qadd (qmul a b) (qmul a c).
+  (* AXIOM: SEMIRING interface law; discharged by each <: SEMIRING instance. *)
   Axiom qmul_distrib_r : forall a b c, qmul (qadd a b) c = qadd (qmul a c) (qmul b c).
 
   (* NOTE (excluded, kept as a reminder, NOT as axioms):
@@ -161,8 +183,11 @@ Module Type ORDERED_SEMIRING.
 
   Parameter qle : Q -> Q -> bool.
 
+  (* AXIOM: ORDERED_SEMIRING interface law; discharged by each <: ORDERED_SEMIRING instance. *)
   Axiom qle_refl  : forall q, qle q q = true.
+  (* AXIOM: ORDERED_SEMIRING interface law; discharged by each <: ORDERED_SEMIRING instance. *)
   Axiom qle_trans : forall a b c, qle a b = true -> qle b c = true -> qle a c = true.
+  (* AXIOM: ORDERED_SEMIRING interface law; discharged by each <: ORDERED_SEMIRING instance. *)
   Axiom qle_zero  : forall q, qle zero q = true.
 
   (* Decidable carrier equality (R5). The executable usage-walk checker
@@ -283,7 +308,11 @@ Module Type RESIDUE_MEASURE (S : SEMIRING).
   Parameter empty   : Residue.
   Parameter combine : Residue -> Residue -> Residue.
   Parameter measure : Residue -> S.Q.
+  (* AXIOM: RESIDUE_MEASURE interface law (monoid-homomorphism unit);
+     discharged by each <: RESIDUE_MEASURE instance (e.g. EchoTraceTropical). *)
   Axiom measure_empty   : measure empty = S.one.
+  (* AXIOM: RESIDUE_MEASURE interface law (monoid-homomorphism multiplicativity);
+     discharged by each <: RESIDUE_MEASURE instance (e.g. EchoTraceTropical). *)
   Axiom measure_combine : forall a b,
     measure (combine a b) = S.qmul (measure a) (measure b).
 End RESIDUE_MEASURE.
