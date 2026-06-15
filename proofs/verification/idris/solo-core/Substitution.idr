@@ -678,3 +678,68 @@ substVarSucc k u n with (compare n k) proof eq
   substVarSucc Z     u Z      | GT = void (eqNotGT eq)
   substVarSucc (S j) u Z      | GT = void (ltNotGT eq)
   substVarSucc k     u (S n0) | GT = rewrite minusZeroRight n0 in sym (shiftVarLemma 0 n0)
+
+------------------------------------------------------------
+-- 4c (cont). Variable substitution
+------------------------------------------------------------
+
+||| Substituting `u` for the boundary variable in a `HasVar`: either the
+||| substituted variable itself (returns `u`, usage scaled by `q`), or a
+||| different variable (unchanged, `Zero`-scaled). The general prefix-`I` form
+||| (mirrors Coq `hv_subst`); `htSubst`'s `Var` case is this lemma.
+public export
+hvSubst : (i, g : Tctx) -> (a : Ty) -> (dg : Uvec) -> (q : Q) -> (di : Uvec)
+       -> (n : Nat) -> (b : Ty) -> (du : Uvec) -> (u : Tm)
+       -> ulen di = tlen i
+       -> HasVar (tappend (TSnoc g a) i) (uappend (USnoc dg q) di) n b
+       -> Has g du u a
+       -> (dgr : Uvec ** (uadd dg (uscale q du) = Just dgr,
+            Has (tappend g i) (uappend dgr di)
+                (substAt (tlen i) (shiftn (tlen i) u) (Var n)) b))
+hvSubst TEmpty g a dg q (USnoc _ _) n b du u hlen hv hu = void (sNotZ' hlen)
+hvSubst TEmpty g a dg q UEmpty Z b du u hlen hv hu =
+  case varInv hv of
+    VIT hdq hn hv' => void (zNotS' hn)
+    VIH hdq hn hb =>
+      let (hdg, hq) = usnocInj hdq
+      in (du ** (rewrite hdg in rewrite hq in rewrite uscaleOne du in
+                   uaddZeroL g du (shapeType g u hu),
+                 rewrite hb in hu))
+hvSubst TEmpty g a dg q UEmpty (S n0) b du u hlen hv hu =
+  case varInv hv of
+    VIH hdq hn hb => void (sNotZ' hn)
+    VIT hdq hn hv' =>
+      let (hdg, hq) = usnocInj hdq
+          hv'' : HasVar g dg n0 b
+          hv'' = rewrite hdg in rewrite predEq' hn in hv'
+      in (dg ** (rewrite hq in
+                   uaddUscaleZeroR dg du (trans (shapeVar g hv'') (sym (shapeType g u hu))),
+                 rewrite minusZeroRight n0 in THVar hv''))
+hvSubst (TSnoc i' c) g a dg q UEmpty n b du u hlen hv hu = void (zNotS' hlen)
+hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) Z b du u hlen hv hu =
+  case varInv hv of
+    VIT hdq hn hv' => void (zNotS' hn)
+    VIH hdq hn hb =>
+      let (hdgdi, hqd) = usnocInj hdq
+          (hdg, hdi)   = uappendInj di' (uzero i') (USnoc dg q) (USnoc (uzero g) Zero)
+                           (trans (predEq' hlen) (sym (uzeroLen i')))
+                           (trans hdgdi (uzeroTappend (TSnoc g a) i'))
+          (hdgg, hqq)  = usnocInj hdg
+      in (uzero g **
+          (rewrite hdgg in rewrite hqq in
+             uaddUscaleZeroR (uzero g) du (trans (uzeroLen g) (sym (shapeType g u hu))),
+           rewrite hb in rewrite hqd in rewrite hdi in
+             rewrite sym (uzeroTappend g i') in THVar HVHere))
+hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) (S n0) b du u hlen hv hu =
+  case varInv hv of
+    VIH hdq hn hb => void (sNotZ' hn)
+    VIT hdq hn hv' =>
+      let (hd0, hqd) = usnocInj hdq
+          (dgr ** (hadd, hht)) = hvSubst i' g a dg q di' n0 b du u (predEq' hlen)
+                                   (rewrite hd0 in rewrite predEq' hn in hv') hu
+      in (dgr **
+          (hadd,
+           rewrite hqd in
+             rewrite substVarSucc (tlen i') u n0 in
+             htShift0 (tappend g i') c (uappend dgr di')
+                      (substAt (tlen i') (shiftn (tlen i') u) (Var n0)) hht))
