@@ -1007,6 +1007,34 @@ impl Checker {
                 let left_ty = self.check_expr(left);
                 let right_ty = self.check_expr(right);
 
+                // Enforce immutability of assignment targets: assigning to a
+                // binding declared without `mut` is a static error. `Symbol.mutable`
+                // is recorded at `let` time but was never consulted here, so
+                // `CheckError::ImmutableAssignment` had no construction site.
+                // NOTE: currently latent — the parser does not yet emit
+                // `BinaryOp::Assign` (KNOWN_PARSE_GAP, conformance/valid/v04_let.my);
+                // this gate activates once assignment parsing lands, and is
+                // reachable today only via a programmatically-built AST.
+                if matches!(op, BinaryOp::Assign) {
+                    if let Expr::Ident(ident) = left.as_ref() {
+                        // Copy out of the immutable lookup borrow before touching
+                        // self.errors. Unknown names are already reported by
+                        // check_expr(left), so default to "not immutable".
+                        let is_immutable = self
+                            .symbols
+                            .lookup(&ident.name)
+                            .map(|s| !s.mutable)
+                            .unwrap_or(false);
+                        if is_immutable {
+                            self.errors.push(CheckError::ImmutableAssignment {
+                                name: ident.name.clone(),
+                                line: ident.span.line,
+                                column: ident.span.column,
+                            });
+                        }
+                    }
+                }
+
                 self.check_binary_op(*op, &left_ty, &right_ty, *span)
             }
 

@@ -108,3 +108,6 @@ Proof. intros q; destruct q; reflexivity. Qed.
 
 Lemma qle_refl : forall q, qle q q = true.
 Proof. intros q; destruct q; reflexivity. Qed.
+
+Lemma qle_trans : forall a b c, qle a b = true -> qle b c = true -> qle a c = true.
+Proof. intros a b c Hab Hbc; destruct a, b, c; simpl in *; congruence. Qed.

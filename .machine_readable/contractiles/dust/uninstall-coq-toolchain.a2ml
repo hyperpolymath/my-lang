@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: MPL-2.0
+# dust/uninstall-coq-toolchain.a2ml — Cleanup intention: remove Coq toolchain
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# Verb: dust
+# Scope: my-lang Coq mechanised solo-core
+# Cleanup intention: cleanly detach / uninstall the Coq proof infrastructure
+#   if the project pivots to a different proof assistant or moves to Idris2-only
+
+@abstract:
+How to cleanly remove the Coq mechanised solo-core from my-lang if the project
+pivots (e.g., to Idris2-only, or to a new proof assistant). This does NOT
+retire the formal verification commitment — it details what must be removed,
+what must be preserved, and what downstream consumers must be informed of.
+@end
+
+## Cleanup Intention
+
+### scope
+- description: Remove the Coq toolchain, CI leg, and Coq-specific source
+- trigger: Deliberate architectural pivot away from Coq as the canonical mechanisation
+- authority: Requires explicit sign-off in GOVERNANCE.adoc; not a unilateral CI fix
+
+## Steps
+
+### 1-archive-coq-proofs
+- description: Move proofs/verification/coq/ to an archive branch, not delete
+- run: "git archive HEAD proofs/verification/coq/ | gzip > /tmp/my-lang-coq-archive.tar.gz"
+- notes: The Coq proofs are the F1.4 canonical; they must be retrievable for audit
+
+### 2-disable-proofs-ci
+- description: Remove or gate .github/workflows/proofs.yml Coq steps
+- run: "rm .github/workflows/proofs.yml || sed -i '/coqc\\|coq_makefile/d' .github/workflows/proofs.yml"
+- notes: Preserve Idris2 CI leg if Idris2-only route is chosen
+
+### 3-remove-coq-project-files
+- description: Remove _CoqProject and CoqMakefile
+- run: "rm -f proofs/verification/coq/solo-core/_CoqProject proofs/verification/coq/solo-core/CoqMakefile"
+
+### 4-update-guix-manifest
+- description: Remove coq / coq-mathcomp entries from guix.scm
+- run: "grep -n 'coq' guix.scm && echo 'Review and remove the above lines manually'"
+- severity: advisory
+
+### 5-update-6a2-state
+- description: Update STATE.a2ml and META.a2ml to reflect Coq retirement
+- corrective: >
+    In 6a2/STATE.a2ml: mark coq_core as retired; in 6a2/META.a2ml: remove
+    ADR-009 (open-context subst) as Coq-specific or generalise it.
+
+### 6-notify-downstream
+- description: Notify nextgen-languages, nextgen-typing, echo-types of Coq retirement
+- corrective: >
+    File an issue in each downstream repo linking to the archive branch.
+    Update docs/design/echo-types-integration.md to note the Coq bridge is archived.
+
+## Completion Criteria
+- run: "test ! -f .github/workflows/proofs.yml || ! grep -q 'coqc' .github/workflows/proofs.yml"
+- severity: advisory

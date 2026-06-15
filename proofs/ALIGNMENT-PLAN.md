@@ -97,7 +97,8 @@ listed for completeness but are explicitly *after* the proof phases.
 ### Phase F1 — Mechanised affine/QTT solo-core  ← **commenced in this PR**
 Closes **G1** and scaffolds **G2**. Dual-track by decision: **both Coq
 and Idris2** (sibling-parity with AS *and* reuse of the existing Coq
-investment).
+investment). *(Parity relaxed 2026-06-13 — see D1: Coq is now the
+canonical track; Idris2 is a definitions + `progress` cross-check only.)*
 
 - **F1.0** — Scaffold both tracks with the QTT semiring, syntax,
   contexts, typing judgement, and soundness *statements*. **DONE** —
@@ -118,7 +119,117 @@ investment).
   respects context splitting; prove the **affine-accounting**
   corollary. Then state & prove the equivalence between static
   context-splitting and the post-hoc usage-walk the future
-  `dialects/solo` checker will use.
+  `dialects/solo` checker will use. **DONE (Coq, 2026-06-13).**
+  Preservation + `affine_pres` are axiom-free `Qed`; the **F1.4 tail
+  (R5)** is closed by an *executable* one-pass checker `check : tctx →
+  tm → option (ty × uvec)` with `check_sound` / `check_complete` /
+  `check_correct : has_type G D t a ↔ check G t = Some (a, D)` — real
+  `Qed`, axiom-free, CI-guarded, and the corollary `typing_unique`
+  (usage/type determinacy). It inherits to the infinite tropical
+  carrier for free. **This overtakes AffineScript**, whose solo-core
+  states the same static-split≡usage-walk equivalence only as prose
+  ("an explicit equivalence lemma is future work"). The checker decides
+  the strictly-**linear** `has_type`; **R5b (2026-06-13) DONE** decides
+  the affine *discard* too: `aff_type_dec` (decidability of the affine
+  judgement `aff_type`/`ule`), via `aff_type_iff` (its `check`-character-
+  isation, the affine analogue of `check_correct`) and `ule_dec` — all
+  axiom-free, CI-guarded, inherited free at the tropical carrier.
+
+  **Surface (M1, axis-4) — DONE (partial), 2026-06-14.** Beyond F1, the
+  visual/block `me` surface (`proofs/me/`, axis-4 in
+  `AXIS-ARCHITECTURE.md`) now elaborates into the solo core: a Coq
+  `me_tm` + `elab : me_tm → tm` (the mechanised `translate`), with
+  **M1.0** `check`-executed `Example` witnesses and **M1.1** the
+  universal axiom-free Visual-Soundness theorem `elab_data_check`
+  (formal-model.md Theorem 1) for the no-linear-use fragment, plus
+  `elab_data_typed` / `elab_data_aff_budget`. This is the first
+  mechanised surface→core elaboration-correctness result in either
+  sibling and a clean **overtake** — AffineScript is solo-only with no
+  `me`-like dialect and nothing analogous as surveyed (AS@main 2026-06-02). **M1.1b** (done,
+  2026-06-14) adds a me-level typing judgement `me_wt` with `me_wt_sound : me_wt G D e a →
+  has_type G D (elab e) a` (axiom-free), making the linear-USE constructs (`MeVar`/`MeLet`/
+  `MeUsePair`) and the faithful conditional `MeIf → Case` UNIVERSAL — including `MeSeq`
+  (closed via the F1.4 `ht_shift0` weakening lemma), so `me_wt` spans the whole `me_tm`. **M1
+  (axis-4 SURFACE) is complete.**
+
+  **Structure (S1 + S2, axis-2) — S1.0–S1.3 + S2.0–S2.2 + S3a done 2026-06-14.** The
+  structure climb (`AXIS-ARCHITECTURE.md` axis 2: solo ⊂ duet ⊂ ensemble, done
+  *ensemble-first* on the process side since `solo ⊄ ensemble`). A standalone Coq
+  development `proofs/verification/coq/solo-core/SessionPi.v` (module
+  `SoloCore.SessionPi`) mechanises a synchronous binary session-typed
+  π-calculus core after `proofs/duet/session-types/` and
+  `proofs/ensemble/agent-calculus/`. **S1.0:** definitions
+  (payloads, session types `sty` with a computed duality + `dual_involutive`,
+  polarised endpoints, processes, a *linear* channel-typing judgement `wt`
+  with context splitting, small-step `step`) plus executable witnesses.
+  **S1.1a/S1.1b:** value substitution (`wt_subst`) + communication-redex
+  subject reduction (`sr_comm`), and full closed-system subject reduction
+  (`config_subject_reduction`) via the fused two-party `(νc)(P∣Q)` form.
+  **S1.2:** session fidelity (`session_fidelity`) + progress / deadlock-freedom
+  (`config_progress`) — the duet paper's safety + liveness theorems for the
+  binary fragment. **S2.0/S2.1 — duet by projection:** the multiparty-*shaped*
+  global-type layer `gty`, the three-case projection `proj G r`, the two-party
+  restriction `two_party`, `projection_duality` (a two-party choreography
+  projects to DUAL local types, `p≠q` load-bearing), and `projected_config_wf`
+  + corollaries that transport the whole S1.1b/S1.2 guarantee across projection
+  — a projected choreography is deadlock-free BY CONSTRUCTION. All axiom-free
+  (`Print Assumptions` closed) and CI-guarded (`proofs.yml`). This is a
+  greenfield **overtake**: AffineScript@main (surveyed 2026-06-02) has *no*
+  concurrency / session-types / π-calculus / multiparty metatheory in any form
+  — a category AS does not enter. **Honest fence:** S2 mechanises message-passing
+  + end only and *instantiates* the duet thesis on two-party choreographies — it
+  does not prove a general n-party result. **S1.3 done (2026-06-14):** n-ary
+  labelled **choice** (S1.3a — the three fused theorems extended via dedicated
+  mutual inductives `sbranch`/`pbranch`), structural **congruence** preserves
+  typing on the open `proc` (S1.3c — `wt_congr`, par laws), and the equi-recursive
+  **μ type-layer** (S1.3b-core — `unfold_mu`/`dual_unfold`/`guarded`). **S2.2 done
+  (2026-06-14):** global-type labelled **choice** (`GBra p→q:{lᵢ:Gᵢ}`) + equi-recursive
+  (`GMu`/`GVar`) projection — projection becomes **partial** (`proj : gty → role →
+  option sty`, three-way mutual) with a plain **`merge`** operator (keystone `merge_idem`)
+  combining the branches for an uninvolved role; `projection_duality` reproved in
+  **option-map form** over choice + μ (mutual `two_party_mut` scheme), the whole S2.0/S2.1
+  bridge rethreaded through `proj … = Some _`. Design-panel-validated (the panel
+  empirically compiled the fixpoints on Coq 8.18 and caught a real None-erasure soundness
+  bug before implementation). Fences: **plain** (not full label-union) merge, **unpruned**
+  μ projection (a non-participating role's `μX.X` is non-theorematic, never shown as a
+  type), **no** global-level metatheory. **S3a done (2026-06-14):** the **first theorem
+  quantifying over a genuine n≥3 role space** — `projection_total : projectable_wf G →
+  ∀ r:role, ∃ s, proj G r = Some s` (every role of a well-branched global type projects,
+  via the mutual `projectable_wf_mut` scheme), breaking the standing "no theorem quantifies
+  over a genuine n-party system" fence. Design-panel-validated (4 lenses; forced the honest
+  rename `projectable_wf` — projection EXISTENCE, NOT safety — and the non-empty-choice +
+  inductive-body fixes). Non-vacuity pinned at n=3 (a 3-party ring + an agreeing 3-party
+  choice merged via `merge_idem`); plain-merge boundary witnessed (a same-direction
+  different-payload choice is a SAFE protocol plain merge rejects). Fences: projection
+  EXISTENCE only (no n-party safety); plain (not full-union) merge; μ unpruned; the general
+  `two_party → projectable_wf` NOT proved (it is false — n=2 collapse witnessed by example);
+  no n-party config / operational semantics.
+  **S3b done (2026-06-14):** the first static n-party *configuration* form — `role_assignment :=
+  list (role*party)` + the In-based `wf_assignment G ra` (every listed endpoint typed at its role's
+  projection; a plain `Definition`, NOT nth/length, NOT a Fixpoint/Inductive), with the binary
+  `Conf`/`wf_config` recovered as the **n=2 slice** (`conf_is_role_assignment2`, reusing
+  `projected_config_wf`) + the converse embed `role_assignment2_of_conf`, an n=3 non-`Conf` static
+  witness over `g_ring` (`wf_ra_ring`), and honesty witnesses (duplicate-key tolerance;
+  `projectable_but_uncoverable` — `GVar`/`SVar` uninhabited by closed parties) that fence out
+  functionality and a general coverage theorem. Fences: STATIC only (no `cstep`/no n-party
+  operational metatheory = S3c), `wf_assignment` = typed-at-projection NOT n-party safety, plain
+  (not union) merge + unpruned μ inherited, `role_assignment` is an association list (no map/coverage
+  claim). **Remaining:** μ typing/SR up-to-unfolding (**S1.3b-meta**, deferred — needs a `PT_Unfold`
+  rule + soundness); full-union merge + n-party SR/progress/coherence (**S3c** — where "duet" stops
+  and "ensemble" begins). Echo-types: NOT-RELEVANT (axis-2 STRUCTURE vs axis-3 MODALITY).
+
+  **S3c done through S3c.3-choice (2026-06-14/15):** the n-party operational frontier, all axiom-free
+  (per-rung detail in STATUS.md). S3c.0 full label-union merge (`umerge`/`umerge_idem`); S3c.1
+  union-projection (`proj_u`/`projection_total_u`, `merge_forces_eq`); S3c.2 n-ary located opsem
+  (`nstep`/`gstep`, ring run, with the honesty witness `nstep_breaks_wf_at_fixed_G` proving SR must be
+  stated against a *stepping* G); S3c.3-msg the first EARNED n-party safety half — head-coupled MESSAGE
+  subject reduction (`nstep_sr_msg_head`); and **S3c.3-choice** the head-coupled SELECT/BRANCH SR
+  (`nstep_sr_choice_head`), whose uninvolved-role arm is the genuinely-new part (rides `proj_uninv`,
+  discharged by the new `proj_uninv_selected` via `merge_forces_eq` = plain-merge-is-identity-meet).
+  Both SR rungs are design-panel-validated + independently adversary-verified. **Remaining:** S3c.3-perm
+  (run-ahead / asynchronous-permutation SR — a bigger swap theory); S3c.4 n-party progress /
+  deadlock-freedom (**research-hard** — the MPST liveness frontier where "ensemble" earns its keep); and
+  μ typing/SR up-to-unfolding (**S1.3b-meta**, still deferred).
 
 ### Phase F2 — Effects metatheory (mechanised)
 Closes part of **G2/G4**. Lift `proofs/shared/effect-system/` to a
@@ -151,7 +262,16 @@ phases per the user's "starting with proofs" directive.
 
 - **D1 — Dual mechanisation (Coq + Idris2).** Reuse my-lang's Coq
   investment *and* mirror AS's Idris2 solo-core for cross-repo parity.
-  The two tracks are kept structurally parallel.
+  **Amended 2026-06-13 (owner, option A):** the tracks are NOT kept at
+  full structural parity. **Coq is the canonical mechanisation of
+  record** — axiom-free `progress`/`preservation`/`affine_pres` plus the
+  R2 functor (`SoloCoreF`), R3 affine layer, and R4 tropical instance.
+  **Idris2 is a cheap definitions + `progress` second-source** whose
+  `?todo_preservation` is deliberately left open. Coq-module-functor work
+  (R2/R4) is *not* mirrored — Idris2 has no functor system, so it would be
+  a different design, not a translation. The Idris CI leg stays (it only
+  rebuilds the package). Do not auto-create matching Idris work when the
+  Coq core advances.
 - **D2 — Statements-first.** Soundness theorems are committed as
   statements before proof, matching AS's methodology — as named `Prop`s
   on the Coq track (no `Admitted`/`Axiom`, to keep the trusted base

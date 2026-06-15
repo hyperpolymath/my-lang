@@ -50,13 +50,297 @@ jobs:
           coq_makefile -f _CoqProject -o CoqMakefile
           make -f CoqMakefile
 
-      - name: Assert `progress` is axiom-free (no Admitted/Axiom in the trusted base)
+      - name: Assert soundness + the usage-walk checker are axiom-free
         working-directory: proofs/verification/coq/solo-core
         run: |
-          echo 'Require Import Soundness. Print Assumptions progress.' \
-            | coqtop -R . SoloCore 2>/dev/null | tee /tmp/assum.txt
-          grep -q "Closed under the global context" /tmp/assum.txt \
-            || { echo "::error::progress is NOT axiom-free"; exit 1; }
+          # The F1.4 headline: every soundness theorem must rest on the
+          # bare global context — no Admitted/Axiom anywhere in its
+          # dependency cone. A future regression that slips an `admit`
+          # into the substitution/preservation chain fails the build here,
+          # not silently at review time.
+          # Theorems now live in the consolidated parametric functor
+          # (SoloCore.v); `Include SoloCoreF Linear3` re-exports them under
+          # bare names, recovering the axiom-free concrete development.
+          # R5: check_sound / check_complete / check_correct are the
+          # executable usage-walk checker's adequacy (static-split ≡
+          # usage-walk); R5b: aff_type_dec decides the affine budget
+          # judgement; M1: elab_data_check (data fragment) + me_wt_sound
+          # (universal linear-use, M1.1b) are the me->solo elaboration
+          # adequacy (Visual Soundness) — all asserted axiom-free here.
+          for thm in progress preservation affine_pres \
+                     check_sound check_complete check_correct aff_type_dec \
+                     elab_data_check elab_data_typed elab_data_aff_budget \
+                     me_wt_sound me_wt_check me_wt_aff; do
+            echo "Require Import SoloCore. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_${thm}.txt" \
+              || { echo "::error::${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert ensemble session-π S1.0 core + witnesses are axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S1 (axis-2 STRUCTURE): the ensemble session-typed π-calculus
+          # core lives in the standalone SessionPi.v (module
+          # SoloCore.SessionPi). S1.0 = definitions + executable witnesses.
+          # The duality involution, the well-typed ping-pong, its
+          # reductions, the S1.1a metatheory (value substitution +
+          # communication-redex subject reduction), and the S1.1b
+          # full closed-system subject reduction over the fused
+          # two-party (νc)(P∣Q) form must all rest on the bare global
+          # context.
+          for thm in dual_involutive co_involutive \
+                     wt_pingpong step_pingpong step_sys \
+                     vtype_subst wt_subst wt_subst0 sr_comm \
+                     pty_subst pty_subst0 config_subject_reduction \
+                     wf_preserved_pingpong \
+                     session_fidelity config_progress \
+                     bget_dual_br bget_dual_br_inv pget_psubst \
+                     wf_choice_config cstep_choice_config progress_choice \
+                     csplit_comm csplit_assoc wt_absorb_ended \
+                     wt_congr wt_congr_comm_witness \
+                     dual_tlift dual_tsubst dual_unfold \
+                     unfold_mu_compute guarded_recursive not_guarded_muvar; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_sp_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_sp_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert duet-by-projection S2 results are axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S2 (axis-2 STRUCTURE, "duet = ensemble | 2-party by projection"):
+          # the multiparty-SHAPED global-type / projection layer (gty, proj,
+          # two_party) and the BINARY COLLAPSE bridge into the S1.1b/S1.2 fused
+          # config metatheory. projection_duality (a two-party choreography
+          # projects to DUAL local types) + proj_q_dual_p, projected_config_wf,
+          # and the transported guarantees (subject reduction / fidelity /
+          # progress) + the round-trip global_projects_to_dual_channel must all
+          # rest on the bare global context.
+          for thm in projection_duality proj_q_dual_p \
+                     projected_config_wf global_projects_to_dual_channel \
+                     projected_config_subject_reduction \
+                     projected_session_fidelity projected_config_progress; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s2_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s2_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S2.2 choice+recursion projection + merge are axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S2.2 (axis-2 STRUCTURE): global labelled CHOICE (GBra) + equi-
+          # recursive (GMu/GVar) global types projecting onto S1.3 local
+          # select/branch/mu. Projection is now PARTIAL (option sty); the
+          # uninvolved-role merge keystone (merge_idem), the option-form
+          # duality bridge (proj_q_dual_p_some), the choice + recursion
+          # duality witnesses (gchoice2_dual, grec_dual), and the B1
+          # None-propagation regression (proj_tail_conflict_none — a tail
+          # merge-conflict must yield None, not be erased to Some) must all
+          # rest on the bare global context.
+          for thm in merge_idem proj_q_dual_p_some \
+                     gchoice2_dual grec_dual proj_tail_conflict_none; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s22_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s22_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S3a n-party projection totality is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3a (axis-2 STRUCTURE): the FIRST theorem quantifying over a
+          # genuine n>=3 role space. projection_total (projectable_wf G ->
+          # forall r, exists s, proj G r = Some s) breaks the standing
+          # "no theorem quantifies over a genuine n-party system" fence.
+          # projectable_wf = the restricted (plain-merge) projectability
+          # predicate; witnesses pin non-vacuity at n=3 (a 3-party ring +
+          # an agreeing 3-party choice projected via a non-trivial merge)
+          # and the plain-merge boundary (a same-direction different-payload
+          # choice is NOT projectable). All must rest on the bare global ctx.
+          for thm in projection_total proj_msg_total \
+                     projectable_g_ring projectable_g_choice3 \
+                     g_ring_projects_all g_ring_not_two_party \
+                     g_excluded_not_projectable; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3a_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3a_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S3b static n-party configuration is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3b (axis-2 STRUCTURE): the FIRST n-party CONFIGURATION form,
+          # STATIC (no operational semantics). wf_assignment G ra = every
+          # listed endpoint typed at its role's projection (In-based plain
+          # Definition). The binary Conf is recovered as the n=2 INSTANCE via
+          # conf_is_role_assignment2 (reusing projected_config_wf), with the
+          # converse embed + lookup bridge. Non-vacuity at n=3 by wf_ra_ring
+          # over g_ring. Honesty witnesses fence out functionality (duplicate
+          # keys) and a general coverage theorem (projectable_but_uncoverable
+          # — GVar/SVar uninhabited by closed parties). All bare global ctx.
+          for thm in conf_is_role_assignment2 role_assignment2_of_conf \
+                     ra_get_in wf_assignment_get \
+                     wf_ra_ring ra_ring_three_entries \
+                     wf_assignment_admits_duplicate_keys \
+                     svar_uninhabited projectable_but_uncoverable; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3b_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3b_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert E4 residue-measure SEAM (Coq mirror) is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # E4 (axis-3 ECHO): the my-lang Coq half of the residue-measure
+          # seam capstone. RESIDUE_MEASURE (ResourceAlgebra.v) is the monoid-
+          # homomorphism interface mirrored from upstream EchoBridge.lean;
+          # EchoMeasure.v inhabits it at the R4 Tropical cost carrier
+          # (EchoTraceTropical) and witnesses measure-independence on the Coq
+          # side (echo_measure_not_injective). The full measure-independence
+          # over the degrade-compose modality is upstream-cited, not here.
+          for thm in trace_cost_app \
+                     EchoTraceTropical.measure_empty \
+                     EchoTraceTropical.measure_combine \
+                     echo_measure_not_injective; do
+            echo "Require Import SoloCore.EchoMeasure. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_e4_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_e4_${thm}.txt" \
+              || { echo "::error::EchoMeasure.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S3c.0 full label-union merge is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.0 (axis-2 STRUCTURE): the FIRST S3c sub-rung -- the
+          # Honda-Yoshida-Carbone label-UNION merge (umerge) ADDED ALONGSIDE
+          # the plain identity-meet merge (touches nothing S2/S3a/S3b use).
+          # Keystone umerge_idem (unconditional). Witnesses pin the WIN
+          # (different-label & choices plain merge rejects, umerge unions)
+          # and the honest fences (SSelect + is NOT unioned; same-direction
+          # different-PAYLOAD is STILL rejected -- umerge unions labels, it
+          # does not reconcile payloads). Type-algebra only: NOT wired into
+          # proj/coherence/safety (that is S3c.1+). All bare global ctx.
+          for thm in umerge_idem sty_eqb_refl \
+                     umerge_widens_strictly umerge_accepts_disjoint \
+                     umerge_select_disjoint_rejected \
+                     umerge_still_rejects_payload_divergence; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c0_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c0_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S3c.1 union-projection is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.1 (axis-2 STRUCTURE): the union-projection rung -- a SEPARATE
+          # proj_u (plain proj with the uninvolved fold's merge replaced by
+          # umerge) ADDED ALONGSIDE proj (proj/merge/projectable_wf untouched,
+          # NOT re-pointed at umerge -- S3c.0 fence 5). Keystone existence
+          # theorem projection_total_u; the keystone merge_forces_eq (plain
+          # merge is the identity-meet) carries the one-directional monotonicity
+          # bridge projectable_wf_implies_u (DOMAIN-INCLUSION, converse FALSE).
+          # Non-vacuity g_union3 (different-LABEL uninvolved choice: plain proj
+          # rejects, proj_u unions) is genuinely in union-projectable MINUS
+          # plain-projectable; the fence g_excluded_u (different-PAYLOAD) is
+          # STILL rejected by proj_u -- union projection widens labels not
+          # payloads. EXISTENCE only: NO n-party SR/progress/safety (= S3c.3+).
+          for thm in merge_forces_eq projection_total_u projectable_wf_implies_u \
+                     proj_agrees_u proj_uninv_agrees_u \
+                     proj_union3_role2_plain_none proj_u_union3_role2_some \
+                     g_union3_not_plain_projectable projectable_u_g_union3 \
+                     proj_u_g_excluded_still_none g_excluded_u_not_u_projectable; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c1_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c1_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S3c.2 n-ary located operational semantics is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.2 (axis-2 STRUCTURE): the FIRST operational metatheory over
+          # an n-party config -- a located reduction nstep on role_assignment
+          # (the located mirror of the fused binary cstep: one communication
+          # ra_set-updates exactly the two roles) + a global-type reduction
+          # gstep, with the 3-party RING run witnessed on BOTH sides
+          # (ring_runs_to_end / g_ring_gsteps). The functional well-formedness
+          # wf_assignment_f (wf_assignment => it, one direction) is the form
+          # S3c.3 SR will use. OPERATIONAL ADEQUACY ONLY: the load-bearing
+          # honesty witness nstep_breaks_wf_at_fixed_G PROVES nstep does NOT
+          # preserve wf_assignment_f at a FIXED G -- so n-party SR must couple
+          # nstep with gstep against a STEPPING G (= S3c.3), and there is NO
+          # progress (= S3c.4). nstep/gstep are NOT yet coupled.
+          for thm in ra_set_length ra_set_get_eq ra_set_get_neq \
+                     nstep_length nstar_length \
+                     wf_assignment_to_f wf_ra_ring_f g_ring_gsteps \
+                     ring_runs_to_end ring_run_preserves_count \
+                     nstep_breaks_wf_at_fixed_G; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c2_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c2_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S3c.3-msg head-coupled message subject reduction is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.3-msg (axis-2 STRUCTURE): the FIRST EARNED n-party safety half.
+          # S3c.2 proved nstep does NOT preserve wf_assignment_f at a FIXED G
+          # (nstep_breaks_wf_at_fixed_G). S3c.3-msg proves the TRUE statement:
+          # the HEAD communication sanctioned by a head GMsg p q t G' carries
+          # wf from G to its continuation G' (nstep_sr_msg_head, 3-way located
+          # role case-split; the SAME value v:t the sender ships is what the
+          # receiver substitutes via pty_subst0). The coupled corollary puts
+          # gstep+nstep+wf' in one conclusion for the head step. Non-vacuity:
+          # the SAME ra_ring1 that S3c.2 refuted at the fixed g_ring IS wf at
+          # the stepped g_ring (ra_ring1_wf_at_stepped_g, proved THROUGH the
+          # core SR), sealed by sr_earns_safety_across_step. The run-ahead
+          # FENCE is self-witnessed (runahead_breaks_head_coupling): a non-head
+          # nstep fires from a wf config but is NOT wf at the head continuation
+          # -- so head-coupled SR genuinely cannot cover it (= S3c.3-perm, a
+          # bigger swap theory). HEAD message fragment only; NO progress (S3c.4),
+          # NO choice (S3c.3-choice), NO run-ahead/permutation SR.
+          for thm in nstep_sr_msg_head nstep_gstep_sr_msg_head \
+                     g_ring_head_gsteps ra_ring1_wf_at_stepped_g \
+                     sr_earns_safety_across_step \
+                     wf_ra_runahead runahead_breaks_head_coupling; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c3msg_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c3msg_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
+
+      - name: Assert S3c.3-choice head-coupled select/branch subject reduction is axiom-free
+        working-directory: proofs/verification/coq/solo-core
+        run: |
+          # S3c.3-choice (axis-2 STRUCTURE): the CHOICE analogue of
+          # S3c.3-msg. The HEAD select/branch sanctioned by a head
+          # GBra p q {l_i:G_i} carries wf from G to its SELECTED branch
+          # continuation Gl = gbget l bs (nstep_sr_choice_head, 3-way
+          # located role split: selector p / offerer q / uninvolved r).
+          # The label l drives BOTH the global step (GStep_Bra) and the
+          # located step (NStep_Sel) onto the SAME Gl. The genuinely-new
+          # part vs the message head: the uninvolved arm is no longer
+          # definitional -- it rides proj_uninv (the plain-merge fold) and
+          # is discharged by proj_uninv_selected via merge_forces_eq
+          # (plain merge = identity-meet, so every branch projects an
+          # uninvolved r to the SAME type, hence so does the selected one).
+          # PLAIN proj only (label-UNION merge = S3); HEAD choice only
+          # (run-ahead = S3c.3-perm); PRESERVATION only (NO progress = S3c.4).
+          for thm in proj_br_selected proj_uninv_selected \
+                     nstep_sr_choice_head nstep_gstep_sr_choice_head \
+                     wf_ra_choice3 choice3_head_fires_end_to_end; do
+            echo "Require Import SoloCore.SessionPi. Print Assumptions ${thm}." \
+              | coqtop -R . SoloCore 2>/dev/null | tee "/tmp/assum_s3c3choice_${thm}.txt"
+            grep -q "Closed under the global context" "/tmp/assum_s3c3choice_${thm}.txt" \
+              || { echo "::error::SessionPi.${thm} is NOT axiom-free"; exit 1; }
+          done
 
   idris:
     name: Idris2 solo-core
