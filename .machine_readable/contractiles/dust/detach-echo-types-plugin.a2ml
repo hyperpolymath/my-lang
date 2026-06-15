@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: MPL-2.0
+# dust/detach-echo-types-plugin.a2ml — Cleanup intention: detach echo-types integration
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# Verb: dust
+# Scope: my-lang echo-types integration in the type system
+# Cleanup intention: detach the echo-types formal integration as a standalone plugin
+#   if the project adopts a plugin architecture or needs to ship echo-types separately
+
+@abstract:
+How to cleanly detach the echo-types type-system integration from my-lang's
+core type checker, exposing it as a plugin/optional extension rather than a
+built-in. This is advisory — echo-types are currently integrated into the
+type system as TEcho/MkEcho/Weaken and are not optional. Detachment would
+be a significant architectural change requiring a clear extension boundary.
+@end
+
+## Cleanup Intention
+
+### scope
+- description: Separate echo-types from the core QTT type system into a plugin layer
+- trigger: Plugin architecture adoption; shipping echo-types as a standalone crate
+- authority: Requires ADR update in META.a2ml; review with echo-types maintainer
+
+## Steps
+
+### 1-define-extension-boundary
+- description: Identify the minimal interface for echo-types integration
+- notes: >
+    Current integration points in Typing.v / solo-core:
+    - TEcho former type constructor
+    - MkEcho / Weaken term constructors
+    - T_Echo / T_Weaken typing rules
+    - EchoMode (Linear/Affine) thin poset
+    - EchoResidue (weakened representation)
+    A plugin boundary must expose all five without coupling the core to
+    the echo-types Coq/Agda formalisations.
+
+### 2-extract-echo-module
+- description: Move TEcho/MkEcho/Weaken/T_Echo/T_Weaken into a separate Coq module
+- run: "cp proofs/verification/coq/solo-core/Typing.v /tmp/Typing.v.bak"
+- corrective: >
+    Create proofs/verification/coq/solo-core/EchoIntegration.v with the echo
+    constructors; update Typing.v to Import EchoIntegration.  This is the
+    boundary-extraction slice.
+
+### 3-extract-echo-crate
+- description: Extract echo-types Rust integration into a separate crate
+- corrective: >
+    Create crates/my-lang-echo/ with the TEcho representation; make
+    crates/my-lang/ depend on it optionally via a feature flag.
+    Update Cargo.toml: [features] echo = ["my-lang-echo"].
+
+### 4-update-checker
+- description: Gate TEcho handling in the type checker behind the echo feature flag
+- corrective: >
+    In crates/my-lang/src/checker.rs: wrap TEcho/MkEcho arms in
+    #[cfg(feature = "echo")] or return a FeatureGated error.
+
+### 5-update-6a2-state
+- description: Update STATE.a2ml to reflect echo-types as plugin, not built-in
+- corrective: >
+    In 6a2/STATE.a2ml: update echo_integration_status from 'built_in' to 'plugin'.
+    Add an ADR in META.a2ml documenting the boundary decision.
+
+## Completion Criteria
+- run: "cargo build --no-default-features 2>&1 | grep -v echo | grep -c error || true"
+- notes: Build without echo feature should succeed (zero non-echo errors)
+- severity: advisory
