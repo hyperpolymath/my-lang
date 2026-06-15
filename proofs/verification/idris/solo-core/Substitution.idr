@@ -14,7 +14,7 @@
 --
 -- Layers (mirroring the Coq twin):
 --   4a  append-context algebra      (tappend/uappend + injectivity/split)  [VERIFIED]
---   4b  shape + shift               (shapeType [VERIFIED]; hvShift/htShift/
+--   4b  shape + shift               (shapeType/hvShift/htShift [VERIFIED];
 --                                     htShift0/weakeningAppend — PENDING)
 --   4c  substitution core           (reassoc algebra, hvSubst, htSubst,
 --                                     substLemma0, subst2Lemma — PENDING)
@@ -25,27 +25,26 @@
 -- STATUS (Idris track, #108): HOLE-FREE for the layers it currently contains —
 -- 4a (append algebra), the shape invariant, `hvShift` (has_var weakening),
 -- the structural shift index `shiftIdx`/`shiftIdxCorrect`/`shiftVarLemma`, and
--- the `htShift` SUPPORT lemmas (`unitInv`, `usplitLemma`, `uaddUshift`,
--- `ushiftUscale`). It does NOT yet prove preservation.
+-- `htShift` (term weakening, all 14 constructor cases, total) on top of its
+-- support lemmas (`unitInv`, `usplitLemma`, `uaddUshift`, `ushiftUscale`).
+-- It does NOT yet prove preservation (htSubst/subst2Lemma/preservation pending).
 --
--- ARCHITECTURAL BLOCKER on `htShift` (term weakening) — DECISION NEEDED.
--- `htShift` shifts under binders, so its binder cases must extend the type
--- context with the binder's type and recurse on the BODY. For `Lam q a body`
--- the bound type `a` is IN THE TERM, so it is relevant and recoverable — that
--- case (and Var/Unit/App/With/Fst/Snd/Tensor/Inl/Inr/MkEcho/Weaken) all
--- typecheck. But `Let q t1 t2`, `Case t tL tR`, and `LetPair t1 t2` do NOT
--- annotate their bound types in the term; those types live only as ERASED
--- indices of the typing derivation (`THLet`/`THCase`/`THLetPair`). Idris erases
--- them, so the extended context `TSnoc i <bound-type>` for the body recursion
--- CANNOT be constructed. (Coq is unaffected — `Prop` indices are erased there
--- without blocking proofs; `progress` is unaffected too — it never recurses
--- into those bodies.)
+-- ARCHITECTURAL BLOCKER on `htShift` — RESOLVED 2026-06-15 via Option A.
+-- `htShift` shifts under binders, so its binder cases extend the type context
+-- with the binder's type and recurse on the BODY. For `Lam q a body` the bound
+-- type `a` is in the term and recoverable. But `Let`/`Case`/`LetPair` did NOT
+-- annotate their bound types in the term — those types lived only as ERASED
+-- indices of the typing derivation (`THLet`/`THCase`/`THLetPair`), so the
+-- extended context `TSnoc i <bound-type>` for the body recursion could not be
+-- constructed under Idris erasure. (Coq was unaffected — `Prop` indices erase
+-- without blocking proofs; `progress` was unaffected — it never recurses into
+-- those bodies.)
 --
--- Resolution requires making the bound types available, e.g. adding explicit
--- type fields to `THLet`/`THCase`/`THLetPair` (the ADR-003-consistent fix,
--- already done for the usage fields), or annotating the binder types in the
--- terms. Both touch the merged kernel and need `progress` re-verified. Pending
--- that decision, the verified lemmas below stand as the shift-layer scaffolding.
+-- FIX (Option A): `THLet`/`THCase`/`THLetPair` now carry their bound types as
+-- explicit, runtime-relevant fields — the ADR-003 pattern already used for the
+-- usage splits (`THApp`/`THTensor`). `progress` was re-verified against the new
+-- fields; the build stays green. With the bound types available, all 14
+-- `htShift` cases typecheck and the lemma is total (below).
 
 module Substitution
 
@@ -385,3 +384,106 @@ ushiftUscale : (q : Q) -> (dg, di : Uvec)
                = uappend (USnoc (uscale q dg) Zero) (uscale q di)
 ushiftUscale q dg di =
   rewrite uscaleUappend q (USnoc dg Zero) di in rewrite qMulZeroR q in Refl
+
+------------------------------------------------------------
+-- 4b (cont). Term weakening: htShift (open-context shift)
+------------------------------------------------------------
+
+||| Insert a fresh `Zero`-usage binder `c` at cutoff `tlen i` into a typing
+||| derivation, shifting the term by `shift (tlen i)`. The general (prefix `i`)
+||| form is what the under-binder substitution induction needs.
+|||
+||| The binder cases recurse on the body in a context extended by the bound
+||| type. `Lam` reads its type from the term; `Let`/`Case`/`LetPair` read theirs
+||| from the explicit type fields added to `THLet`/`THCase`/`THLetPair` (Option
+||| A — without them the extended context `TSnoc i <bound>` is unconstructible
+||| under Idris erasure). The usage-splitting rules decompose each premise's
+||| usage along the `G`/`I` boundary (`usplitLemma`/`uappendSplit` + the
+||| `(Refl, _)` let-pattern performs the substitution), split the `uadd` premise
+||| with `uaddSplitBoundary`, and reassemble with the boundary insert
+||| `uaddUshift` (composing `ushiftUscale` for the `q`-scaled legs of App/Let).
+public export
+htShift : (i, g : Tctx) -> (c : Ty) -> (dg, di : Uvec) -> (t : Tm)
+       -> ulen di = tlen i
+       -> Has (tappend g i) (uappend dg di) t a
+       -> Has (tappend (TSnoc g c) i) (uappend (USnoc dg Zero) di)
+                (shift (tlen i) t) a
+htShift i g c dg di (Var n) hlen (THVar hv) =
+  rewrite shiftVarLemma (tlen i) n in
+  THVar (hvShift i g c dg di n hlen hv)
+htShift i g c dg di UnitT hlen h =
+  let (hd, ha) = unitInv h
+      (hdg, hdi) = uappendInj di (uzero i) dg (uzero g)
+                     (trans hlen (sym (uzeroLen i)))
+                     (trans hd (uzeroTappend g i))
+  in rewrite ha in rewrite hdg in rewrite hdi in
+     rewrite sym (uzeroTappend (TSnoc g c) i) in THUnit
+htShift i g c dg di (Lam q a' body) hlen (THLam bodyD) =
+  THLam (htShift (TSnoc i a') g c dg (USnoc di q) body (cong S hlen) bodyD)
+htShift i g c dg di (App t1 t2) hlen (THApp d1 d2 q h1 h2 prf) =
+  let (d1g ** d1i ** (Refl, l1)) = usplitLemma g i d1 t1 h1
+      (d2g ** d2i ** (Refl, l2)) = usplitLemma g i d2 t2 h2
+      (hg, hi) = uaddSplitBoundary d1g d1i (uscale q d2g) (uscale q d2i) dg di
+                   (trans l1 (sym (trans (uscaleLen q d2i) l2)))
+                   (trans hlen (sym l1))
+                   (rewrite sym (uscaleUappend q d2g d2i) in prf)
+  in THApp (uappend (USnoc d1g Zero) d1i) (uappend (USnoc d2g Zero) d2i) q
+           (htShift i g c d1g d1i t1 l1 h1)
+           (htShift i g c d2g d2i t2 l2 h2)
+           (rewrite ushiftUscale q d2g d2i in
+            uaddUshift d1g d1i (uscale q d2g) (uscale q d2i) dg di hg hi)
+htShift i g c dg di (With t1 t2) hlen (THWith h1 h2) =
+  THWith (htShift i g c dg di t1 hlen h1) (htShift i g c dg di t2 hlen h2)
+htShift i g c dg di (Fst t) hlen (THFst h) = THFst (htShift i g c dg di t hlen h)
+htShift i g c dg di (Snd t) hlen (THSnd h) = THSnd (htShift i g c dg di t hlen h)
+htShift i g c dg di (Tensor t1 t2) hlen (THTensor d1 d2 h1 h2 prf) =
+  let (d1g ** d1i ** (Refl, l1)) = usplitLemma g i d1 t1 h1
+      (d2g ** d2i ** (Refl, l2)) = usplitLemma g i d2 t2 h2
+      (hg, hi) = uaddSplitBoundary d1g d1i d2g d2i dg di
+                   (trans l1 (sym l2)) (trans hlen (sym l1)) prf
+  in THTensor (uappend (USnoc d1g Zero) d1i) (uappend (USnoc d2g Zero) d2i)
+              (htShift i g c d1g d1i t1 l1 h1)
+              (htShift i g c d2g d2i t2 l2 h2)
+              (uaddUshift d1g d1i d2g d2i dg di hg hi)
+htShift i g c dg di (LetPair t1 t2) hlen (THLetPair d1 d2 a' b' h1 hb prf) =
+  let (d1g ** d1i ** (Refl, l1)) = usplitLemma g i d1 t1 h1
+      (d2g ** d2i ** (Refl, l2)) = uappendSplit (tlen i) d2
+        (rewrite trans (predEq' (predEq' (shapeType (TSnoc (TSnoc (tappend g i) a') b') t2 hb))) (tappendLen g i) in
+         rewrite plusCommutative (tlen g) (tlen i) in lteAddRight (tlen i))
+      (hg, hi) = uaddSplitBoundary d1g d1i d2g d2i dg di
+                   (trans l1 (sym l2)) (trans hlen (sym l1)) prf
+  in THLetPair (uappend (USnoc d1g Zero) d1i) (uappend (USnoc d2g Zero) d2i) a' b'
+               (htShift i g c d1g d1i t1 l1 h1)
+               (htShift (TSnoc (TSnoc i a') b') g c d2g (USnoc (USnoc d2i One) One) t2
+                  (cong S (cong S l2)) hb)
+               (uaddUshift d1g d1i d2g d2i dg di hg hi)
+htShift i g c dg di (Inl b0 t) hlen (THInl h) = THInl (htShift i g c dg di t hlen h)
+htShift i g c dg di (Inr a0 t) hlen (THInr h) = THInr (htShift i g c dg di t hlen h)
+htShift i g c dg di (Case t tL tR) hlen (THCase d1 d2 a' b' h hL hR prf) =
+  let (d1g ** d1i ** (Refl, l1)) = usplitLemma g i d1 t h
+      (d2g ** d2i ** (Refl, l2)) = uappendSplit (tlen i) d2
+        (rewrite trans (predEq' (shapeType (TSnoc (tappend g i) a') tL hL)) (tappendLen g i) in
+         rewrite plusCommutative (tlen g) (tlen i) in lteAddRight (tlen i))
+      (hg, hi) = uaddSplitBoundary d1g d1i d2g d2i dg di
+                   (trans l1 (sym l2)) (trans hlen (sym l1)) prf
+  in THCase (uappend (USnoc d1g Zero) d1i) (uappend (USnoc d2g Zero) d2i) a' b'
+            (htShift i g c d1g d1i t l1 h)
+            (htShift (TSnoc i a') g c d2g (USnoc d2i One) tL (cong S l2) hL)
+            (htShift (TSnoc i b') g c d2g (USnoc d2i One) tR (cong S l2) hR)
+            (uaddUshift d1g d1i d2g d2i dg di hg hi)
+htShift i g c dg di (Let q t1 t2) hlen (THLet d1 d2 _ a' h1 h2 prf) =
+  let (d1g ** d1i ** (Refl, l1)) = usplitLemma g i d1 t1 h1
+      (d2g ** d2i ** (Refl, l2)) = uappendSplit (tlen i) d2
+        (rewrite trans (predEq' (shapeType (TSnoc (tappend g i) a') t2 h2)) (tappendLen g i) in
+         rewrite plusCommutative (tlen g) (tlen i) in lteAddRight (tlen i))
+      (hg, hi) = uaddSplitBoundary (uscale q d1g) (uscale q d1i) d2g d2i dg di
+                   (trans (uscaleLen q d1i) (trans l1 (sym l2)))
+                   (trans hlen (sym (trans (uscaleLen q d1i) l1)))
+                   (rewrite sym (uscaleUappend q d1g d1i) in prf)
+  in THLet (uappend (USnoc d1g Zero) d1i) (uappend (USnoc d2g Zero) d2i) q a'
+           (htShift i g c d1g d1i t1 l1 h1)
+           (htShift (TSnoc i a') g c d2g (USnoc d2i q) t2 (cong S l2) h2)
+           (rewrite ushiftUscale q d1g d1i in
+            uaddUshift (uscale q d1g) (uscale q d1i) d2g d2i dg di hg hi)
+htShift i g c dg di (MkEcho m aE bE t) hlen (THEcho h) = THEcho (htShift i g c dg di t hlen h)
+htShift i g c dg di (Weaken t) hlen (THWeaken h) = THWeaken (htShift i g c dg di t hlen h)
