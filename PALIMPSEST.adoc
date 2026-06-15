@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Palimpsest License
 :toc:
@@ -29,6 +30,7 @@ ethical-use, provenance, and lineage requirements.
 1. Include the PMPL-1.0 license text in `LICENSE`.
 2. Add SPDX headers to source files:
    `SPDX-License-Identifier: MPL-2.0`
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 3. Add a Palimpsest badge to your README (see `assets/badges/` and `embed/license-blocks/`).
 
 == Versioning

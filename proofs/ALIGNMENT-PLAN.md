@@ -3,7 +3,7 @@
 
 # my-lang ⇄ AffineScript Alignment Plan (proofs-first)
 
-**Status:** active · **Created:** 2026-06-02 · **Owner:** @hyperpolymath
+**Status:** active · **Created:** 2026-06-02 · **Last updated:** 2026-06-14 · **Owner:** @hyperpolymath
 **Scope of this document:** bring `my-lang` from its current maturity
 to the position `hyperpolymath/affinescript` occupies, **starting with
 proofs**. This is the master roadmap; per-phase status is tracked in
@@ -77,7 +77,7 @@ The specific deltas to AffineScript:
 |---|-----|----------|
 | G1 | No **mechanised quantitative/affine core** (AS has the Idris2 QTT solo-core). | **highest** — it is the defining feature of an affine language |
 | G2 | No mechanised **operational semantics + progress/preservation** (the existing Coq stops at substitution). | high |
-| G3 | No **proof-status registry** / capability-matrix discipline; `STATE.a2ml` is stale (last real update 2026-03-14). | high |
+| G3 | No **proof-status registry** / capability-matrix discipline. *(Addressed: `proofs/STATUS.md` registry established; `STATE.a2ml` / `META.a2ml` refreshed 2026-06-14.)* | high |
 | G4 | Missing paper-proof topics AS has as dedicated docs: **quantitative-types**, **row-polymorphism**, **dependent/refinement types**, **axiomatic (Hoare) semantics**, **categorical semantics**, **complexity analysis**. | medium |
 | G5 | No **mechanisation CI leg** (neither repo CI-checks proofs today; closing this overtakes AS). | medium |
 
@@ -85,6 +85,14 @@ The specific deltas to AffineScript:
 
 Phases are ordered **proofs-first**. Compiler-parity phases (P4+) are
 listed for completeness but are explicitly *after* the proof phases.
+
+> **Progress (2026-06-14).** F1.0, F1.1, F1.3 and **F1.4 (Coq track)**
+> are landed. En route to F1.4 the kernel gained a **separated context**
+> (`tctx` + `uvec`) and **both products** (additive `&` + multiplicative
+> `⊗`), resolving the product/elimination decision that had gated
+> preservation. Remaining: F1.2 (four-point semiring) and **Idris-track
+> F1.4 parity**. Precise per-artefact status lives in
+> [`proofs/STATUS.md`](./STATUS.md).
 
 ### Phase F1 — Mechanised affine/QTT solo-core  ← **commenced in this PR**
 Closes **G1** and scaffolds **G2**. Dual-track by decision: **both Coq

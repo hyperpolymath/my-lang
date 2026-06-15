@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= Contractiles (my-lang)
+:toc:
+:sectnums:
+
+The contractile set for `my-lang`. Six verbs — *intend*, *must*, *trust*,
+*adjust*, *bust*, *dust* — declare what the repository intends, what must hold,
+who is trusted, how much drift is tolerated, how it fails, and how it is cleaned.
+
+== Layout
+
+`intend`, `must`, `trust`, `adjust` are *singular*: one flat `*.a2ml` each.
+
+`bust` and `dust` are *multi-file by design* and live as *directories*:
+
+* `bust/` — one entry per *failure-mode / issue*. Each describes a way the
+  repo (or a component) can break, plus its recovery path and escalation.
+  Multiple, independent failure modes ⇒ multiple `bust` files.
+* `dust/` — one entry per *cleanup intention*, dependent on intent. Examples:
+  uninstall, detach-a-component-as-plugin, tear down a larger operation. As
+  cleanup intentions accumulate, so do `dust` files.
+
+This is a deliberate divergence from the fully-flattened estate layout (which
+collapses every verb to a single file): `my-lang` keeps `bust`/`dust` as
+directories precisely because they are open-ended sets, not single documents.
+
+== Contents
+
+* `Intentfile.a2ml` — north-star: purpose, anti-purpose, committed
+  next-actions, horizon wishes (verb: intend; non-gating)
+* `Mustfile.a2ml` — hard physical-state invariants; CI fails on violation
+  (verb: must)
+* `Trustfile.a2ml` — agent trust levels/boundaries + integrity invariants
+  (verb: trust)
+* `Adjustfile.a2ml` — drift tolerances + corrective actions (verb: adjust;
+  advisory)
+* `bust/` — failure modes, recovery paths, escalation ladders (verb: bust;
+  one file per failure-mode)
+* `dust/` — cleanup / teardown items (verb: dust; advisory; one file per
+  cleanup intention)
+* `Justfile` — contractile runner recipes (hardlinked from the repo root)
+
+== Identity
+
+`my-lang` is a *consumer* of the RSR (Rhodium Standard Repository) template, not
+the template itself. The `must` contractile guards against re-introducing
+un-customised template boilerplate (the `no-template-self-identity` invariant).
