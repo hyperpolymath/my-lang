@@ -5,6 +5,7 @@ members = [
     "crates/my-cli",   # Command-line interface (my binary)
     "crates/my-hir",
     "crates/my-mir",
+    "crates/my-qtt",   # QTT verified-core checker (faithful port of Coq R5 check / R5b aff_type_dec)
     "crates/my-llvm",  # LLVM code generation
     "crates/my-lsp",
     "crates/my-pkg",
@@ -33,6 +34,7 @@ repository = "https://github.com/hyperpolymath/my-lang"
 my-lang = { path = "crates/my-lang" }
 my-hir = { path = "crates/my-hir" }
 my-mir = { path = "crates/my-mir" }
+my-qtt = { path = "crates/my-qtt" }
 my-llvm = { path = "crates/my-llvm" }
 my-ai = { path = "crates/my-ai" }
 
