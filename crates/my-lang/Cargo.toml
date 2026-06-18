@@ -16,6 +16,7 @@ name = "my"
 path = "src/main.rs"
 
 [dependencies]
+my-qtt.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
 serde = { workspace = true, optional = true }
