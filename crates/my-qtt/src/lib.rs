@@ -35,6 +35,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod surface;
+
 /// Quantities: the three-point affine semiring `{0, 1, ω}` (Coq `Quantity.Q`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Q {
