@@ -689,15 +689,15 @@ substVarSucc k u n with (compare n k) proof eq
 ||| (mirrors Coq `hv_subst`); `htSubst`'s `Var` case is this lemma.
 public export
 hvSubst : (i, g : Tctx) -> (a : Ty) -> (dg : Uvec) -> (q : Q) -> (di : Uvec)
-       -> (n : Nat) -> (b : Ty) -> (du : Uvec) -> (u : Tm)
+       -> (n : Nat) -> {0 b : Ty} -> (du : Uvec) -> (u : Tm)
        -> ulen di = tlen i
        -> HasVar (tappend (TSnoc g a) i) (uappend (USnoc dg q) di) n b
        -> Has g du u a
        -> (dgr : Uvec ** (uadd dg (uscale q du) = Just dgr,
             Has (tappend g i) (uappend dgr di)
                 (substAt (tlen i) (shiftn (tlen i) u) (Var n)) b))
-hvSubst TEmpty g a dg q (USnoc _ _) n b du u hlen hv hu = void (sNotZ' hlen)
-hvSubst TEmpty g a dg q UEmpty Z b du u hlen hv hu =
+hvSubst TEmpty g a dg q (USnoc _ _) n du u hlen hv hu = void (sNotZ' hlen)
+hvSubst TEmpty g a dg q UEmpty Z du u hlen hv hu =
   case varInv hv of
     VIT hdq hn hv' => void (zNotS' hn)
     VIH hdq hn hb =>
@@ -705,7 +705,7 @@ hvSubst TEmpty g a dg q UEmpty Z b du u hlen hv hu =
       in (du ** (rewrite hdg in rewrite hq in rewrite uscaleOne du in
                    uaddZeroL g du (shapeType g u hu),
                  rewrite hb in hu))
-hvSubst TEmpty g a dg q UEmpty (S n0) b du u hlen hv hu =
+hvSubst TEmpty g a dg q UEmpty (S n0) du u hlen hv hu =
   case varInv hv of
     VIH hdq hn hb => void (sNotZ' hn)
     VIT hdq hn hv' =>
@@ -715,8 +715,8 @@ hvSubst TEmpty g a dg q UEmpty (S n0) b du u hlen hv hu =
       in (dg ** (rewrite hq in
                    uaddUscaleZeroR dg du (trans (shapeVar g hv'') (sym (shapeType g u hu))),
                  rewrite minusZeroRight n0 in THVar hv''))
-hvSubst (TSnoc i' c) g a dg q UEmpty n b du u hlen hv hu = void (zNotS' hlen)
-hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) Z b du u hlen hv hu =
+hvSubst (TSnoc i' c) g a dg q UEmpty n du u hlen hv hu = void (zNotS' hlen)
+hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) Z du u hlen hv hu =
   case varInv hv of
     VIT hdq hn hv' => void (zNotS' hn)
     VIH hdq hn hb =>
@@ -730,12 +730,12 @@ hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) Z b du u hlen hv hu =
              uaddUscaleZeroR (uzero g) du (trans (uzeroLen g) (sym (shapeType g u hu))),
            rewrite hb in rewrite hqd in rewrite hdi in
              rewrite sym (uzeroTappend g i') in THVar HVHere))
-hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) (S n0) b du u hlen hv hu =
+hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) (S n0) du u hlen hv hu =
   case varInv hv of
     VIH hdq hn hb => void (sNotZ' hn)
     VIT hdq hn hv' =>
       let (hd0, hqd) = usnocInj hdq
-          (dgr ** (hadd, hht)) = hvSubst i' g a dg q di' n0 b du u (predEq' hlen)
+          (dgr ** (hadd, hht)) = hvSubst i' g a dg q di' n0 du u (predEq' hlen)
                                    (rewrite hd0 in rewrite predEq' hn in hv') hu
       in (dgr **
           (hadd,
@@ -743,3 +743,66 @@ hvSubst (TSnoc i' c) g a dg q (USnoc di' qd) (S n0) b du u hlen hv hu =
              rewrite substVarSucc (tlen i') u n0 in
              htShift0 (tappend g i') c (uappend dgr di')
                       (substAt (tlen i') (shiftn (tlen i') u) (Var n0)) hht))
+
+------------------------------------------------------------
+-- 4c (cont). The QTT substitution lemma: htSubst
+------------------------------------------------------------
+
+||| The QTT substitution lemma (mirrors Coq `ht_subst`): substitute `u` (typed
+||| at `du`) for the boundary variable of type `a` in a derivation of `t`, under
+||| a prefix `I` of crossed binders. Residual usage `dg + q·du`. The result type
+||| `b` is an ERASED (auto-bound) implicit — a genuine type index, never passed
+||| at runtime; `hvSubst` likewise erases its `b`, keeping the `Var` case's call
+||| erasure-consistent (ADR-003 index-erasure discipline).
+public export
+htSubst : (t : Tm) -> (i, g : Tctx) -> (a : Ty) -> (dg : Uvec) -> (q : Q)
+       -> (di : Uvec) -> (du : Uvec) -> (u : Tm)
+       -> ulen di = tlen i
+       -> Has (tappend (TSnoc g a) i) (uappend (USnoc dg q) di) t b
+       -> Has g du u a
+       -> (dgr : Uvec ** (uadd dg (uscale q du) = Just dgr,
+            Has (tappend g i) (uappend dgr di)
+                (substAt (tlen i) (shiftn (tlen i) u) t) b))
+htSubst (Var n) i g a dg q di du u hlen (THVar hv) hu =
+  hvSubst i g a dg q di n du u hlen hv hu
+htSubst UnitT i g a dg q di du u hlen h hu =
+  let (hd, hb)    = unitInv h
+      (hdgq, hdi) = uappendInj di (uzero i) (USnoc dg q) (USnoc (uzero g) Zero)
+                      (trans hlen (sym (uzeroLen i)))
+                      (trans hd (uzeroTappend (TSnoc g a) i))
+      (hdg, hq)   = usnocInj hdgq
+  in (uzero g **
+      (rewrite hdg in rewrite hq in
+         uaddUscaleZeroR (uzero g) du (trans (uzeroLen g) (sym (shapeType g u hu))),
+       rewrite hb in rewrite hdi in rewrite sym (uzeroTappend g i) in THUnit))
+htSubst (Lam q' tyL t1) i g a dg q di du u hlen (THLam bodyD) hu =
+  let (dgr ** (hadd, hht)) =
+        htSubst t1 (TSnoc i tyL) g a dg q (USnoc di q') du u (cong S hlen) bodyD hu
+  in (dgr ** (hadd, THLam hht))
+htSubst (App t1 t2) i g a dg q di du u hlen (THApp d1 d2 q' h1 h2 prf) hu = ?htSubst_app
+htSubst (With t1 t2) i g a dg q di du u hlen (THWith h1 h2) hu =
+  let (dgr1 ** (hr1, hht1)) = htSubst t1 i g a dg q di du u hlen h1 hu
+      (dgr2 ** (hr2, hht2)) = htSubst t2 i g a dg q di du u hlen h2 hu
+  in (dgr1 ** (hr1, THWith hht1 (rewrite justInj' (trans (sym hr1) hr2) in hht2)))
+htSubst (Fst t1) i g a dg q di du u hlen (THFst h) hu =
+  let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
+  in (dgr ** (hr, THFst hht))
+htSubst (Snd t1) i g a dg q di du u hlen (THSnd h) hu =
+  let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
+  in (dgr ** (hr, THSnd hht))
+htSubst (Tensor t1 t2) i g a dg q di du u hlen (THTensor d1 d2 h1 h2 prf) hu = ?htSubst_tensor
+htSubst (LetPair t1 t2) i g a dg q di du u hlen (THLetPair d1 d2 aa bb h1 hb prf) hu = ?htSubst_letpair
+htSubst (Inl b0 t1) i g a dg q di du u hlen (THInl h) hu =
+  let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
+  in (dgr ** (hr, THInl hht))
+htSubst (Inr a0 t1) i g a dg q di du u hlen (THInr h) hu =
+  let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
+  in (dgr ** (hr, THInr hht))
+htSubst (Case t1 tL tR) i g a dg q di du u hlen (THCase d1 d2 aa bb h hL hR prf) hu = ?htSubst_case
+htSubst (Let q' t1 t2) i g a dg q di du u hlen (THLet d1 d2 _ aa h1 h2 prf) hu = ?htSubst_let
+htSubst (MkEcho m aE bE t1) i g a dg q di du u hlen (THEcho h) hu =
+  let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
+  in (dgr ** (hr, THEcho hht))
+htSubst (Weaken t1) i g a dg q di du u hlen (THWeaken h) hu =
+  let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
+  in (dgr ** (hr, THWeaken hht))
