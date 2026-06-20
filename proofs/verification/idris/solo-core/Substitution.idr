@@ -779,7 +779,22 @@ htSubst (Lam q' tyL t1) i g a dg q di du u hlen (THLam bodyD) hu =
   let (dgr ** (hadd, hht)) =
         htSubst t1 (TSnoc i tyL) g a dg q (USnoc di q') du u (cong S hlen) bodyD hu
   in (dgr ** (hadd, THLam hht))
-htSubst (App t1 t2) i g a dg q di du u hlen (THApp d1 d2 q' h1 h2 prf) hu = ?htSubst_app
+htSubst (App t1 t2) i g a dg q di du u hlen (THApp d1 d2 q' h1 h2 prf) hu =
+  let (dg1 ** q1 ** di1 ** (Refl, l1)) = usplit3 d1 (tlen g) (tlen i)
+        (trans (shapeType (tappend (TSnoc g a) i) t1 h1) (tappendLen (TSnoc g a) i))
+      (dg2 ** q2 ** di2 ** (Refl, l2)) = usplit3 d2 (tlen g) (tlen i)
+        (trans (shapeType (tappend (TSnoc g a) i) t2 h2) (tappendLen (TSnoc g a) i))
+      (hGadd, hqeq, hIadd) =
+        uaddSplitBoundary2 dg1 q1 di1 (uscale q' dg2) (qMul q' q2) (uscale q' di2) dg q di
+          (trans l1 (sym (trans (uscaleLen q' di2) l2))) (trans hlen (sym l1))
+          (rewrite sym (uscaleUappend q' (USnoc dg2 q2) di2) in prf)
+      (dgr1 ** (hr1, hht1)) = htSubst t1 i g a dg1 q1 di1 du u l1 h1 hu
+      (dgr2 ** (hr2, hht2)) = htSubst t2 i g a dg2 q2 di2 du u l2 h2 hu
+      (dgr ** (hDgr, hcomb)) = substReassocAdd dg1 dgr1 dg2 dgr2 dg du q' q1 q2 hr1 hr2 hGadd
+  in (dgr ** (rewrite hqeq in hDgr,
+              THApp (uappend dgr1 di1) (uappend dgr2 di2) q' hht1 hht2
+                (rewrite uscaleUappend q' dgr2 di2 in
+                   uaddUappend di1 (uscale q' di2) di dgr1 (uscale q' dgr2) dgr hIadd hcomb)))
 htSubst (With t1 t2) i g a dg q di du u hlen (THWith h1 h2) hu =
   let (dgr1 ** (hr1, hht1)) = htSubst t1 i g a dg q di du u hlen h1 hu
       (dgr2 ** (hr2, hht2)) = htSubst t2 i g a dg q di du u hlen h2 hu
@@ -790,16 +805,77 @@ htSubst (Fst t1) i g a dg q di du u hlen (THFst h) hu =
 htSubst (Snd t1) i g a dg q di du u hlen (THSnd h) hu =
   let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
   in (dgr ** (hr, THSnd hht))
-htSubst (Tensor t1 t2) i g a dg q di du u hlen (THTensor d1 d2 h1 h2 prf) hu = ?htSubst_tensor
-htSubst (LetPair t1 t2) i g a dg q di du u hlen (THLetPair d1 d2 aa bb h1 hb prf) hu = ?htSubst_letpair
+htSubst (Tensor t1 t2) i g a dg q di du u hlen (THTensor d1 d2 h1 h2 prf) hu =
+  let (dg1 ** q1 ** di1 ** (Refl, l1)) = usplit3 d1 (tlen g) (tlen i)
+        (trans (shapeType (tappend (TSnoc g a) i) t1 h1) (tappendLen (TSnoc g a) i))
+      (dg2 ** q2 ** di2 ** (Refl, l2)) = usplit3 d2 (tlen g) (tlen i)
+        (trans (shapeType (tappend (TSnoc g a) i) t2 h2) (tappendLen (TSnoc g a) i))
+      (hGadd, hqeq, hIadd) = uaddSplitBoundary2 dg1 q1 di1 dg2 q2 di2 dg q di
+                               (trans l1 (sym l2)) (trans hlen (sym l1)) prf
+      (dgr1 ** (hr1, hht1)) = htSubst t1 i g a dg1 q1 di1 du u l1 h1 hu
+      (dgr2 ** (hr2, hht2)) = htSubst t2 i g a dg2 q2 di2 du u l2 h2 hu
+      (dgr ** (hDgr, hcomb)) = substReassocMult dg1 dgr1 dg2 dgr2 dg du q1 q2 hr1 hr2 hGadd
+  in (dgr ** (rewrite hqeq in hDgr,
+              THTensor (uappend dgr1 di1) (uappend dgr2 di2) hht1 hht2
+                (uaddUappend di1 di2 di dgr1 dgr2 dgr hIadd hcomb)))
+htSubst (LetPair t1 t2) i g a dg q di du u hlen (THLetPair d1 d2 aa bb h1 hb prf) hu =
+  let (dg1 ** q1 ** di1 ** (Refl, l1)) = usplit3 d1 (tlen g) (tlen i)
+        (trans (shapeType (tappend (TSnoc g a) i) t1 h1) (tappendLen (TSnoc g a) i))
+      (dg2 ** q2 ** di2 ** (Refl, l2)) = usplit3 d2 (tlen g) (tlen i)
+        (trans (predEq' (predEq'
+                 (shapeType (TSnoc (TSnoc (tappend (TSnoc g a) i) aa) bb) t2 hb)))
+               (tappendLen (TSnoc g a) i))
+      (hGadd, hqeq, hIadd) = uaddSplitBoundary2 dg1 q1 di1 dg2 q2 di2 dg q di
+                               (trans l1 (sym l2)) (trans hlen (sym l1)) prf
+      (dgr1 ** (hr1, hht1)) = htSubst t1 i g a dg1 q1 di1 du u l1 h1 hu
+      (dgr2 ** (hr2, hht2)) = htSubst t2 (TSnoc (TSnoc i aa) bb) g a dg2 q2
+                                (USnoc (USnoc di2 One) One) du u (cong S (cong S l2)) hb hu
+      (dgr ** (hDgr, hcomb)) = substReassocMult dg1 dgr1 dg2 dgr2 dg du q1 q2 hr1 hr2 hGadd
+  in (dgr ** (rewrite hqeq in hDgr,
+              THLetPair (uappend dgr1 di1) (uappend dgr2 di2) aa bb hht1 hht2
+                (uaddUappend di1 di2 di dgr1 dgr2 dgr hIadd hcomb)))
 htSubst (Inl b0 t1) i g a dg q di du u hlen (THInl h) hu =
   let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
   in (dgr ** (hr, THInl hht))
 htSubst (Inr a0 t1) i g a dg q di du u hlen (THInr h) hu =
   let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
   in (dgr ** (hr, THInr hht))
-htSubst (Case t1 tL tR) i g a dg q di du u hlen (THCase d1 d2 aa bb h hL hR prf) hu = ?htSubst_case
-htSubst (Let q' t1 t2) i g a dg q di du u hlen (THLet d1 d2 _ aa h1 h2 prf) hu = ?htSubst_let
+htSubst (Case t1 tL tR) i g a dg q di du u hlen (THCase d1 d2 aa bb h hL hR prf) hu =
+  let (dg1 ** q1 ** di1 ** (Refl, l1)) = usplit3 d1 (tlen g) (tlen i)
+        (trans (shapeType (tappend (TSnoc g a) i) t1 h) (tappendLen (TSnoc g a) i))
+      (dg2 ** q2 ** di2 ** (Refl, l2)) = usplit3 d2 (tlen g) (tlen i)
+        (trans (predEq' (shapeType (TSnoc (tappend (TSnoc g a) i) aa) tL hL))
+               (tappendLen (TSnoc g a) i))
+      (hGadd, hqeq, hIadd) = uaddSplitBoundary2 dg1 q1 di1 dg2 q2 di2 dg q di
+                               (trans l1 (sym l2)) (trans hlen (sym l1)) prf
+      (dgr1 ** (hr1, hht1))  = htSubst t1 i g a dg1 q1 di1 du u l1 h hu
+      (dgr2 ** (hr2, hhtL))  = htSubst tL (TSnoc i aa) g a dg2 q2 (USnoc di2 One) du u (cong S l2) hL hu
+      (dgr2' ** (hr2', hhtR)) = htSubst tR (TSnoc i bb) g a dg2 q2 (USnoc di2 One) du u (cong S l2) hR hu
+      (dgr ** (hDgr, hcomb)) = substReassocMult dg1 dgr1 dg2 dgr2 dg du q1 q2 hr1 hr2 hGadd
+  in (dgr ** (rewrite hqeq in hDgr,
+              THCase (uappend dgr1 di1) (uappend dgr2 di2) aa bb hht1 hhtL
+                (rewrite justInj' (trans (sym hr2) hr2') in hhtR)
+                (uaddUappend di1 di2 di dgr1 dgr2 dgr hIadd hcomb)))
+htSubst (Let q' t1 t2) i g a dg q di du u hlen (THLet d1 d2 _ aa h1 h2 prf) hu =
+  let (dg1 ** q1 ** di1 ** (Refl, l1)) = usplit3 d1 (tlen g) (tlen i)
+        (trans (shapeType (tappend (TSnoc g a) i) t1 h1) (tappendLen (TSnoc g a) i))
+      (dg2 ** q2 ** di2 ** (Refl, l2)) = usplit3 d2 (tlen g) (tlen i)
+        (trans (predEq' (shapeType (TSnoc (tappend (TSnoc g a) i) aa) t2 h2))
+               (tappendLen (TSnoc g a) i))
+      (hGadd, hqeq, hIadd) =
+        uaddSplitBoundary2 (uscale q' dg1) (qMul q' q1) (uscale q' di1) dg2 q2 di2 dg q di
+          (trans (uscaleLen q' di1) (trans l1 (sym l2)))
+          (trans hlen (sym (trans (uscaleLen q' di1) l1)))
+          (rewrite sym (uscaleUappend q' (USnoc dg1 q1) di1) in prf)
+      (dgr1 ** (hr1, hht1)) = htSubst t1 i g a dg1 q1 di1 du u l1 h1 hu
+      (dgr2 ** (hr2, hht2)) = htSubst t2 (TSnoc i aa) g a dg2 q2 (USnoc di2 q') du u (cong S l2) h2 hu
+      (dgr ** (hDgr, hcomb)) = substReassocAdd dg2 dgr2 dg1 dgr1 dg du q' q2 q1 hr2 hr1
+                                 (trans (uaddComm dg2 (uscale q' dg1)) hGadd)
+  in (dgr ** (rewrite hqeq in rewrite qAddComm (qMul q' q1) q2 in hDgr,
+              THLet (uappend dgr1 di1) (uappend dgr2 di2) q' aa hht1 hht2
+                (rewrite uscaleUappend q' dgr1 di1 in
+                   uaddUappend (uscale q' di1) di2 di (uscale q' dgr1) dgr2 dgr hIadd
+                     (trans (uaddComm (uscale q' dgr1) dgr2) hcomb))))
 htSubst (MkEcho m aE bE t1) i g a dg q di du u hlen (THEcho h) hu =
   let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
   in (dgr ** (hr, THEcho hht))
