@@ -882,3 +882,18 @@ htSubst (MkEcho m aE bE t1) i g a dg q di du u hlen (THEcho h) hu =
 htSubst (Weaken t1) i g a dg q di du u hlen (THWeaken h) hu =
   let (dgr ** (hr, hht)) = htSubst t1 i g a dg q di du u hlen h hu
   in (dgr ** (hr, THWeaken hht))
+
+------------------------------------------------------------
+-- 4c (cont). Operational corollaries of htSubst
+------------------------------------------------------------
+
+||| `subst0` corollary — `htSubst` at the empty prefix `I = TEmpty`: substitute
+||| the single top-of-context variable once. (Mirrors Coq `subst_lemma0`.)
+||| The reduction rules `S_App` / `S_CaseL` / `S_CaseR` / `S_Let` consume this.
+public export
+substLemma0 : (g : Tctx) -> (a : Ty) -> (dg : Uvec) -> (q : Q) -> (t : Tm)
+           -> (du : Uvec) -> (u : Tm)
+           -> Has (TSnoc g a) (USnoc dg q) t b
+           -> Has g du u a
+           -> (dgr : Uvec ** (uadd dg (uscale q du) = Just dgr, Has g dgr (subst0 u t) b))
+substLemma0 g a dg q t du u ht hu = htSubst t TEmpty g a dg q UEmpty du u Refl ht hu
