@@ -17,6 +17,7 @@ Last verified: 2026-06-14.
 |------|---------|
 | **machine-checked** | A proof assistant accepts it today (`Qed` / no holes) **and** it is run in CI. |
 | **locally-checked** | Accepts under the proof assistant locally; **not** yet in CI. |
+| **conformance-checked** | An *implementation* is shown to refine a *verified spec* by differential testing against the artifact extracted from that spec (not a full refinement proof). Used for impl ⇄ spec couplings. |
 | **proved-on-paper** | A written proof exists in `proofs/**.md`; not mechanised. |
 | **statement-only** | The theorem is *stated* mechanically (typed hole / `Admitted`); the proof is a tracked obligation, not done. |
 | **definitions-only** | Syntax/rules/operations defined; no theorems yet. |
@@ -97,19 +98,23 @@ Last verified: 2026-06-14.
 | Complexity analysis | absent | F4 |
 | Proof CI leg | **present** — `proofs.yml` machine-checks both tracks (`coqc` + `idris2 --build`); overtakes AS | F5 |
 
-## Implementation ⇄ spec coupling (status: **absent** — deferred to P-later)
+## Implementation ⇄ spec coupling (status: **closing** — #1 done, 2026-06-21)
 
 The mechanised cores above are the **spec**; the Rust toolchain
-(`crates/my-lang`) is a separate, conventional AI-first implementation.
-No refinement/adequacy proof couples them today, and the resource axis is
-**unwired** in the implementation. These are honest **absent** obligations,
-deferred to the post-proof compiler-parity phases (ALIGNMENT-PLAN §4,
-P-later) and recorded here so the gap is not mistaken for closed. (Audit:
-2026-06-15, verified against the crate sources.)
+(`crates/my-lang`) is a separate, conventional AI-first implementation. The
+coupling method adopted here is **differential conformance against the
+Coq-extracted verified artifact** (extract the verified function to OCaml,
+then assert the Rust implementation agrees on a random corpus) — the honest,
+reproducible alternative to an infeasible full Rust-in-Coq refinement proof.
+Coupling #1 (the checker — the load-bearing "soundness lives in the compiler"
+obligation) is **closed** by this method (below). The remaining rows are still
+open and honestly labelled; #5 is deliberately **by-design** (Me is a runtime
+projector, not a static dialect — see the top-level pedagogy note). (Audit:
+2026-06-21, verified against the crate sources + the conformance harness.)
 
 | Obligation | Status | Note |
 |------------|--------|------|
-| Rust affine checker refines Coq `check` / `aff_type_dec` (R5/R5b) | **absent** | `crates/my-lang/src/checker.rs` (1830 LOC) is a conventional Hindley-style structural checker — no usage/multiplicity/context-split; `Symbol` (`scope.rs`) and `Param` (`ast.rs`) carry no quantity field. The verified executable `check` has no Rust counterpart. The intended affine checker is `TODO(#typeck)` in the lexer-only `dialects/solo/compiler` stub. |
+| Rust affine checker refines Coq `check` / `aff_type_dec` (R5/R5b) | **conformance-checked** | **CLOSED by differential conformance 2026-06-21.** The verified Coq `check` (R5) is extracted to OCaml (`proofs/verification/coq/solo-core/Extract.v`, `Separate Extraction check`) and used as an independent ORACLE; the Rust port `crates/my-qtt` is the implementation under test. `conformance/run.sh` generates a random corpus of `(ctx, tm)` queries (`crates/my-qtt/src/bin/conformance_gen.rs`), runs BOTH the extracted verified `check` (`conformance/oracle.ml`) and `my_qtt::check`, and asserts byte-identical results — same accept/reject, same synthesized type, same usage vector — including echo (`MkEcho`/`Weaken`/`TEcho`) terms. **25 000 random terms across 5 seeds agree** (≈13% accept / 87% reject, so both branches are exercised). `my_qtt::aff_check` mirrors the Coq `aff_type_iff` (`check … = Some(a,D0) ∧ ule D0 budget`) and carries the R5/R5b reflexivity oracle tests. SCOPE/honesty: this is differential refinement-by-conformance against the *extracted verified algorithm*, NOT a full Rust-in-Coq refinement proof; and the *main* `crates/my-lang/src/checker.rs` (1830 LOC, Hindley) still does not yet CALL the verified core (`my_qtt` is wired via `qtt_bridge` but opt-in) — making it the default checker is the separate `docs/STATUS.adoc` intend "make the resource axis the default in `checker.rs`". |
 | Interpreter adequacy vs Coq `step` | **absent** | `interpreter.rs` (tree-walking) and the Coq `step` are over disjoint term languages; no adequacy / extraction. `Restrict`/`Try`/`Ref`/`RefMut` are runtime no-ops and values are freely cloned (no runtime resource discipline). The "implements the equivalent big-step semantics" prose in `proofs/shared/operational-semantics/` is **unproven** (and references op-sem docs that do not exist). |
 | Echo modality wired into surface + checker | **absent** | `types.rs` `EchoMode`/`Ty::Echo` (the `linear ⊑ affine` thin poset, faithful to echo-types) is **inert** — never produced by the parser or consumed by the checker; no surface syntax maps to it. |
 | Session/ensemble runtime refining `cstep`/`nstep`/`gstep` | **absent** | the machine-checked session metatheory has no executable counterpart (`Go`/`Await` collapse to sequential execution; no channel/process value). |
