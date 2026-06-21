@@ -18,11 +18,10 @@ file is the priority-grouped programme view.
 
 == Position (one line)
 
-my-lang's normative must is essentially met — the Coq metatheory is complete
-and axiom-free, and the verified usage-checker is merged into the Rust
-toolchain. The single open must is the Idris twin's `preservation`,
-structurally landed (10/15 `htSubst` cases, `b`-erasure solved), committed
-locally at `acd29d6`.
+my-lang's normative must is met — the Coq metatheory is complete and
+axiom-free, the verified usage-checker is merged into the Rust toolchain, and
+the Idris twin's `preservation` (#108) is now DISCHARGED (total, hole-free;
+`:total preservation`). The solo core is hole-free on both tracks.
 
 == MUST — my-lang itself (sound core, verified-coupled, compiling)
 
@@ -38,7 +37,7 @@ locally at `acd29d6`.
 | Surface -> core coupling (named engine + real `ast::Expr` bridge) | `[x]` | `main` (PR #117)
 | Idris twin `progress` (total, hole-free) | `[x]` | `main`
 | Working compiler pipeline parse->HIR->MIR->LLVM->native (x86_64 / aarch64) | `[x]` | `main`
-| **Idris twin `preservation` (#108)** — `htSubst` structure + `b`-erasure solved | `[~]` 10/15 cases | local `acd29d6`
+| **Idris twin `preservation` (#108)** — full `htSubst` + `subst2Lemma` + `uaddAssoc`, `Step`-induction, total + hole-free | `[x]` | `claude/dreamy-hypatia-O8XHo`
 |===
 
 == INTEND — planned next
@@ -46,7 +45,6 @@ locally at `acd29d6`.
 [cols="4,1,3",options="header"]
 |===
 | Item | Status | Note
-| Close Idris `preservation`: 5 `htSubst` split cases -> `substLemma0` / `subst2Lemma` | `[~]` next | consumes the landed `usplit3` / `uaddSplitBoundary2` / `substReassocAdd` / `substReassocMult`
 | Make the resource axis the *default* in `crates/my-lang/src/checker.rs` | `[ ]` | the QTT bridge is opt-in (`qtt_bridge::check_expr`) today
 | Surface *quantity syntax* so the bridge enforces real per-binder linearity | `[ ]` | `Param` has no quantity field; bridge defaults to `One`
 | `wasm32` via the existing LLVM backend (`TargetSpec::wasm32` + `wasm-ld`) | `[ ]` | fastest target leg; backend already emits objects
@@ -67,6 +65,6 @@ locally at `acd29d6`.
 == Provenance
 
 * Coq: axiom-free (`Print Assumptions` closed), CI-gated (`.github/workflows/proofs.yml`), no `Admitted`/`Axiom` in the trusted base.
-* Idris: `idris2 --build`-checked, `%default total`, no postulates; only `?todo_preservation` and the 5 `htSubst` split holes open.
+* Idris: `idris2 --build solo-core.ipkg` exits 0, `%default total`, no postulates / `believe_me` / `assert_total`; the solo core is HOLE-FREE (`preservation`, `affinePreservation`, `subst2Lemma`, `uaddAssoc`, `substLemma0`, `htSubst` all `:total`).
 * Rust: `cargo test -p my-qtt` (20 tests incl. the R5/R5b `reflexivity` oracle tests + the surface-coupling tests) and `cargo test -p my-lang qtt_bridge` (6 tests) green.
-* Landed this programme increment: PR #116 (`my-qtt`), PR #117 (coupling step 2); local `acd29d6` (`htSubst` structure).
+* Landed this programme increment: PR #116 (`my-qtt`), PR #117 (coupling step 2); `preservation` #108 discharged (this increment).

@@ -23,19 +23,18 @@ import EchoMode
 import Syntax
 import Context
 import Typing
+import Substitution
 
 %default total
 
--- NOTE (F1.4 staging): this module re-proves `progress` over the
--- separated context + two products, and STATES `preservation` over the
--- correct same-usage statement. The proof of `preservation` (the QTT
--- substitution lemma) lands in the companion module Substitution.idr
--- and is wired in here once discharged — until then `preservation` is a
--- typed hole `?todo_preservation` and is NEVER described as proved
--- (proofs/STATUS.md vocabulary). Phases 1-3 (this file) are the
--- prerequisite: the OLD design (split-intro Pair + project-elim Fst/Snd)
--- made the same-usage preservation literally UNSOUND, so the hole could
--- not be honestly filled before this migration.
+-- NOTE (F1.4): this module re-proves `progress` over the separated context
+-- + two products, and PROVES `preservation` over the correct same-usage
+-- statement (DISCHARGED 2026-06-21, #108). The QTT substitution lemmas it
+-- consumes live in the companion module Substitution.idr (`substLemma0`,
+-- `subst2Lemma`); the proof is by induction on `Step`, total and hole-free
+-- (`:total preservation`). The OLD design (split-intro Pair + project-elim
+-- Fst/Snd) made the same-usage preservation literally UNSOUND (issue #93),
+-- so this could not be honestly filled before the 2026-06-15 migration.
 
 ------------------------------------------------------------
 -- Values
@@ -299,23 +298,94 @@ progress (Weaken t) (THWeaken d) =
 ||| affine-accounting content of the theorem — a reduct that duplicated a
 ||| linear variable would require a *larger* usage.
 |||
-||| OUTSTANDING (Phase F1.4): the proof needs a QTT substitution lemma
-||| that respects usage splitting (the App/Let/Case computation cases
-||| substitute a value for the bound variable; the LetPair case
-||| substitutes two). Lands in Substitution.idr; wired in here once
-||| discharged. Left as a typed hole; tracked in proofs/STATUS.md and
-||| GitHub #108. NOT described as proved.
+||| DISCHARGED (Phase F1.4) by induction on `Step` (mirrors the Coq twin
+||| `preservation` in SoloCore.v). The β/projection/elimination cases
+||| consume the QTT substitution lemmas from `Substitution.idr`:
+||| `substLemma0` for the single-variable reductions (App/Case/Let), and
+||| `subst2Lemma` for the two-variable `LetPair` reduction; each realigns
+||| the residual usage with the original `d` via the `uadd` accounting
+||| (commutativity / associativity / `uscale One`). The congruence cases
+||| recurse structurally on the sub-step and rebuild the derivation.
 |||
-||| Stated over the CORRECT design now (separated context + genuine
-||| products): with the old split-intro/project-elim `Pair`, this
-||| same-usage statement was unsound (issue #93); the migration in this
-||| file is what makes it provable.
+||| Stated over the CORRECT design (separated context + genuine products):
+||| with the old split-intro/project-elim `Pair`, this same-usage statement
+||| was unsound (issue #93); the migration in this file is what makes it
+||| provable.
+|||
+||| The reduct term `t` is taken EXPLICITLY (relevant), exactly as
+||| `progress` does: Idris erases the derivation's term/type indices, so the
+||| substitution lemmas — which compute on the bound variable's body and the
+||| substituted value — need those sub-terms supplied relevantly from the
+||| matched term; `g`/`d` are relevant for the same reason. This is a
+||| presentation choice; the logical statement is the Coq twin's.
 public export
-preservation : Has g d t a -> Step t t' -> Has g d t' a
-preservation _ _ = ?todo_preservation
+preservation : {g : Tctx} -> {d : Uvec} -> (t : Tm)
+            -> Has g d t a -> Step t t' -> Has g d t' a
+preservation (App (Lam q' a0 tb) v) (THApp d1 d2 q' (THLam hb) h2 prf) (SApp vval) =
+  let (dgr ** (hadd, hht)) = substLemma0 g a0 d1 q' tb d2 v hb h2
+  in coeUsage (justInj' (trans (sym hadd) prf)) hht
+-- additive projections fire on a With value
+preservation (Fst (With v1 v2)) (THFst (THWith h1 h2)) (SFst v1v v2v) = h1
+preservation (Snd (With v1 v2)) (THSnd (THWith h1 h2)) (SSnd v1v v2v) = h2
+-- sum elimination: substitute the injected value into the taken branch
+preservation (Case (Inl bb v) tL tR) (THCase d1 d2 aa bb (THInl hv) hL hR prf)
+             (SCaseL vval) =
+  let (dgr ** (hadd, hht)) = substLemma0 g aa d2 One tL d1 v hL hv
+  in coeUsage
+       (justInj' (trans (sym (trans (uaddComm d1 d2)
+                       (trans (sym (cong (uadd d2) (uscaleOne d1))) hadd))) prf))
+       hht
+preservation (Case (Inr aa v) tL tR) (THCase d1 d2 aa bb (THInr hv) hL hR prf)
+             (SCaseR vval) =
+  let (dgr ** (hadd, hht)) = substLemma0 g bb d2 One tR d1 v hR hv
+  in coeUsage
+       (justInj' (trans (sym (trans (uaddComm d1 d2)
+                       (trans (sym (cong (uadd d2) (uscaleOne d1))) hadd))) prf))
+       hht
+-- let binding: substitute the bound value
+preservation (Let q1 v t2) (THLet d1 d2 q1 aa h1 h2 prf) (SLet vval) =
+  let (dgr ** (hadd, hht)) = substLemma0 g aa d2 q1 t2 d1 v h2 h1
+  in coeUsage
+       (justInj' (trans (sym (trans (uaddComm (uscale q1 d1) d2) hadd)) prf))
+       hht
+-- multiplicative let-pair: two-variable substitution of the tensor components
+preservation (LetPair (Tensor v1 v2) body)
+             (THLetPair d1 d2 aa bb (THTensor dv1 dv2 hv1 hv2 prft) hb prf)
+             (SLetPair v1v v2v) =
+  subst2Lemma g aa bb d d1 d2 dv1 dv2 body v1 v2 hb hv1 hv2 prft prf
+-- congruence: thread the sub-step and rebuild
+preservation (App t1 t2) (THApp d1 d2 q h1 h2 prf) (SApp1 s1) =
+  THApp d1 d2 q (preservation t1 h1 s1) h2 prf
+preservation (App v1 t2) (THApp d1 d2 q h1 h2 prf) (SApp2 v1v s2) =
+  THApp d1 d2 q h1 (preservation t2 h2 s2) prf
+preservation (With t1 t2) (THWith h1 h2) (SWith1 s1) =
+  THWith (preservation t1 h1 s1) h2
+preservation (With v1 t2) (THWith h1 h2) (SWith2 v1v s2) =
+  THWith h1 (preservation t2 h2 s2)
+preservation (Fst tt) (THFst h) (SFst1 s) = THFst (preservation tt h s)
+preservation (Snd tt) (THSnd h) (SSnd1 s) = THSnd (preservation tt h s)
+preservation (Tensor t1 t2) (THTensor d1 d2 h1 h2 prf) (STensor1 s1) =
+  THTensor d1 d2 (preservation t1 h1 s1) h2 prf
+preservation (Tensor v1 t2) (THTensor d1 d2 h1 h2 prf) (STensor2 v1v s2) =
+  THTensor d1 d2 h1 (preservation t2 h2 s2) prf
+preservation (LetPair t1 t2) (THLetPair d1 d2 aa bb h1 hb prf) (SLetPair1 s1) =
+  THLetPair d1 d2 aa bb (preservation t1 h1 s1) hb prf
+preservation (Inl b0 tt) (THInl h) (SInl1 s) = THInl (preservation tt h s)
+preservation (Inr a0 tt) (THInr h) (SInr1 s) = THInr (preservation tt h s)
+preservation (Case tc tL tR) (THCase d1 d2 aa bb h hL hR prf) (SCase1 s) =
+  THCase d1 d2 aa bb (preservation tc h s) hL hR prf
+preservation (Let q1 t1 t2) (THLet d1 d2 q1 aa h1 h2 prf) (SLet1 s1) =
+  THLet d1 d2 q1 aa (preservation t1 h1 s1) h2 prf
+preservation (MkEcho m a0 b0 tt) (THEcho h) (SEcho1 s) = THEcho (preservation tt h s)
+preservation (Weaken tt) (THWeaken h) (SWeaken1 s) = THWeaken (preservation tt h s)
+-- echo weaken: a Linear echo value weakens to an Affine one
+preservation (Weaken (MkEcho Linear a0 b0 v)) (THWeaken h) (SWeaken vval) =
+  case h of
+    THEcho hv => THEcho hv
 
 ||| Affine preservation: a direct corollary of `preservation` for the
 ||| Solo kernel (the preserved usage already carries the accounting).
 public export
-affinePreservation : Has g d t a -> Step t t' -> Has g d t' a
-affinePreservation = preservation
+affinePreservation : {g : Tctx} -> {d : Uvec} -> (t : Tm)
+                  -> Has g d t a -> Step t t' -> Has g d t' a
+affinePreservation t = preservation t
