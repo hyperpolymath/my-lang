@@ -16,6 +16,7 @@
  *)
 
 open SoloCore
+open Eval
 open Quantity
 
 (* ---------- tiny S-expression reader ---------- *)
@@ -117,6 +118,33 @@ let show_result = function
   | None -> "none"
   | Some (a, d) -> "(ok " ^ show_ty a ^ " " ^ show_uvec d ^ ")"
 
+(* canonical term printer — MUST match conformance_gen's `sexp_tm` *)
+let rec show_tm = function
+  | Var n -> "(var " ^ string_of_int n ^ ")"
+  | UnitT -> "star"
+  | Lam (q, a, t) -> "(lam " ^ show_q q ^ " " ^ show_ty a ^ " " ^ show_tm t ^ ")"
+  | App (f, x) -> "(app " ^ show_tm f ^ " " ^ show_tm x ^ ")"
+  | With (a, b) -> "(with " ^ show_tm a ^ " " ^ show_tm b ^ ")"
+  | Fst t -> "(fst " ^ show_tm t ^ ")"
+  | Snd t -> "(snd " ^ show_tm t ^ ")"
+  | Tensor (a, b) -> "(tensor " ^ show_tm a ^ " " ^ show_tm b ^ ")"
+  | LetPair (a, b) -> "(letpair " ^ show_tm a ^ " " ^ show_tm b ^ ")"
+  | Inl (ty, t) -> "(inl " ^ show_ty ty ^ " " ^ show_tm t ^ ")"
+  | Inr (ty, t) -> "(inr " ^ show_ty ty ^ " " ^ show_tm t ^ ")"
+  | Case (s, l, r) -> "(case " ^ show_tm s ^ " " ^ show_tm l ^ " " ^ show_tm r ^ ")"
+  | Let (q, a, b) -> "(let " ^ show_q q ^ " " ^ show_tm a ^ " " ^ show_tm b ^ ")"
+  | MkEcho (m, a, b, t) ->
+      "(mkecho " ^ show_m m ^ " " ^ show_ty a ^ " " ^ show_ty b ^ " " ^ show_tm t ^ ")"
+  | Weaken t -> "(weaken " ^ show_tm t ^ ")"
+
+let show_step = function None -> "none" | Some t -> "(some " ^ show_tm t ^ ")"
+
+(* iterate the verified step1 to a normal form (or fuel cap); both sides use the
+   SAME cap so a divergent term yields the same capped term. *)
+let rec eval_nf fuel t =
+  if fuel <= 0 then t
+  else match step1 t with None -> t | Some t' -> eval_nf (fuel - 1) t'
+
 (* ---------- driver ---------- *)
 
 let () =
@@ -126,10 +154,12 @@ let () =
       if String.trim line <> "" then begin
         let q = parse_sexp (tokenize line) in
         match q with
-        | List [Atom "q"; ctx; tm] ->
-          let g = ctx_of ctx in
-          let t = tm_of tm in
-          print_endline (show_result (check g t))
+        | List [Atom "q"; ctx; tm] ->            (* checker query (coupling #1) *)
+          print_endline (show_result (check (ctx_of ctx) (tm_of tm)))
+        | List [Atom "s"; tm] ->                 (* one CBV step (coupling #2) *)
+          print_endline (show_step (step1 (tm_of tm)))
+        | List [Atom "nf"; tm] ->                (* iterate to normal form (cap = NF_FUEL) *)
+          print_endline (show_tm (eval_nf 64 (tm_of tm)))
         | _ -> failwith "bad query"
       end
     done

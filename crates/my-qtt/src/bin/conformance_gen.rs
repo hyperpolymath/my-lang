@@ -17,9 +17,13 @@
 // of-range vars, quantity/type mismatches) so both the `ok` and `none` branches
 // of `check` are exercised on both sides.
 
-use my_qtt::{check, Mode, Q, Tm, Ty};
+use my_qtt::{check, step1, Mode, Q, Tm, Ty};
 use std::fs::File;
 use std::io::{BufWriter, Write};
+
+/// normal-form fuel cap — MUST equal the oracle's `eval_nf` cap so a divergent
+/// term yields the same capped term on both sides.
+const NF_FUEL: u32 = 64;
 
 // ---------- deterministic PRNG (SplitMix64) ----------
 struct Rng(u64);
@@ -165,6 +169,76 @@ fn sexp_ctx(g: &[Ty]) -> String {
     s
 }
 
+fn show_step(r: &Option<Tm>) -> String {
+    match r {
+        None => "none".into(),
+        Some(t) => format!("(some {})", sexp_tm(t)),
+    }
+}
+
+fn eval_nf(t: &Tm, fuel: u32) -> Tm {
+    let mut cur = t.clone();
+    let mut f = fuel;
+    while f > 0 {
+        match step1(&cur) {
+            None => break,
+            Some(n) => {
+                cur = n;
+                f -= 1;
+            }
+        }
+    }
+    cur
+}
+
+// ---------- closed, redex-rich generators (deep substitution coverage) ----------
+fn gen_value(r: &mut Rng, fuel: u32) -> Tm {
+    if fuel == 0 {
+        return Tm::UnitT;
+    }
+    match r.upto(6) {
+        0 => Tm::UnitT,
+        1 => Tm::Lam(gen_q(r), gen_ty(r, 1), Box::new(gen_tm(r, fuel - 1, 1))),
+        2 => Tm::With(Box::new(gen_value(r, fuel - 1)), Box::new(gen_value(r, fuel - 1))),
+        3 => Tm::Tensor(Box::new(gen_value(r, fuel - 1)), Box::new(gen_value(r, fuel - 1))),
+        4 => Tm::Inl(gen_ty(r, 1), Box::new(gen_value(r, fuel - 1))),
+        _ => Tm::MkEcho(gen_m(r), gen_ty(r, 1), gen_ty(r, 1), Box::new(gen_value(r, fuel - 1))),
+    }
+}
+
+// closed (scope 0) terms built around redexes so reduction proceeds and
+// exercises subst0/subst2/shift in chains.
+fn gen_closed(r: &mut Rng, fuel: u32) -> Tm {
+    if fuel == 0 {
+        return gen_value(r, 1);
+    }
+    match r.upto(8) {
+        0 => Tm::App(
+            Box::new(Tm::Lam(gen_q(r), gen_ty(r, 1), Box::new(gen_tm(r, fuel - 1, 1)))),
+            Box::new(gen_value(r, fuel - 1)),
+        ),
+        1 => Tm::Let(gen_q(r), Box::new(gen_value(r, fuel - 1)), Box::new(gen_tm(r, fuel - 1, 1))),
+        2 => Tm::Fst(Box::new(Tm::With(Box::new(gen_value(r, fuel - 1)), Box::new(gen_value(r, fuel - 1))))),
+        3 => Tm::Snd(Box::new(Tm::With(Box::new(gen_value(r, fuel - 1)), Box::new(gen_value(r, fuel - 1))))),
+        4 => Tm::LetPair(
+            Box::new(Tm::Tensor(Box::new(gen_value(r, fuel - 1)), Box::new(gen_value(r, fuel - 1)))),
+            Box::new(gen_tm(r, fuel - 1, 2)),
+        ),
+        5 => Tm::Case(
+            Box::new(Tm::Inl(gen_ty(r, 1), Box::new(gen_value(r, fuel - 1)))),
+            Box::new(gen_tm(r, fuel - 1, 1)),
+            Box::new(gen_tm(r, fuel - 1, 1)),
+        ),
+        6 => Tm::Weaken(Box::new(Tm::MkEcho(
+            Mode::Linear,
+            gen_ty(r, 1),
+            gen_ty(r, 1),
+            Box::new(gen_value(r, fuel - 1)),
+        ))),
+        _ => gen_value(r, fuel - 1),
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 5 {
@@ -178,13 +252,21 @@ fn main() {
 
     let mut r = Rng(seed.wrapping_add(0xD1B5_4A32_D192_ED03));
     for _ in 0..count {
-        // 0..=3 context entries
+        // (a) checker (#1) + one-step (#2) conformance on a random term that
+        //     may be open and may be ill-typed (exercises both decision branches)
         let k = r.upto(4) as usize;
         let g: Vec<Ty> = (0..k).map(|_| gen_ty(&mut r, 2)).collect();
         let fuel = 2 + (r.upto(3) as u32); // depth 2..=4
         let t = gen_tm(&mut r, fuel, k);
-
         writeln!(corpus, "(q {} {})", sexp_ctx(&g), sexp_tm(&t)).unwrap();
         writeln!(results, "{}", show_result(&check(&g, &t))).unwrap();
+        writeln!(corpus, "(s {})", sexp_tm(&t)).unwrap();
+        writeln!(results, "{}", show_step(&step1(&t))).unwrap();
+
+        // (b) normal-form (#2, deep) conformance on a CLOSED redex-rich term,
+        //     cross-checking subst0/subst2/shift against Coq's extracted subst
+        let ct = gen_closed(&mut r, 3);
+        writeln!(corpus, "(nf {})", sexp_tm(&ct)).unwrap();
+        writeln!(results, "{}", sexp_tm(&eval_nf(&ct, NF_FUEL))).unwrap();
     }
 }

@@ -35,15 +35,16 @@ echo "-- 1. extract verified check -> OCaml"
 
 echo "-- 2. compile the oracle"
 cp "$HERE/oracle.ml" "$BUILD/oracle.ml"
-OCAML_UNITS=(Datatypes Specif Quantity EchoMode ResourceAlgebra SoloCore)
-FILES=()
-for u in "${OCAML_UNITS[@]}"; do
-  [ -f "$BUILD/$u.mli" ] && FILES+=("$u.mli")
-  FILES+=("$u.ml")
-done
-FILES+=("oracle.ml")
-if command -v ocamlopt >/dev/null 2>&1; then OC=ocamlopt; else OC=ocamlc; fi
-( cd "$BUILD" && ocamlfind "$OC" -package str -linkpkg -w -a "${FILES[@]}" -o oracle )
+# dependency-sort ALL extracted modules (robust to whatever Coq emits —
+# PeanoNat, BinNat, ...); compile each module's .mli then .ml, oracle last.
+( cd "$BUILD"
+  FILES=""
+  for ml in $(ocamldep -sort *.ml); do
+    base="${ml%.ml}"
+    [ -f "$base.mli" ] && FILES="$FILES $base.mli"
+    FILES="$FILES $ml"
+  done
+  ocamlc -w -a -o oracle $FILES )
 
 echo "-- 3. generate corpus + rust results (count=$COUNT seed=$SEED)"
 ( cd "$ROOT" && cargo build -q -p my-qtt --bin conformance_gen )
@@ -58,9 +59,10 @@ RN=$(wc -l < "$BUILD/rust_results.txt")
 CN=$(wc -l < "$BUILD/coq_results.txt")
 echo "   rust lines=$RN  coq lines=$CN"
 if diff -u "$BUILD/rust_results.txt" "$BUILD/coq_results.txt" > "$BUILD/diff.txt"; then
-  OK=$(grep -c '^(ok' "$BUILD/rust_results.txt" || true)
-  NO=$(grep -c '^none' "$BUILD/rust_results.txt" || true)
-  echo "PASS: $COUNT/$COUNT agree  (ok=$OK none=$NO)  Rust my_qtt::check ≡ Coq-extracted check"
+  TOT=$((COUNT * 3))
+  echo "PASS: $TOT/$TOT results agree over $COUNT terms × {check, one-step, normal-form}:"
+  echo "      Rust my_qtt::check ≡ extracted Coq check   (coupling #1)"
+  echo "      Rust my_qtt::step1 ≡ extracted Coq step1   (coupling #2; step1 proved sound+complete vs the `step` relation)"
   exit 0
 else
   echo "FAIL: Rust and verified-Coq results differ:"

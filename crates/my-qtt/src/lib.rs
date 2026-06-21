@@ -327,6 +327,220 @@ pub fn aff_check(g: &[Ty], t: &Tm, expected: &Ty, budget: &[Q]) -> bool {
     }
 }
 
+// ===== the call-by-value evaluator (Coq `step1`, Eval.v) =====
+//
+// A FAITHFUL port of the Coq functional one-step evaluator `step1`, which is
+// proved SOUND + COMPLETE against the reference `step` RELATION (Eval.v:
+// `step1_sound`/`step1_complete`, axiom-free). Coupling #2 (interpreter
+// adequacy vs Coq `step`) is then closed by differential conformance:
+// `conformance/run.sh` checks `my_qtt::step1` == extracted Coq `step1` on a
+// random corpus (one step AND iterated to normal form, which cross-checks the
+// substitution below against Coq's extracted `subst`).
+
+/// de Bruijn shift (Coq `shift`): increment every free var `>= c`.
+pub fn shift(c: usize, t: &Tm) -> Tm {
+    match t {
+        Tm::Var(k) => if *k < c { Tm::Var(*k) } else { Tm::Var(k + 1) },
+        Tm::UnitT => Tm::UnitT,
+        Tm::Lam(q, a, b) => Tm::Lam(*q, a.clone(), Box::new(shift(c + 1, b))),
+        Tm::App(f, x) => Tm::App(Box::new(shift(c, f)), Box::new(shift(c, x))),
+        Tm::With(a, b) => Tm::With(Box::new(shift(c, a)), Box::new(shift(c, b))),
+        Tm::Fst(t0) => Tm::Fst(Box::new(shift(c, t0))),
+        Tm::Snd(t0) => Tm::Snd(Box::new(shift(c, t0))),
+        Tm::Tensor(a, b) => Tm::Tensor(Box::new(shift(c, a)), Box::new(shift(c, b))),
+        Tm::LetPair(a, b) => Tm::LetPair(Box::new(shift(c, a)), Box::new(shift(c + 2, b))),
+        Tm::Inl(ty, t0) => Tm::Inl(ty.clone(), Box::new(shift(c, t0))),
+        Tm::Inr(ty, t0) => Tm::Inr(ty.clone(), Box::new(shift(c, t0))),
+        Tm::Case(s, l, r) => Tm::Case(
+            Box::new(shift(c, s)),
+            Box::new(shift(c + 1, l)),
+            Box::new(shift(c + 1, r)),
+        ),
+        Tm::Let(q, a, b) => Tm::Let(*q, Box::new(shift(c, a)), Box::new(shift(c + 1, b))),
+        Tm::MkEcho(m, a, b, t0) => Tm::MkEcho(*m, a.clone(), b.clone(), Box::new(shift(c, t0))),
+        Tm::Weaken(t0) => Tm::Weaken(Box::new(shift(c, t0))),
+    }
+}
+
+/// Replace de Bruijn index `j` by `u`, decrementing free vars `> j` (Coq `subst_at`).
+pub fn subst_at(j: usize, u: &Tm, t: &Tm) -> Tm {
+    match t {
+        Tm::Var(k) => {
+            if *k < j {
+                Tm::Var(*k)
+            } else if *k == j {
+                u.clone()
+            } else {
+                Tm::Var(k - 1)
+            }
+        }
+        Tm::UnitT => Tm::UnitT,
+        Tm::Lam(q, a, b) => Tm::Lam(*q, a.clone(), Box::new(subst_at(j + 1, &shift(0, u), b))),
+        Tm::App(f, x) => Tm::App(Box::new(subst_at(j, u, f)), Box::new(subst_at(j, u, x))),
+        Tm::With(a, b) => Tm::With(Box::new(subst_at(j, u, a)), Box::new(subst_at(j, u, b))),
+        Tm::Fst(t0) => Tm::Fst(Box::new(subst_at(j, u, t0))),
+        Tm::Snd(t0) => Tm::Snd(Box::new(subst_at(j, u, t0))),
+        Tm::Tensor(a, b) => Tm::Tensor(Box::new(subst_at(j, u, a)), Box::new(subst_at(j, u, b))),
+        Tm::LetPair(a, b) => Tm::LetPair(
+            Box::new(subst_at(j, u, a)),
+            Box::new(subst_at(j + 2, &shift(0, &shift(0, u)), b)),
+        ),
+        Tm::Inl(ty, t0) => Tm::Inl(ty.clone(), Box::new(subst_at(j, u, t0))),
+        Tm::Inr(ty, t0) => Tm::Inr(ty.clone(), Box::new(subst_at(j, u, t0))),
+        Tm::Case(s, l, r) => Tm::Case(
+            Box::new(subst_at(j, u, s)),
+            Box::new(subst_at(j + 1, &shift(0, u), l)),
+            Box::new(subst_at(j + 1, &shift(0, u), r)),
+        ),
+        Tm::Let(q, a, b) => {
+            Tm::Let(*q, Box::new(subst_at(j, u, a)), Box::new(subst_at(j + 1, &shift(0, u), b)))
+        }
+        Tm::MkEcho(m, a, b, t0) => Tm::MkEcho(*m, a.clone(), b.clone(), Box::new(subst_at(j, u, t0))),
+        Tm::Weaken(t0) => Tm::Weaken(Box::new(subst_at(j, u, t0))),
+    }
+}
+
+/// Substitute for the index-0 binder (Coq `subst0`).
+pub fn subst0(u: &Tm, t: &Tm) -> Tm {
+    subst_at(0, u, t)
+}
+
+/// Two-variable substitution for `LetPair` bodies (Coq `subst2`).
+pub fn subst2(u1: &Tm, u2: &Tm, t: &Tm) -> Tm {
+    subst0(u1, &subst0(&shift(0, u2), t))
+}
+
+/// Decidable value predicate (Coq `is_value`).
+pub fn is_value(t: &Tm) -> bool {
+    match t {
+        Tm::UnitT | Tm::Lam(..) => true,
+        Tm::With(a, b) | Tm::Tensor(a, b) => is_value(a) && is_value(b),
+        Tm::Inl(_, a) | Tm::Inr(_, a) => is_value(a),
+        Tm::MkEcho(_, _, _, a) => is_value(a),
+        _ => false,
+    }
+}
+
+/// One call-by-value step, or `None` if normal/stuck (Coq `step1`; proved
+/// sound + complete vs the reference `step` relation in Eval.v).
+pub fn step1(t: &Tm) -> Option<Tm> {
+    match t {
+        Tm::Var(_) | Tm::UnitT | Tm::Lam(..) => None,
+        Tm::App(t1, t2) => {
+            if let Some(p) = step1(t1) {
+                Some(Tm::App(Box::new(p), t2.clone()))
+            } else if is_value(t1) {
+                if let Some(p) = step1(t2) {
+                    Some(Tm::App(t1.clone(), Box::new(p)))
+                } else if is_value(t2) {
+                    if let Tm::Lam(_, _, body) = &**t1 {
+                        Some(subst0(t2, body))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+        Tm::With(t1, t2) => {
+            if let Some(p) = step1(t1) {
+                Some(Tm::With(Box::new(p), t2.clone()))
+            } else if is_value(t1) {
+                step1(t2).map(|p| Tm::With(t1.clone(), Box::new(p)))
+            } else {
+                None
+            }
+        }
+        Tm::Fst(t0) => {
+            if let Some(p) = step1(t0) {
+                Some(Tm::Fst(Box::new(p)))
+            } else if let Tm::With(v1, v2) = &**t0 {
+                if is_value(v1) && is_value(v2) {
+                    Some((**v1).clone())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+        Tm::Snd(t0) => {
+            if let Some(p) = step1(t0) {
+                Some(Tm::Snd(Box::new(p)))
+            } else if let Tm::With(v1, v2) = &**t0 {
+                if is_value(v1) && is_value(v2) {
+                    Some((**v2).clone())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+        Tm::Tensor(t1, t2) => {
+            if let Some(p) = step1(t1) {
+                Some(Tm::Tensor(Box::new(p), t2.clone()))
+            } else if is_value(t1) {
+                step1(t2).map(|p| Tm::Tensor(t1.clone(), Box::new(p)))
+            } else {
+                None
+            }
+        }
+        Tm::LetPair(t1, t2) => {
+            if let Some(p) = step1(t1) {
+                Some(Tm::LetPair(Box::new(p), t2.clone()))
+            } else if let Tm::Tensor(v1, v2) = &**t1 {
+                if is_value(v1) && is_value(v2) {
+                    Some(subst2(v1, v2, t2))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+        Tm::Inl(b, t0) => step1(t0).map(|p| Tm::Inl(b.clone(), Box::new(p))),
+        Tm::Inr(a, t0) => step1(t0).map(|p| Tm::Inr(a.clone(), Box::new(p))),
+        Tm::Case(s, l, r) => {
+            if let Some(p) = step1(s) {
+                Some(Tm::Case(Box::new(p), l.clone(), r.clone()))
+            } else {
+                match &**s {
+                    Tm::Inl(_, v) if is_value(v) => Some(subst0(v, l)),
+                    Tm::Inr(_, v) if is_value(v) => Some(subst0(v, r)),
+                    _ => None,
+                }
+            }
+        }
+        Tm::Let(q, t1, t2) => {
+            if let Some(p) = step1(t1) {
+                Some(Tm::Let(*q, Box::new(p), t2.clone()))
+            } else if is_value(t1) {
+                Some(subst0(t1, t2))
+            } else {
+                None
+            }
+        }
+        Tm::MkEcho(m, a, b, t0) => step1(t0).map(|p| Tm::MkEcho(*m, a.clone(), b.clone(), Box::new(p))),
+        Tm::Weaken(t0) => {
+            if let Some(p) = step1(t0) {
+                Some(Tm::Weaken(Box::new(p)))
+            } else if let Tm::MkEcho(Mode::Linear, a, b, v) = &**t0 {
+                if is_value(v) {
+                    Some(Tm::MkEcho(Mode::Affine, a.clone(), b.clone(), v.clone()))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     //! Oracle tests: each mirrors a `reflexivity` `Example` in `SoloCore.v`, so
@@ -417,5 +631,30 @@ mod tests {
         assert!(qle(Zero, One));
         assert!(!qle(One, Zero));
         assert!(qle(Omega, Omega));
+    }
+
+    /// Evaluator (Coq `step1`) spot-checks. The conformance harness
+    /// (`conformance/run.sh`) is the systematic check vs the extracted verified
+    /// `step1`; these pin the headline redexes for Coq-free CI.
+    #[test]
+    fn step_redexes() {
+        // beta: (\x:Unit. x) star --> star
+        let beta = Tm::App(b(lam(One, Ty::Unit, Tm::Var(0))), b(Tm::UnitT));
+        assert_eq!(step1(&beta), Some(Tm::UnitT));
+        // additive projection: fst <star, star> --> star
+        let fst = Tm::Fst(b(Tm::With(b(Tm::UnitT), b(Tm::UnitT))));
+        assert_eq!(step1(&fst), Some(Tm::UnitT));
+        // echo weaken: weaken (echo_L star) --> echo_A star
+        let wk = Tm::Weaken(b(Tm::MkEcho(Mode::Linear, Ty::Unit, Ty::Unit, b(Tm::UnitT))));
+        assert_eq!(
+            step1(&wk),
+            Some(Tm::MkEcho(Mode::Affine, Ty::Unit, Ty::Unit, b(Tm::UnitT)))
+        );
+        // let-pair (exercises subst2): let (x,y) = (star,star) in x --> star
+        let lp = Tm::LetPair(b(Tm::Tensor(b(Tm::UnitT), b(Tm::UnitT))), b(Tm::Var(1)));
+        assert_eq!(step1(&lp), Some(Tm::UnitT));
+        // values are normal
+        assert_eq!(step1(&Tm::UnitT), None);
+        assert_eq!(step1(&lam(One, Ty::Unit, Tm::UnitT)), None);
     }
 }

@@ -18,6 +18,7 @@
  * `my_qtt::Q`, which is what makes the line-by-line result comparison exact.
  *)
 From SoloCore Require Import SoloCore.
+From SoloCore Require Import Eval.
 Require Coq.extraction.Extraction.
 Extraction Language OCaml.
 
@@ -27,4 +28,7 @@ Extraction Language OCaml.
    arithmetic on indices, so int is faithful for the corpus sizes used. *)
 Require Import Coq.extraction.ExtrOcamlNatInt.
 
-Separate Extraction check.
+(* `check` (R5, checker coupling #1) and `step1` (Eval.v, interpreter coupling
+   #2 — proved sound+complete vs the `step` relation) are the two verified
+   functions the conformance harnesses test the Rust port against. *)
+Separate Extraction check step1.
