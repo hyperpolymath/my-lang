@@ -35,6 +35,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod session;
 pub mod surface;
 
 /// Quantities: the three-point affine semiring `{0, 1, ω}` (Coq `Quantity.Q`).

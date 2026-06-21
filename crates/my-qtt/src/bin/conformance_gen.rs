@@ -17,6 +17,7 @@
 // of-range vars, quantity/type mismatches) so both the `ok` and `none` branches
 // of `check` are exercised on both sides.
 
+use my_qtt::session::{cstep1, Config, Party, Val};
 use my_qtt::{check, step1, Mode, Q, Tm, Ty};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -239,6 +240,83 @@ fn gen_closed(r: &mut Rng, fuel: u32) -> Tm {
     }
 }
 
+// ---------- session configs (coupling #4) ----------
+fn sval(v: &Val) -> String {
+    match v {
+        Val::Var(n) => format!("(vvar {})", n),
+        Val::Unit => "vunit".into(),
+        Val::Bool(true) => "(vbool t)".into(),
+        Val::Bool(false) => "(vbool f)".into(),
+        Val::Nat(n) => format!("(vnat {})", n),
+    }
+}
+fn sparty(p: &Party) -> String {
+    match p {
+        Party::End => "qend".into(),
+        Party::Send(v, q) => format!("(qsend {} {})", sval(v), sparty(q)),
+        Party::Recv(q) => format!("(qrecv {})", sparty(q)),
+        Party::Sel(l, q) => format!("(qsel {} {})", l, sparty(q)),
+        Party::Bra(bs) => {
+            let mut s = String::from("(qbra");
+            for (l, q) in bs {
+                s.push_str(&format!(" (br {} {})", l, sparty(q)));
+            }
+            s.push(')');
+            s
+        }
+    }
+}
+fn sconfig(c: &Config) -> String {
+    format!("(conf {} {})", sparty(&c.0), sparty(&c.1))
+}
+fn show_cstep(r: &Option<Config>) -> String {
+    match r {
+        None => "none".into(),
+        Some(c) => format!("(some {})", sconfig(c)),
+    }
+}
+
+fn gen_val(r: &mut Rng) -> Val {
+    match r.upto(4) {
+        0 => Val::Var(r.upto(3) as usize),
+        1 => Val::Unit,
+        2 => Val::Bool(r.upto(2) == 0),
+        _ => Val::Nat(r.upto(5)),
+    }
+}
+fn gen_party(r: &mut Rng, fuel: u32) -> Party {
+    if fuel == 0 {
+        return Party::End;
+    }
+    match r.upto(6) {
+        0 | 5 => Party::End,
+        1 => Party::Send(gen_val(r), Box::new(gen_party(r, fuel - 1))),
+        2 => Party::Recv(Box::new(gen_party(r, fuel - 1))),
+        3 => Party::Sel(r.upto(3) as usize, Box::new(gen_party(r, fuel - 1))),
+        _ => {
+            let n = r.upto(3) as usize;
+            Party::Bra((0..n).map(|i| (i, gen_party(r, fuel - 1))).collect())
+        }
+    }
+}
+// bias toward dual pairs so the comm/select steps fire (alongside stuck configs)
+fn gen_config(r: &mut Rng) -> Config {
+    let f = 2 + r.upto(2) as u32;
+    match r.upto(6) {
+        0 => Config(Box::new(Party::Send(gen_val(r), Box::new(gen_party(r, f)))), Box::new(Party::Recv(Box::new(gen_party(r, f))))),
+        1 => Config(Box::new(Party::Recv(Box::new(gen_party(r, f)))), Box::new(Party::Send(gen_val(r), Box::new(gen_party(r, f))))),
+        2 => Config(
+            Box::new(Party::Sel(r.upto(4) as usize, Box::new(gen_party(r, f)))),
+            Box::new(gen_party(r, f + 1)),
+        ),
+        3 => Config(
+            Box::new(gen_party(r, f + 1)),
+            Box::new(Party::Sel(r.upto(4) as usize, Box::new(gen_party(r, f)))),
+        ),
+        _ => Config(Box::new(gen_party(r, f)), Box::new(gen_party(r, f))),
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 5 {
@@ -268,5 +346,11 @@ fn main() {
         let ct = gen_closed(&mut r, 3);
         writeln!(corpus, "(nf {})", sexp_tm(&ct)).unwrap();
         writeln!(results, "{}", sexp_tm(&eval_nf(&ct, NF_FUEL))).unwrap();
+
+        // (c) session-config step (#4): Rust my_qtt::session::cstep1 vs the
+        //     extracted Coq cstep1 (proved sound+complete vs the cstep relation)
+        let cfg = gen_config(&mut r);
+        writeln!(corpus, "(cstep {})", sconfig(&cfg)).unwrap();
+        writeln!(results, "{}", show_cstep(&cstep1(&cfg))).unwrap();
     }
 }

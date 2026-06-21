@@ -59,10 +59,11 @@ RN=$(wc -l < "$BUILD/rust_results.txt")
 CN=$(wc -l < "$BUILD/coq_results.txt")
 echo "   rust lines=$RN  coq lines=$CN"
 if diff -u "$BUILD/rust_results.txt" "$BUILD/coq_results.txt" > "$BUILD/diff.txt"; then
-  TOT=$((COUNT * 3))
-  echo "PASS: $TOT/$TOT results agree over $COUNT terms × {check, one-step, normal-form}:"
-  echo "      Rust my_qtt::check ≡ extracted Coq check   (coupling #1)"
-  echo "      Rust my_qtt::step1 ≡ extracted Coq step1   (coupling #2; step1 proved sound+complete vs the `step` relation)"
+  TOT=$((COUNT * 4))
+  echo "PASS: $TOT/$TOT results agree over $COUNT cases x {check, one-step, normal-form, session-step}:"
+  echo "      Rust my_qtt::check  == extracted Coq check    (coupling #1)"
+  echo "      Rust my_qtt::step1  == extracted Coq step1    (coupling #2; sound+complete vs the step relation)"
+  echo "      Rust session::cstep1 == extracted Coq cstep1  (coupling #4; sound+complete vs the cstep relation)"
   exit 0
 else
   echo "FAIL: Rust and verified-Coq results differ:"

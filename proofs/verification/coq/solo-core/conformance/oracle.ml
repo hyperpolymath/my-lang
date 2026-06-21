@@ -17,6 +17,8 @@
 
 open SoloCore
 open Eval
+open SessionPi
+open SessionEval
 open Quantity
 
 (* ---------- tiny S-expression reader ---------- *)
@@ -145,6 +147,54 @@ let rec eval_nf fuel t =
   if fuel <= 0 then t
   else match step1 t with None -> t | Some t' -> eval_nf (fuel - 1) t'
 
+(* ---------- session configs (coupling #4) ---------- *)
+
+let val_of = function
+  | List [Atom "vvar"; Atom n] -> VVar (int_of_string n)
+  | Atom "vunit" -> VUnit
+  | List [Atom "vbool"; Atom "t"] -> VBool true
+  | List [Atom "vbool"; Atom "f"] -> VBool false
+  | List [Atom "vnat"; Atom n] -> VNat (int_of_string n)
+  | _ -> failwith "bad val"
+
+(* pbranch is built from `(br L PARTY)` items, right-folded into PBcons/PBnil *)
+let rec party_of = function
+  | Atom "qend" -> QEnd
+  | List [Atom "qsend"; v; p] -> QSend (val_of v, party_of p)
+  | List [Atom "qrecv"; p] -> QRecv (party_of p)
+  | List [Atom "qsel"; Atom l; p] -> QSel (int_of_string l, party_of p)
+  | List (Atom "qbra" :: brs) -> QBra (pbranch_of brs)
+  | _ -> failwith "bad party"
+and pbranch_of = function
+  | [] -> PBnil
+  | List [Atom "br"; Atom l; p] :: rest -> PBcons (int_of_string l, party_of p, pbranch_of rest)
+  | _ -> failwith "bad pbranch"
+
+let config_of = function
+  | List [Atom "conf"; p1; p2] -> Conf (party_of p1, party_of p2)
+  | _ -> failwith "bad config"
+
+let show_val = function
+  | VVar n -> "(vvar " ^ string_of_int n ^ ")"
+  | VUnit -> "vunit"
+  | VBool true -> "(vbool t)"
+  | VBool false -> "(vbool f)"
+  | VNat n -> "(vnat " ^ string_of_int n ^ ")"
+
+let rec show_party = function
+  | QEnd -> "qend"
+  | QSend (v, p) -> "(qsend " ^ show_val v ^ " " ^ show_party p ^ ")"
+  | QRecv p -> "(qrecv " ^ show_party p ^ ")"
+  | QSel (l, p) -> "(qsel " ^ string_of_int l ^ " " ^ show_party p ^ ")"
+  | QBra bs -> "(qbra" ^ show_pbranch bs ^ ")"
+and show_pbranch = function
+  | PBnil -> ""
+  | PBcons (l, p, rest) -> " (br " ^ string_of_int l ^ " " ^ show_party p ^ ")" ^ show_pbranch rest
+
+let show_config (Conf (p1, p2)) = "(conf " ^ show_party p1 ^ " " ^ show_party p2 ^ ")"
+
+let show_cstep = function None -> "none" | Some c -> "(some " ^ show_config c ^ ")"
+
 (* ---------- driver ---------- *)
 
 let () =
@@ -160,6 +210,8 @@ let () =
           print_endline (show_step (step1 (tm_of tm)))
         | List [Atom "nf"; tm] ->                (* iterate to normal form (cap = NF_FUEL) *)
           print_endline (show_tm (eval_nf 64 (tm_of tm)))
+        | List [Atom "cstep"; cfg] ->            (* one session-config step (coupling #4) *)
+          print_endline (show_cstep (cstep1 (config_of cfg)))
         | _ -> failwith "bad query"
       end
     done

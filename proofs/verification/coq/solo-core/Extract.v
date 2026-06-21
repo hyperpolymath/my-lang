@@ -19,6 +19,7 @@
  *)
 From SoloCore Require Import SoloCore.
 From SoloCore Require Import Eval.
+From SoloCore Require Import SessionEval.
 Require Coq.extraction.Extraction.
 Extraction Language OCaml.
 
@@ -28,7 +29,8 @@ Extraction Language OCaml.
    arithmetic on indices, so int is faithful for the corpus sizes used. *)
 Require Import Coq.extraction.ExtrOcamlNatInt.
 
-(* `check` (R5, checker coupling #1) and `step1` (Eval.v, interpreter coupling
-   #2 — proved sound+complete vs the `step` relation) are the two verified
-   functions the conformance harnesses test the Rust port against. *)
-Separate Extraction check step1.
+(* The verified functions the conformance harnesses test the Rust port against:
+   `check` (R5, checker coupling #1), `step1` (Eval.v, interpreter coupling #2 —
+   sound+complete vs the `step` relation), and `cstep1` (SessionEval.v, session
+   coupling #4 — sound+complete vs the `cstep` relation). *)
+Separate Extraction check step1 cstep1.
