@@ -288,4 +288,48 @@ mod tests {
             Err(CheckError::Elab(ElabError::Unbound("nope".into())))
         );
     }
+
+    // ----- echo modality wired into the surface + the verified checker (#3) -----
+
+    fn echo(mode: Mode, witness: SExpr) -> SExpr {
+        SExpr::Echo { mode, a: STy::Unit, b: STy::Unit, witness: b(witness) }
+    }
+
+    /// `[linear] echo<Unit => Unit>(unit)` elaborates and the verified checker
+    /// assigns the echo residue type — echo flows surface → machine-checked walk.
+    #[test]
+    fn echo_intro_ok() {
+        assert_eq!(
+            check_surface(&echo(Mode::Linear, SExpr::Unit)),
+            Ok((Ty::Echo(Mode::Linear, b(Ty::Unit), b(Ty::Unit)), vec![]))
+        );
+    }
+
+    /// The echo discipline (`EchoLinear`): a LINEAR echo `weaken`s to an AFFINE
+    /// one — checked by the verified walk on the surface term.
+    #[test]
+    fn echo_weaken_linear_to_affine() {
+        let w = SExpr::Weaken(b(echo(Mode::Linear, SExpr::Unit)));
+        assert_eq!(
+            check_surface(&w),
+            Ok((Ty::Echo(Mode::Affine, b(Ty::Unit), b(Ty::Unit)), vec![]))
+        );
+    }
+
+    /// ...and weakening an AFFINE echo is REJECTED — the one-way `linear ⊑ affine`
+    /// (the *no-section* fact) is enforced from the surface by the proof.
+    #[test]
+    fn echo_weaken_affine_rejected() {
+        let w = SExpr::Weaken(b(echo(Mode::Affine, SExpr::Unit)));
+        assert_eq!(check_surface(&w), Err(CheckError::Untypable));
+    }
+
+    /// Echo threads its witness's usage: `|1 x:Unit| [linear] echo<…>(unit)`
+    /// drops the linear `x` inside the echo → rejected. So the echo residue does
+    /// not launder away linearity.
+    #[test]
+    fn echo_witness_linearity_enforced() {
+        let dropx = lam(One, "x", STy::Unit, echo(Mode::Linear, SExpr::Unit));
+        assert_eq!(check_surface(&dropx), Err(CheckError::Untypable));
+    }
 }

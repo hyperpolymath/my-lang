@@ -935,3 +935,58 @@ substLemma0 : (g : Tctx) -> (a : Ty) -> (dg : Uvec) -> (q : Q) -> (t : Tm)
            -> Has g du u a
            -> (dgr : Uvec ** (uadd dg (uscale q du) = Just dgr, Has g dgr (subst0 u t) b))
 substLemma0 g a dg q t du u ht hu = htSubst t TEmpty g a dg q UEmpty du u Refl ht hu
+
+||| Retype a derivation along a usage equality. `subst2Lemma` uses it to reshape
+||| the residual usages the two nested `substLemma0` calls produce. (Soundness
+||| keeps its own private `coeUse` of the same shape for `preservation`.)
+public export
+coeUsage : d = d' -> Has g d t b -> Has g d' t b
+coeUsage Refl x = x
+
+||| Two-variable substitution lemma (mirrors Coq `subst2_lemma`): the `LetPair`
+||| eliminator substitutes BOTH tensor components into the two-binder body `t`.
+||| Two nested `substLemma0` applications — first the pre-shifted `u2` under the
+||| inner (type-`b`) binder, then `u1` for the (now top) type-`a` binder — with
+||| the residual usages realigned via `uaddAssoc` / `uaddComm`. `subst2 u1 u2 t`
+||| reduces definitionally to `subst0 u1 (subst0 (shift 0 u2) t)`, exactly what
+||| the outer call yields. The `S_LetPair` case of `preservation` consumes this.
+public export
+subst2Lemma : (g : Tctx) -> (a, b : Ty) -> (d, d1, d2, dv1, dv2 : Uvec)
+           -> (t, u1, u2 : Tm) -> {0 c : Ty}
+           -> Has (TSnoc (TSnoc g a) b) (USnoc (USnoc d2 One) One) t c
+           -> Has g dv1 u1 a
+           -> Has g dv2 u2 b
+           -> uadd dv1 dv2 = Just d1
+           -> uadd d1 d2 = Just d
+           -> Has g d (subst2 u1 u2 t) c
+subst2Lemma g a b d d1 d2 dv1 dv2 t u1 u2 ht hu1 hu2 hd1 hd =
+  -- inner substitution: (shift 0 u2) for the index-0, type-`b` binder
+  let (dr1 ** (hadd1, hht1)) =
+        substLemma0 (TSnoc g a) b (USnoc d2 One) One t (USnoc dv2 Zero)
+                    (shift 0 u2) ht (htShift0 g a dv2 u2 hu2) in
+  -- the residual `dr1` reshapes to `USnoc dr1g One`, where `dr1g = D2 + Dv2`
+  let (dr1g ** hdr1g) =
+        uaddTotal d2 dv2
+          (trans (predEq' (predEq' (shapeType (TSnoc (TSnoc g a) b) t ht)))
+                 (sym (shapeType g u2 hu2))) in
+  let hht1' = coeUsage
+                (justInj'
+                  (trans (sym (trans (sym (cong (uadd (USnoc d2 One))
+                                                (uscaleOne (USnoc dv2 Zero)))) hadd1))
+                         (trans (uaddUSnocReduce d2 dv2 One Zero)
+                            (trans (cong (combMaybe (qAdd One Zero)) hdr1g)
+                                   (cong (\z => Just (USnoc dr1g z)) (qAddZeroR One))))))
+                hht1 in
+  -- outer substitution: u1 for the (now top) type-`a` binder
+  let (dr ** (hadd2, hht2)) =
+        substLemma0 g a dr1g One (subst0 (shift 0 u2) t) dv1 u1 hht1' hu1 in
+  -- realign `dr = d` via associativity: (Dv1+Dv2)+D2 = Dv1+(D2+Dv2) = Dv1+Dr1g = Dr
+  let (yz ** (hyz, hx)) = uaddAssoc dv1 dv2 d2 d1 d hd1 hd in
+  coeUsage
+    (sym (justInj'
+      (trans (sym hx)
+        (trans (cong (uadd dv1)
+                  (justInj' (trans (sym (trans (sym (uaddComm dv2 d2)) hyz)) hdr1g)))
+               (trans (uaddComm dv1 dr1g)
+                      (trans (sym (cong (uadd dr1g) (uscaleOne dv1))) hadd2))))))
+    hht2

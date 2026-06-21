@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: MPL-2.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= QTT conformance harness
+
+Differential-conformance evidence for impl ⇄ spec couplings #1 and #2
+(`proofs/STATUS.md`):
+
+* #1 — *the Rust affine checker refines the Coq `check` (R5)*;
+* #2 — *the Rust evaluator `my_qtt::step1` refines the Coq `step` semantics*,
+  via the functional `step1` of `Eval.v` (proved sound+complete vs the `step`
+  relation), extracted and compared one-step AND iterated to normal form;
+* #4 — *the Rust session runtime `my_qtt::session::cstep1` refines the Coq
+  `cstep` semantics* (binary fused config), via the functional `cstep1` of
+  `SessionEval.v` (proved sound+complete vs `cstep`), extracted and compared.
+
+(Coupling #3, the echo modality, rides on #1/#2: echo terms are in the corpus
+and `my_qtt::surface` elaborates echo to the verified `check`.)
+
+Rather than a (currently infeasible) full Rust-in-Coq refinement proof, this
+harness establishes the coupling by **differential testing against the
+extracted verified algorithm**:
+
+[source]
+----
+   Coq `check` (R5, verified)                 Rust `my_qtt::check` (port)
+        │  Extract.v                                 │
+        ▼  (Separate Extraction)                     │
+   OCaml oracle.ml  ◀── corpus.sexp ──  conformance_gen ──▶ rust_results.txt
+        │                                                          │
+        ▼                                                          ▼
+   coq_results.txt   ───────────  diff (must be identical)  ───────┘
+----
+
+If `diff` is empty over a large random corpus, then on every tested term the
+Rust port and the *machine-checked* algorithm make the same accept/reject
+decision and synthesize the same type and usage vector.
+
+== Run
+
+[source,sh]
+----
+cd proofs/verification/coq/solo-core
+COUNT=5000 SEED=1 ./conformance/run.sh      # PASS / FAIL, exit 0 / 1
+----
+
+Requires `coqc` (8.18), `ocamlfind` + `ocamlc`/`ocamlopt`, and `cargo`
+(all present in the proof CI image). All build artifacts land in
+`conformance/_build/` (git-ignored). `SoloCore.vo` must be built first
+(`make` in this directory).
+
+== Files
+
+* `../Extract.v` — extracts the verified `check` to OCaml (not in `_CoqProject`;
+  `make` ignores it).
+* `oracle.ml` — reads `(q (ctx TY...) TM)` queries, runs the extracted `check`,
+  prints the canonical result.
+* `../../../../../crates/my-qtt/src/bin/conformance_gen.rs` — random corpus +
+  Rust `my_qtt::check` results, with canonical printers byte-matching `oracle.ml`.
+* `run.sh` — orchestrates extract → compile oracle → generate → diff.
+
+== Scope / honesty
+
+* This is refinement-by-conformance against the *extracted* verified `check`,
+  not a full Rust-in-Coq refinement proof.
+* It tests the closed/open-context checker over the solo QTT term language
+  (including echo `MkEcho`/`Weaken`/`TEcho`). It does not test the wider
+  AI-surface compiler frontend.
+* Making the verified core the *default* path in `crates/my-lang/src/checker.rs`
+  (today it is reachable only via the opt-in `qtt_bridge`) is a separate
+  programme item — see `docs/STATUS.adoc` (INTEND).

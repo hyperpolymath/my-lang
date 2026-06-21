@@ -4,9 +4,11 @@ Quantity.v
 EchoMode.v
 ResourceAlgebra.v
 SoloCore.v
+Eval.v
 Tropical.v
 Context.v
 ContextProps.v
 EchoResidue.v
 EchoMeasure.v
 SessionPi.v
+SessionEval.v

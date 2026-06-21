@@ -323,7 +323,7 @@ preservation : {g : Tctx} -> {d : Uvec} -> (t : Tm)
             -> Has g d t a -> Step t t' -> Has g d t' a
 preservation (App (Lam q' a0 tb) v) (THApp d1 d2 q' (THLam hb) h2 prf) (SApp vval) =
   let (dgr ** (hadd, hht)) = substLemma0 g a0 d1 q' tb d2 v hb h2
-  in coeUsage (justInj' (trans (sym hadd) prf)) hht
+  in coeUse (justInj' (trans (sym hadd) prf)) hht
 -- additive projections fire on a With value
 preservation (Fst (With v1 v2)) (THFst (THWith h1 h2)) (SFst v1v v2v) = h1
 preservation (Snd (With v1 v2)) (THSnd (THWith h1 h2)) (SSnd v1v v2v) = h2
@@ -331,21 +331,21 @@ preservation (Snd (With v1 v2)) (THSnd (THWith h1 h2)) (SSnd v1v v2v) = h2
 preservation (Case (Inl bb v) tL tR) (THCase d1 d2 aa bb (THInl hv) hL hR prf)
              (SCaseL vval) =
   let (dgr ** (hadd, hht)) = substLemma0 g aa d2 One tL d1 v hL hv
-  in coeUsage
+  in coeUse
        (justInj' (trans (sym (trans (uaddComm d1 d2)
                        (trans (sym (cong (uadd d2) (uscaleOne d1))) hadd))) prf))
        hht
 preservation (Case (Inr aa v) tL tR) (THCase d1 d2 aa bb (THInr hv) hL hR prf)
              (SCaseR vval) =
   let (dgr ** (hadd, hht)) = substLemma0 g bb d2 One tR d1 v hR hv
-  in coeUsage
+  in coeUse
        (justInj' (trans (sym (trans (uaddComm d1 d2)
                        (trans (sym (cong (uadd d2) (uscaleOne d1))) hadd))) prf))
        hht
 -- let binding: substitute the bound value
 preservation (Let q1 v t2) (THLet d1 d2 q1 aa h1 h2 prf) (SLet vval) =
   let (dgr ** (hadd, hht)) = substLemma0 g aa d2 q1 t2 d1 v h2 h1
-  in coeUsage
+  in coeUse
        (justInj' (trans (sym (trans (uaddComm (uscale q1 d1) d2) hadd)) prf))
        hht
 -- multiplicative let-pair: two-variable substitution of the tensor components
