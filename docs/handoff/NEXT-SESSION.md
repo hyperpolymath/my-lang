@@ -10,38 +10,40 @@ branch `claude/dreamy-hypatia-O8XHo`; commit green slices; push and open a
 **draft** PR when a slice is complete. Read `docs/STATUS.adoc` (musts/intends/
 wishes) and `proofs/STATUS.md` (authoritative proof registry) first.
 
-## The one open MUST: close Idris `preservation` (#108)
+## The one open MUST is now CLOSED: Idris `preservation` (#108) ✓
 
-The Coq metatheory is complete and axiom-free. The Idris twin's `progress` is
-done; **`preservation` is the last normative obligation** (`?todo_preservation`
-in `proofs/verification/idris/solo-core/Soundness.idr`). It rests on the QTT
-substitution lemma `htSubst`, which is now **structurally landed** (commit
-`acd29d6` on the dev branch, build green 8/8):
+The Coq metatheory is complete and axiom-free, and **the Idris twin's
+`preservation` is now DISCHARGED** (2026-06-21): a total, hole-free function
+by induction on `Step` in `proofs/verification/idris/solo-core/Soundness.idr`,
+`:total preservation` confirmed, `%default total`, no postulates. The whole
+solo core is HOLE-FREE on both tracks. `htSubst` (all 15 cases), `substLemma0`,
+`subst2Lemma`, and `uaddAssoc` all land in `Substitution.idr` (the module
+dependency was inverted: `Soundness` now imports `Substitution`).
 
-- **10/15 `htSubst` cases proved**: Var, Unit, Lam, With, Fst, Snd, Inl, Inr,
-  MkEcho, Weaken.
-- **5 usage-splitting holes remain** in `Substitution.idr`:
-  `?htSubst_app`, `?htSubst_tensor`, `?htSubst_letpair`, `?htSubst_case`,
-  `?htSubst_let`.
-
-### Do this, in order
-1. Fill the 5 split holes. Each mirrors the Coq `ht_subst` case in
-   `proofs/verification/coq/solo-core/SoloCore.v` (≈ lines 1618–1889) and
-   **consumes already-landed lemmas**: `usplit3`, `uaddSplitBoundary2`,
-   `substReassocAdd` (additive, for App/Let), `substReassocMult` (for
-   Tensor/LetPair/Case), `uaddUappend`, `uscaleUappend`, `ushiftUscale`.
-   App splits `d1` and the `q`-scaled `d2`; Tensor/LetPair/Case split `d1`,`d2`;
-   Let scales `d1`. The binder cases (LetPair/Case/Let) recurse into bodies with
-   the prefix `I` extended (mirror the `hvSubst`/`htShift` binder pattern).
-2. Add `substLemma0` (the `I = TEmpty` corollary) and `subst2Lemma` (two-var,
-   for `LetPair`), mirroring Coq `subst_lemma0` / `subst2_lemma` (≈ 1893–1937).
-3. Fill `?todo_preservation` in `Soundness.idr` by induction on `Step`
-   (mirror Coq `preservation`, ≈ 1941–2036): reduction cases use
-   `substLemma0`/`subst2Lemma`; congruence cases recurse.
-4. Move the `preservation` row in `proofs/STATUS.md` to *machine-checked* and
-   update `docs/STATUS.adoc`.
+### Where the normative work goes next (the compilation axis)
+The sound core is done and coupled. The open items are *intends*/*wishes* in
+`docs/STATUS.adoc`:
+1. Make the QTT resource axis the **default** in `crates/my-lang/src/checker.rs`
+   (the bridge is opt-in today via `qtt_bridge::check_expr`).
+2. Add surface **quantity syntax** so the bridge enforces real per-binder
+   linearity (`Param` has no quantity field; the bridge defaults to `One`).
+3. **wasm32** via the existing LLVM backend (`TargetSpec::wasm32` + `wasm-ld`),
+   then **RISC-V** (`riscv64gc-unknown-linux-gnu`), then the **typed-wasm**
+   WasmGC verified leg (blocked until `typed-wasm` / AffineScript / Ephapax are
+   added to the working session).
 
 ### Load-bearing context (do NOT relitigate)
+- **`preservation` takes the reduct term `t` explicitly** (relevant), exactly
+  as `progress` does. Idris erases the derivation's term/type indices, but the
+  substitution lemmas compute on the bound body + substituted value, so those
+  must come from a matched (relevant) term; `{g}`/`{d}` are relevant for the
+  same reason. `subst2Lemma`'s result type `c` is an erased implicit.
+- **Per-clause pattern variables that unify** (the Lam/arrow quantity, the
+  Inl/Inr annotation vs the sum's summand, the Let quantity) must share ONE
+  name in the LHS — Idris rejects two names that provably unify.
+- **`let`-block rule**: don't mix type-annotated bindings with dependent-pair
+  pattern bindings in one block (parse error). Use single-binding nested
+  `let … in let …`, or inline.
 - **`b`-erasure is solved.** The result type `b` is a genuine type index, so
   `hvSubst` and `htSubst` both carry it as an **erased implicit** (`{0 b}` /
   auto-bound). Passing an *unrestricted* `b` (or an erased `b` to an
@@ -51,11 +53,12 @@ substitution lemma `htSubst`, which is now **structurally landed** (commit
 - **`THLet`/`THCase`/`THLetPair` carry explicit bound-type fields** (Option A,
   already merged) — that is how the binder cases recover the body context under
   erasure. Don't revert it.
-- Toolchain: Idris2 0.7.0 isn't preinstalled — bootstrap from source
-  (`make bootstrap SCHEME=chezscheme && make install`, ~10 min), then
-  `cd proofs/verification/idris/solo-core && idris2 --build solo-core.ipkg`.
-  Discipline: every edit ends with a compile; `--safe`/`%default total`; no
-  postulates; pin headline theorems where the repo convention does.
+- Toolchain: if Idris2 0.7.0 isn't preinstalled, bootstrap from source
+  (`make bootstrap SCHEME=chezscheme && make install`, ~10 min). Then
+  `cd proofs/verification/idris/solo-core && idris2 --build solo-core.ipkg`
+  (exit 0), and check totality with `:total <name>` in the REPL. Discipline:
+  every edit ends with a compile; `%default total`; no postulates; pin
+  headline theorems where the repo convention does.
 
 ## The other axis: fundamentals -> compilation (see docs/STATUS.adoc)
 

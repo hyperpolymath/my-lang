@@ -1,33 +1,34 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 --
--- The QTT substitution lemma + preservation for the my-lang Solo core
--- (Idris2 twin of the F1.4 section of SoloCore.v). Phase F1.4, Idris track.
+-- The QTT substitution lemmas for the my-lang Solo core (Idris2 twin of the
+-- F1.4 section of SoloCore.v). Phase F1.4, Idris track.
 --
--- This is the proof of `preservation` (Soundness.idr states it as the hole
--- `?todo_preservation`). It rests on the standard open-context substitution
--- lemma `htSubst`: substitution under binders shifts the substituted
--- variable's index, so the lemma is generalised over a type-context prefix
--- `I` (the binders crossed so far). The reduction rules only ever do
--- `subst0` (one variable) and `subst2` (two), but the under-binder induction
--- needs the general form.
+-- These lemmas are what `Soundness.preservation` consumes (preservation
+-- itself lives in Soundness.idr, which imports this module). The core is the
+-- open-context substitution lemma `htSubst`: substitution under binders
+-- shifts the substituted variable's index, so the lemma is generalised over
+-- a type-context prefix `I` (the binders crossed so far). The reduction rules
+-- only ever do `subst0` (one variable) and `subst2` (two), but the
+-- under-binder induction needs the general form.
 --
--- Layers (mirroring the Coq twin):
---   4a  append-context algebra      (tappend/uappend + injectivity/split)  [VERIFIED]
---   4b  shape + shift               (shapeType/hvShift/htShift [VERIFIED];
---                                     htShift0/weakeningAppend — PENDING)
---   4c  substitution core           (reassoc algebra, hvSubst, htSubst,
---                                     substLemma0, subst2Lemma — PENDING)
---   4d  preservation                (consumes 4c; congruences recurse on Step
---                                     — PENDING; Soundness.preservation stays
---                                     the honest hole until 4d lands)
+-- Layers (mirroring the Coq twin), all VERIFIED (total, hole-free):
+--   4a  append-context algebra      (tappend/uappend + injectivity/split)
+--   4b  shape + shift               (shapeType, hvShift, htShift, htShift0)
+--   4c  substitution core           (reassoc algebra, uaddAssoc, hvSubst,
+--                                     htSubst [all 15 cases], substLemma0,
+--                                     subst2Lemma)
+--   4d  preservation                (in Soundness.idr; consumes 4c, recurses
+--                                     on Step — DISCHARGED 2026-06-21, #108)
 --
--- STATUS (Idris track, #108): HOLE-FREE for the layers it currently contains —
--- 4a (append algebra), the shape invariant, `hvShift` (has_var weakening),
--- the structural shift index `shiftIdx`/`shiftIdxCorrect`/`shiftVarLemma`, and
--- `htShift` (term weakening, all 14 constructor cases, total) on top of its
--- support lemmas (`unitInv`, `usplitLemma`, `uaddUshift`, `ushiftUscale`).
--- It does NOT yet prove preservation (htSubst/subst2Lemma/preservation pending).
+-- STATUS (Idris track, #108): the whole solo core is HOLE-FREE. This module
+-- provides the append algebra, the shape invariant, the structural shift
+-- index (`shiftIdx`/`shiftIdxCorrect`/`shiftVarLemma`), `htShift` (term
+-- weakening, all 14 constructor cases), the accounting algebra
+-- (`qReassoc`/`vecReassoc`/`substReassoc*`/`usplit3`/`uaddSplitBoundary2`/
+-- `uaddAssoc`), `hvSubst`, the FULL `htSubst`, `substLemma0`, and
+-- `subst2Lemma` — all `%default total`, no postulates. `Soundness.preservation`
+-- discharges the soundness obligation on top of them.
 --
 -- ARCHITECTURAL BLOCKER on `htShift` — RESOLVED 2026-06-15 via Option A.
 -- `htShift` shifts under binders, so its binder cases extend the type context
@@ -53,7 +54,6 @@ import EchoMode
 import Syntax
 import Context
 import Typing
-import Soundness
 import Data.Nat
 
 %default total
@@ -63,6 +63,7 @@ import Data.Nat
 ------------------------------------------------------------
 -- (Context.idr's equivalents are not exported; restate locally.)
 
+public export
 justInj' : Just x = Just y -> x = y
 justInj' Refl = Refl
 
@@ -620,6 +621,43 @@ substReassocMult dg1 dgr1 dg2 dgr2 dg du q1 q2 h1 h2 h3 =
   let (dgr ** (ha, hb)) = substReassocAdd dg1 dgr1 dg2 dgr2 dg du One q1 q2 h1 h2
                             (rewrite uscaleOne dg2 in h3)
   in (dgr ** (rewrite sym (qMulOneL q2) in ha, rewrite sym (uscaleOne dgr2) in hb))
+
+||| Addition is ASSOCIATIVE on the partial operation (mirrors Coq
+||| `uadd_assoc`): if `(D1+D2)+D3` is defined, then `D2+D3` is defined and
+||| `D1+(D2+D3)` agrees with `(D1+D2)+D3`. The existential reassociation
+||| `subst2Lemma` uses to align the two-variable substitution accounting.
+||| Structural recursion on the (lock-stepped) first two summands; the
+||| heads reassociate via `qAddAssoc`.
+public export
+uaddAssoc : (d1, d2, d3, d12, d123 : Uvec)
+         -> uadd d1 d2 = Just d12
+         -> uadd d12 d3 = Just d123
+         -> (d23 : Uvec ** (uadd d2 d3 = Just d23, uadd d1 d23 = Just d123))
+uaddAssoc UEmpty UEmpty UEmpty d12 d123 h12 h123 =
+  case justInj' h12 of
+    Refl => case justInj' h123 of
+              Refl => (UEmpty ** (Refl, Refl))
+uaddAssoc UEmpty UEmpty (USnoc _ _) d12 d123 h12 h123 =
+  case justInj' h12 of
+    Refl => void (nothingNotJust' h123)
+uaddAssoc UEmpty (USnoc _ _) d3 d12 d123 h12 h123 = void (nothingNotJust' h12)
+uaddAssoc (USnoc _ _) UEmpty d3 d12 d123 h12 h123 = void (nothingNotJust' h12)
+uaddAssoc (USnoc d1 q1) (USnoc d2 q2) UEmpty d12 d123 h12 h123 =
+  let (c12 ** (e12, hd12)) = uaddSnocSplit d1 d2 q1 q2 d12 h12
+  in case hd12 of
+       Refl => void (nothingNotJust' h123)
+uaddAssoc (USnoc d1 q1) (USnoc d2 q2) (USnoc d3 q3) d12 d123 h12 h123 =
+  let (c12 ** (e12, hd12)) = uaddSnocSplit d1 d2 q1 q2 d12 h12
+  in case hd12 of
+       Refl =>
+         let (c123 ** (e123, hd123)) = uaddSnocSplit c12 d3 (qAdd q1 q2) q3 d123 h123
+             (c23 ** (e23, e1_23))   = uaddAssoc d1 d2 d3 c12 c123 e12 e123
+         in (USnoc c23 (qAdd q2 q3) **
+              ( trans (uaddUSnocReduce d2 d3 q2 q3) (cong (combMaybe (qAdd q2 q3)) e23)
+              , trans (trans (uaddUSnocReduce d1 c23 q1 (qAdd q2 q3))
+                             (cong (combMaybe (qAdd q1 (qAdd q2 q3))) e1_23))
+                      (trans (cong (\z => Just (USnoc c123 z)) (sym (qAddAssoc q1 q2 q3)))
+                             (cong Just (sym hd123))) ))
 
 ------------------------------------------------------------
 -- 4c (cont). USnoc-headed boundary splitters + var arithmetic

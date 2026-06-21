@@ -4,8 +4,8 @@
 = Affirmation
 :toc: preamble
 :sectnums:
-:revdate: 2026-06-19T21:35:54Z
-:revnumber: 1
+:revdate: 2026-06-21T02:22:08Z
+:revnumber: 2
 
 This AFFIRMATION records the standing of *my-lang* against the hyperpolymath
 standards and this project's own honesty discipline, at the timestamp below.
@@ -29,12 +29,17 @@ Rust compiler. The normative obligation — the *must* — is that the language 
 
 To the verified state of this repository, I affirm:
 
-. *Soundness is mechanised, not asserted.* The Coq solo-core proves
-  `progress`, `preservation`, and `affine_pres`; the algorithmic checker
-  (`check`, R5) and the affine decision (`aff_type_dec`, R5b); the
-  `me -> solo` elaboration adequacy (M1); the session-pi metatheory through
-  S3c.3; and the echo residue-measure seam (E4). All are real `Qed`,
-  *axiom-free* (`Print Assumptions` closed), and CI-gated.
+. *Soundness is mechanised, not asserted — now on BOTH tracks.* The Coq
+  solo-core proves `progress`, `preservation`, and `affine_pres`; the
+  algorithmic checker (`check`, R5) and the affine decision (`aff_type_dec`,
+  R5b); the `me -> solo` elaboration adequacy (M1); the session-pi metatheory
+  through S3c.3; and the echo residue-measure seam (E4). All are real `Qed`,
+  *axiom-free* (`Print Assumptions` closed), and CI-gated. The *Idris2 twin*
+  now also proves both `progress` and `preservation` (#108, discharged
+  2026-06-21): total, hole-free functions under `%default total` with no
+  postulates — `:total preservation` confirms — via the QTT substitution
+  lemmas `htSubst` / `substLemma0` / `subst2Lemma` (with `uaddAssoc`). The
+  solo core is hole-free on both tracks.
 
 . *No overclaim.* Every proof hole is recorded as an obligation, never as a
   result (`proofs/STATUS.md` is authoritative and wins over any prose).
@@ -56,20 +61,23 @@ To the verified state of this repository, I affirm:
 
 * Coq: `.github/workflows/proofs.yml` compiles the solo-core and asserts the
   headline theorems are axiom-free on every PR touching `proofs/verification/**`.
-* Idris2: `idris2 --build` under `%default total`; the only open marker is
-  `?todo_preservation` plus the five `htSubst` usage-splitting holes.
+* Idris2: `idris2 --build solo-core.ipkg` exits 0 under `%default total`,
+  no postulates / `believe_me` / `assert_total`; the solo core is HOLE-FREE
+  (`preservation`, `affinePreservation`, `htSubst`, `substLemma0`,
+  `subst2Lemma`, `uaddAssoc` all `:total`).
 * Rust: `cargo test -p my-qtt` and `cargo test -p my-lang qtt_bridge` green;
   `my-qtt` carries the R5/R5b oracle tests.
 
 == Affirmed NOT done (the honest boundary)
 
-The Idris twin's `preservation` (`#108`) is *not* proved. The QTT substitution
-lemma `htSubst` is structurally landed (10 of 15 cases; the `b`-index erasure
-resolved) and committed locally; the five usage-splitting cases, the
-`substLemma0` / `subst2Lemma` corollaries, and `preservation` itself remain
-open. This is the single outstanding *must*. The wasm / RISC-V / mobile /
-typed-wasm legs are *intends* and *wishes* (`docs/STATUS.adoc`), not affirmed
-as done.
+The normative *must* (a mechanised-sound core, coupled into the compiler) is
+met on both proof tracks. What remains is *intends* and *wishes*
+(`docs/STATUS.adoc`), affirmed as NOT done: making the QTT axis the *default*
+in `checker.rs`; surface quantity syntax for real per-binder linearity; the
+`wasm32` and `RISC-V` backend legs; the typed-wasm WasmGC verified leg
+(blocked on `typed-wasm` / AffineScript / Ephapax being added to the session);
+and Android / iOS via Tauri / Dioxus. The non-Solo dialect compilers (Duet /
+Ensemble) are scaffold only.
 
 == Affirmation
 
@@ -81,7 +89,7 @@ herein is described as proved that a proof assistant does not accept today.
 |===
 | Affirmed by | Jonathan D.A. Jewell (@hyperpolymath) <j.d.a.jewell@open.ac.uk>
 | Repository  | hyperpolymath/my-lang
-| Timestamp (UTC) | 2026-06-19T21:35:54Z
-| Verified basis | `main` @ `a7765e7` (merged: PR #116 `my-qtt`, PR #117 coupling step 2); dev `acd29d6` (`htSubst` structure)
+| Timestamp (UTC) | 2026-06-21T02:22:08Z
+| Verified basis | `claude/dreamy-hypatia-O8XHo` (Idris `preservation` #108 discharged, solo core hole-free) atop `main` @ `a7765e7` (PR #116 `my-qtt`, PR #117 coupling step 2)
 | Authority | `proofs/STATUS.md` (proofs) · `docs/STATUS.adoc` (programme) · `.machine_readable/contractiles/Mustfile.a2ml` (invariants)
 |===
