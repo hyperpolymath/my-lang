@@ -5,9 +5,9 @@
 [metadata]
 project = "my-lang"
 version = "0.1.0"
-last-updated = "2026-06-05"
+last-updated = "2026-06-14"
 status = "active"
-session = "F1.1 CBV semantics + F1.3 progress proved (Coq+Idris) + Echo integrated into the formal type system + EchoResidue — 2026-06-05"
+session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.3-msg (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection, n-ary located operational semantics, head-coupled message subject reduction = first earned n-party safety half) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
 
 [project-context]
 name = "My Lang"
@@ -18,23 +18,30 @@ ensemble (multi-agent), me (block/visual/pedagogic). Formal verification —
 mechanised Coq + Idris2 solo-core — is a first-class deliverable alongside the
 Rust compiler implementation.
 """
-completion-percentage = 35
+completion-percentage = 50
 
 [position]
 phase = "early-alpha"
 maturity = "experimental"
 
 [proof-status]
-qtt-semiring-coq = "locally-checked"
+qtt-semiring-coq = "machine-checked"            # CI-gated (proofs.yml), Print Assumptions closed
 qtt-semiring-idris2 = "locally-checked"
-solo-syntax-contexts-typing = "locally-checked"
-operational-semantics = "locally-checked"     # F1.1 — CBV step/Step committed both tracks
-progress = "locally-checked"                   # F1.3 — Coq Qed (axiom-free); Idris total/hole-free
-preservation = "statement-only"                # F1.4 — Coq Prop; Idris ?todo_preservation
-echo-type-former = "locally-checked"           # Rust checker Ty::Echo + EchoMode/THEcho/THWeaken
-echo-residue = "locally-checked"               # EchoResidue.{v,idr} backs Ty::is_assignable_from
+solo-syntax-contexts-typing = "machine-checked"
+operational-semantics = "machine-checked"      # F1.1 — CBV step/Step committed both tracks
+progress = "machine-checked"                    # F1.3 — Coq Qed (axiom-free), CI Print Assumptions closed; Idris total/hole-free
+preservation = "machine-checked"                # F1.4 — Coq Qed (axiom-free, ht_subst), CI-gated; Idris ?todo_preservation deliberately open (D1 option A)
+resource-algebra-functor = "machine-checked"   # R2 — SoloCoreF over Module Type SEMIRING; Include Linear3 = R0 axiom-free
+affine-pres = "machine-checked"                 # R3 — distinct affine budget-preservation over ORDERED_SEMIRING qle
+tropical-instance = "machine-checked"           # R4 — SoloCoreF Tropical, infinite min-plus carrier, axiom-free
+usage-walk-checker = "machine-checked"          # R5 — check + check_correct (sound+complete); R5b aff_type_dec
+me-elaboration = "machine-checked"              # M1.0/1.1/1.1b — elab + me_wt_sound over the whole me_tm, axiom-free
+session-pi = "machine-checked"                  # S1.0–S3c.3-msg — subject reduction / fidelity / progress / duet-by-projection / n-party projection totality / static n-party config / label-union merge / union-projection / n-ary located operational semantics / head-coupled message subject reduction, all axiom-free
+echo-measure-seam = "machine-checked"           # E4 (Coq mirror) — RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective, axiom-free
+echo-type-former = "machine-checked"           # Rust checker Ty::Echo + EchoMode/THEcho/THWeaken; kernel mechanised
+echo-residue = "machine-checked"               # EchoResidue.v backs Ty::is_assignable_from
 paper-proofs = "proved-on-paper"
-proof-ci = "absent"                            # ROOT GAP — see issue + F5; echo-types has agda.yml, my-lang has none
+proof-ci = "present"                            # F5 done — .github/workflows/proofs.yml (coqc solo-core + idris2 --build), per-rung Print-Assumptions gates
 
 [echo-integration]
 # echo-types is now a first-class feature of the FORMAL type system, not only the
@@ -53,29 +60,42 @@ milestones = [
   { id = "F1.1", description = "Small-step CBV operational semantics constructors (Step/step), both tracks", status = "done", date = "2026-06-05" },
   { id = "F1.2", description = "Four-point affine semiring extension (0 ⊏ ? ⊏ 1 ⊏ ω)", status = "pending" },
   { id = "F1.3", description = "Progress theorem proved on both tracks (canonical forms + closed-ctx inversion)", status = "done", date = "2026-06-05" },
-  { id = "F1.4", description = "Preservation + QTT substitution lemma, affine-accounting corollary", status = "blocked", note = "gated on product/elimination design decision — see blockers" },
+  { id = "F1.4", description = "Preservation + QTT substitution lemma (ht_subst), affine-accounting corollary (affine_pres)", status = "done", date = "2026-06-14", note = "product/elimination resolved: additive & + multiplicative ⊗ both coherent" },
   { id = "echo-1", description = "Echo type former + affine weakening semantics in Rust type checker", status = "done", date = "2026-06-02" },
   { id = "echo-2", description = "Parser syntax for Echo<A => B>", status = "pending" },
   { id = "echo-3", description = "EchoResidue proof layer (Coq + Idris2) + Echo type former in the formal kernel", status = "done", date = "2026-06-05" },
+  { id = "R2", description = "Functorise solo-core over Module Type SEMIRING (SoloCoreF); Include Linear3 recovers R0 axiom-free", status = "done", date = "2026-06-13" },
+  { id = "R3", description = "ORDERED_SEMIRING + subusage rule → affine_pres a DISTINCT theorem (not an alias)", status = "done", date = "2026-06-13" },
+  { id = "R4", description = "Tropical (min-plus, infinite carrier) instance SoloCoreF Tropical, axiom-free", status = "done", date = "2026-06-13" },
+  { id = "R5", description = "Executable usage-walk checker check + check_correct (sound+complete); R5b aff_type_dec", status = "done", date = "2026-06-13" },
+  { id = "M1", description = "me→solo elaboration (elab) + me_wt_sound over the whole me_tm, axiom-free (M1.0/1.1/1.1b)", status = "done", date = "2026-06-14" },
+  { id = "S1-S2", description = "Structure climb: session-π subject reduction / fidelity / progress (S1) + duet-by-projection (S2.0–S2.2), axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3a-S3b", description = "n-party projection totality (S3a) + static n-party config (S3b), axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.0", description = "Full label-union merge umerge/umerge_br + keystone umerge_idem (Honda-Yoshida-Carbone), added ALONGSIDE plain merge; type-algebra only, axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.1", description = "Union-projection proj_u/projectable_u_wf + keystone existence theorem projection_total_u + one-directional monotonicity bridge projectable_wf_implies_u (on keystone merge_forces_eq: plain merge is the identity-meet); SEPARATE proj_u added ALONGSIDE proj (canonical proj byte-identical, NOT re-pointed); projection-EXISTENCE only, non-vacuity g_union3 in union-projectable minus plain-projectable; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.2", description = "n-ary LOCATED operational semantics: nstep (located mirror of fused cstep; one comm ra_set-updates exactly the two roles) + ra_set + global gstep + nstar/gstar closures + functional wf_assignment_f (wf_assignment_to_f keeps S3b green); 3-party ring run 0->1->2->0 witnessed both sides (ring_runs_to_end, g_ring_gsteps); ADEQUACY-only, nstep_breaks_wf_at_fixed_G PROVES no fixed-G subject reduction; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.3-msg", description = "Head-coupled message subject reduction nstep_sr_msg_head (the FIRST EARNED n-party safety half): the head communication sanctioned by GMsg p q t G' carries wf_assignment_f from G to its continuation G' (3-way located role split; same v:t sender ships = receiver substitutes via pty_subst0); coupled corollary nstep_gstep_sr_msg_head; earned-safety headline sr_earns_safety_across_step (same ra_ring1 S3c.2 refuted at fixed g is wf at stepped g); run-ahead fence SELF-WITNESSED (runahead_breaks_head_coupling). Design-panel-validated + independently adversary-verified (sound-and-honest). HEAD message fragment, preservation only; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.3-choice/perm + S3c.4", description = "remaining n-party safety: select/branch SR (S3c.3-choice, couple NStep_Sel with a choice-gstep), run-ahead/permutation SR (S3c.3-perm, needs gstep-with-swap relation), n-party progress (S3c.4 = coherence ⇒ safety, research-hard — fence; wf_assignment ra -> deadlock-free is FALSE)", status = "pending", note = "S3c.0/.1/.2/.3-msg landed; the message-HEAD safety half is earned; choice/permutation/progress remain, solo" },
+  { id = "E4", description = "Echo residue-measure SEAM (Coq mirror): RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective; full measure-independence upstream-cited", status = "done", date = "2026-06-14" },
   { id = "F2", description = "Effects metatheory mechanised", status = "pending" },
   { id = "F3", description = "Memory model mechanised", status = "pending" },
   { id = "F4", description = "Paper-proof topic parity with AffineScript", status = "pending" },
-  { id = "F5", description = "Proof CI (coqc + idris2 --build in CI) — close the proof-ci=absent gap", status = "pending", note = "ROOT work-in-future fix; mirror echo-types agda.yml pattern" },
+  { id = "F5", description = "Proof CI (coqc + idris2 --build in CI) — close the proof-ci=absent gap", status = "done", date = "2026-06-14", note = ".github/workflows/proofs.yml live; per-rung Print-Assumptions gates" },
 ]
 
 [blockers-and-issues]
 issues = [
-  { id = "product-elim", description = "Solo-core pairs are multiplicative (THPair splits context) but eliminators are projections (Fst/Snd) — UNSOUND for preservation on open terms (projecting discards the other component's resources). Decide: additive & (projections) / multiplicative ⊗ (let-pair elim) / both. Gates F1.4.", severity = "high" },
-  { id = "typeck", description = "Solo dialect affine type-checker is TODO(#typeck) — mechanised solo-core leads the implementation and becomes its spec", severity = "high" },
-  { id = "proof-ci", description = "No CI leg compiles Coq/Idris2 proofs; locally-checked means not machine-verified in CI (F5)", severity = "medium" },
+  { id = "product-elim", description = "RESOLVED (F1.4): additive & (projections) + multiplicative ⊗ (let-pair elim) both coherent; preservation proved sound over the open-term substitution lemma ht_subst.", severity = "resolved" },
+  { id = "typeck", description = "Solo dialect affine type-checker is TODO(#typeck) — mechanised solo-core (check / check_correct, R5) leads the implementation and is its spec; a hand-written Rust checker is tested against, not Coq-proved equal to, check", severity = "high" },
+  { id = "proof-ci", description = "RESOLVED (F5): .github/workflows/proofs.yml compiles the Coq solo-core + idris2 --build and asserts Print Assumptions closed per rung", severity = "resolved" },
   { id = "hypatia-reusable-timeout", description = "UPSTREAM/STANDARDS: Hypatia workflow_audit/missing_timeout_minutes fires on reusable-workflow CALLER jobs (governance/hypatia-scan/mirror/scorecard/secret-scanner/spark-theatre-gate all `uses:` hyperpolymath/standards). timeout-minutes is invalid on `uses:` jobs — real fix belongs in the standards reusable workflows + Hypatia should exempt caller jobs. Not fixable in my-lang.", severity = "medium" },
   { id = "expect-hot-path", description = "Hypatia code_safety/expect_in_hot_path: parser.rs (157), lib/common/string.rs (1), examples/measure_depth.rs (2). CWE-754 — replace expect() with recoverable errors in shipped hot paths.", severity = "medium" },
 ]
 
 [critical-next-actions]
 actions = [
-  { priority = 1, description = "Resolve the product/elimination design decision (additive & vs multiplicative ⊗ + let-pair) so F1.4 preservation can proceed soundly", estimate = "decision + 8-16 hours proof" },
-  { priority = 2, description = "F5: add .github/workflows/proofs.yml — coqc solo-core + idris2 --build (mirror echo-types agda.yml); closes proof-ci=absent", estimate = "3-4 hours" },
+  { priority = 1, description = "S3c: n-party operational metatheory — full label-union merge + n-party subject reduction / progress (coherence ⇒ safety); the last structure-climb rung", estimate = "large" },
+  { priority = 2, description = "S1.3b-meta: μ typing / subject-reduction up-to-unfolding (PT_Unfold rule + soundness + up-to-unfolding inversions)", estimate = "large" },
   { priority = 3, description = "F1.2: extend to four-point affine semiring (add ? = at-most-once quantity)", estimate = "6-8 hours" },
   { priority = 4, description = "Echo parser syntax stage 2: Echo<A => B> surface syntax in solo dialect", estimate = "4-6 hours" },
 ]
@@ -87,4 +107,4 @@ ci-governance = "pass"
 ci-security-scan = "pass"
 ci-rust-tests = "pass"
 ci-pr = "PR #92 — all 18 checks green (governance, scans, SPARK, Hypatia success, CodeQL neutral)"
-proof-build = "pass — coqc 7/7 modules; idris2 --build 7/7; progress total & axiom-free"
+proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3c.3-msg, E4)"

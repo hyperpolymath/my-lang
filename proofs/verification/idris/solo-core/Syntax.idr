@@ -3,15 +3,22 @@
 --
 -- Syntax of the Solo core of my-lang.
 --
--- Solo = simply-typed lambda calculus + Unit + pairs + sums + let,
--- with every binder annotated by a QTT quantity q ∈ {0, 1, omega}.
--- We use untyped de Bruijn indices here; Typing.idr layers the
--- QTT typing judgement on top.
+-- Solo = simply-typed lambda calculus + Unit + the TWO genuine linear
+-- products + sums + let, with every binder annotated by a QTT quantity
+-- q ∈ {0, 1, omega}. Untyped de Bruijn indices here; Typing.idr layers
+-- the QTT typing judgement on top.
 --
--- This is the affine/linear *kernel* of the solo dialect. The
--- surface dialect (`dialects/solo/`) adds arena allocation,
--- references (`&`/`&mut`), structs, and contracts; those are
--- layered on this kernel in later tracks (see ALIGNMENT-PLAN.md).
+-- TWO PRODUCTS (ADR-007, mirrored from the Coq twin SoloCore.v):
+--   * additive    `a & b`   (TWith)   — intro `With t1 t2`, shared usage,
+--                                        eliminated by projections Fst/Snd;
+--   * multiplicative `a (X) b` (TTensor) — intro `Tensor t1 t2`, split usage,
+--                                        eliminated by `LetPair` (binds 2).
+-- The earlier single conflated `TPair` (split-at-intro + project-at-elim)
+-- was neither `&` nor `(X)` and strictly weaker than both; it is gone.
+--
+-- This is the affine/linear *kernel* of the solo dialect. The surface
+-- dialect (`dialects/solo/`) adds arena allocation, references
+-- (`&`/`&mut`), structs, and contracts; layered on this kernel later.
 --
 -- Deliberately EXCLUDED from the Solo kernel (deferred to the
 -- duet / ensemble / me dialects and to later tracks):
@@ -40,7 +47,10 @@ import EchoMode
 public export
 data Ty : Type where
   TUnit : Ty
-  TPair : Ty -> Ty -> Ty
+  ||| Additive product `a & b`: shared usage, projected by Fst/Snd.
+  TWith : Ty -> Ty -> Ty
+  ||| Multiplicative product `a (X) b`: split usage, eliminated by let-pair.
+  TTensor : Ty -> Ty -> Ty
   TSum  : Ty -> Ty -> Ty
   TArr  : Q -> Ty -> Ty -> Ty
   ||| Echo residue type former: `m Echo<a => b>`. The proof-relevant
@@ -59,15 +69,21 @@ data Ty : Type where
 |||
 ||| `Lam` carries the quantity annotation and domain type of the
 ||| bound variable. `Case` binds one variable in each branch.
+||| `LetPair` binds TWO variables in its body (x at index 1, y at 0).
 public export
 data Tm : Type where
   Var   : Nat -> Tm
   UnitT : Tm
   Lam   : Q -> Ty -> Tm -> Tm
   App   : Tm -> Tm -> Tm
-  Pair  : Tm -> Tm -> Tm
+  ||| Additive pair `<t1, t2> : a & b`.
+  With  : Tm -> Tm -> Tm
   Fst   : Tm -> Tm
   Snd   : Tm -> Tm
+  ||| Multiplicative pair `(t1, t2) : a (X) b`.
+  Tensor  : Tm -> Tm -> Tm
+  ||| `let (x, y) = e1 in e2` — e2 binds two vars (x@1, y@0).
+  LetPair : Tm -> Tm -> Tm
   Inl   : Ty -> Tm -> Tm  -- annotation = the *other* summand
   Inr   : Ty -> Tm -> Tm
   Case  : Tm -> Tm -> Tm -> Tm
@@ -92,18 +108,21 @@ data Tm : Type where
 -- capture-avoiding de Bruijn substitution: `shift` renumbers free
 -- variables when pushing under a binder, `substAt j u t` replaces
 -- de Bruijn index `j` by `u`, and `subst0` is the index-0 case the
--- reduction rules use. Coq twin: the same operations in Syntax.v.
+-- reduction rules use. Coq twin: the same operations in SoloCore.v.
 
-||| `shift c t`: increment every free variable `>= c` by one.
+||| `shift c t`: increment every free variable `>= c` by one. The
+||| cutoff grows by one under each binder (by two under LetPair's body).
 public export
 shift : Nat -> Tm -> Tm
 shift c (Var k)        = if k < c then Var k else Var (S k)
 shift c UnitT          = UnitT
 shift c (Lam q a t)    = Lam q a (shift (S c) t)
 shift c (App t1 t2)    = App (shift c t1) (shift c t2)
-shift c (Pair t1 t2)   = Pair (shift c t1) (shift c t2)
+shift c (With t1 t2)   = With (shift c t1) (shift c t2)
 shift c (Fst t)        = Fst (shift c t)
 shift c (Snd t)        = Snd (shift c t)
+shift c (Tensor t1 t2) = Tensor (shift c t1) (shift c t2)
+shift c (LetPair t1 t2) = LetPair (shift c t1) (shift (S (S c)) t2)
 shift c (Inl b t)      = Inl b (shift c t)
 shift c (Inr a t)      = Inr a (shift c t)
 shift c (Case t tL tR) = Case (shift c t) (shift (S c) tL) (shift (S c) tR)
@@ -123,9 +142,12 @@ substAt j u (Var k) = case compare k j of
 substAt j u UnitT          = UnitT
 substAt j u (Lam q a t)    = Lam q a (substAt (S j) (shift 0 u) t)
 substAt j u (App t1 t2)    = App (substAt j u t1) (substAt j u t2)
-substAt j u (Pair t1 t2)   = Pair (substAt j u t1) (substAt j u t2)
+substAt j u (With t1 t2)   = With (substAt j u t1) (substAt j u t2)
 substAt j u (Fst t)        = Fst (substAt j u t)
 substAt j u (Snd t)        = Snd (substAt j u t)
+substAt j u (Tensor t1 t2) = Tensor (substAt j u t1) (substAt j u t2)
+substAt j u (LetPair t1 t2) =
+  LetPair (substAt j u t1) (substAt (S (S j)) (shift 0 (shift 0 u)) t2)
 substAt j u (Inl b t)      = Inl b (substAt j u t)
 substAt j u (Inr a t)      = Inr a (substAt j u t)
 substAt j u (Case t tL tR) =
@@ -139,3 +161,16 @@ substAt j u (Weaken t)     = Weaken (substAt j u t)
 public export
 subst0 : Tm -> Tm -> Tm
 subst0 u t = substAt 0 u t
+
+||| Two-variable substitution for the let-pair eliminator: replace de
+||| Bruijn index 1 by `u1` and index 0 by `u2`, as two sequential single
+||| substitutions. The inner pass substitutes index 0 by `u2`; because the
+||| index-1 binder is still present during that pass, `u2`'s free variables
+||| must skip it, so `u2` is pre-shifted with `shift 0`. The outer pass then
+||| substitutes `u1` for the (now index-0) former index-1 binder. Correct for
+||| OPEN `u1` `u2` (needed by preservation, where the tensor components are
+||| typed in a non-empty context); for CLOSED `u1` `u2` the `shift 0` is the
+||| identity. Mirrors `subst2` in the Coq twin.
+public export
+subst2 : Tm -> Tm -> Tm -> Tm
+subst2 u1 u2 t = subst0 u1 (subst0 (shift 0 u2) t)

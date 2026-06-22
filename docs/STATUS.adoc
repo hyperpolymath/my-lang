@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= my-lang — Status: Musts / Intends / Wishes
+:toc:
+:sectnums:
+:revdate: 2026-06-19
+
+Snapshot of where my-lang stands, grouped by contractile priority — *Must*
+(hard normative obligation; see `.machine_readable/contractiles/Mustfile.a2ml`),
+*Intend* (roadmap; `Intentfile.a2ml`), *Wish* (stretch / blocked). The
+**normative must is my-lang itself**: the language being sound, and that
+soundness living in the compiler rather than only on paper.
+
+Status legend: `[x]` done / merged · `[~]` in progress · `[ ]` not started ·
+`[!]` blocked. The authoritative proof registry is `proofs/STATUS.md`; this
+file is the priority-grouped programme view.
+
+== Position (one line)
+
+my-lang's normative must is met — the Coq metatheory is complete and
+axiom-free, the verified usage-checker is merged into the Rust toolchain, and
+the Idris twin's `preservation` (#108) is now DISCHARGED (total, hole-free;
+`:total preservation`). The solo core is hole-free on both tracks.
+
+== MUST — my-lang itself (sound core, verified-coupled, compiling)
+
+[cols="4,1,2",options="header"]
+|===
+| Item | Status | Where
+| QTT core soundness (Coq): `progress` / `preservation` / `affine_pres`, axiom-free, CI-gated | `[x]` | `main`
+| Algorithmic checker `check` (R5) + affine decision `aff_type_dec` (R5b), Coq | `[x]` | `main`
+| `me -> solo` elaboration adequacy (M1), Coq | `[x]` | `main`
+| Session-pi soundness S1–S3c.3 (Ensemble / Duet by projection), Coq | `[x]` | `main`
+| Echo residue-measure seam (E4), Coq | `[x]` | `main`
+| Verified usage-checker IN the compiler — `my-qtt` (faithful R5/R5b port) | `[x]` | `main` (PR #116)
+| Surface -> core coupling (named engine + real `ast::Expr` bridge) | `[x]` | `main` (PR #117)
+| Idris twin `progress` (total, hole-free) | `[x]` | `main`
+| Working compiler pipeline parse->HIR->MIR->LLVM->native (x86_64 / aarch64) | `[x]` | `main`
+| **Idris twin `preservation` (#108)** — full `htSubst` + `subst2Lemma` + `uaddAssoc`, `Step`-induction, total + hole-free | `[x]` | `claude/dreamy-hypatia-O8XHo`
+|===
+
+== INTEND — planned next
+
+[cols="4,1,3",options="header"]
+|===
+| Item | Status | Note
+| Make the resource axis the *default* in `crates/my-lang/src/checker.rs` | `[ ]` | the QTT bridge is opt-in (`qtt_bridge::check_expr`) today
+| Surface *quantity syntax* so the bridge enforces real per-binder linearity | `[ ]` | `Param` has no quantity field; bridge defaults to `One`
+| `wasm32` via the existing LLVM backend (`TargetSpec::wasm32` + `wasm-ld`) | `[ ]` | fastest target leg; backend already emits objects
+| `RISC-V` (`riscv64gc-unknown-linux-gnu`) via LLVM | `[ ]` | near-free once `wasm32` target wiring exists
+|===
+
+== WISH — stretch / blocked
+
+[cols="4,1,3",options="header"]
+|===
+| Item | Status | Note
+| typed-wasm WasmGC verified leg | `[!]` blocked | needs `typed-wasm` / AffineScript / Ephapax added to the working session; gated upstream on WasmGC recursive types
+| Android / iOS via Tauri 2.0+ / Dioxus | `[ ]` | policy-documented, no integration code
+| Duet / Ensemble dialect compilers | `[ ]` | scaffold only; Solo is the live dialect
+| Full surface coverage in the bridge (binary / `match` / records / AI exprs) | `[ ]` | resource fragment only today (the rest returns `Unsupported`)
+|===
+
+== Provenance
+
+* Coq: axiom-free (`Print Assumptions` closed), CI-gated (`.github/workflows/proofs.yml`), no `Admitted`/`Axiom` in the trusted base.
+* Idris: `idris2 --build solo-core.ipkg` exits 0, `%default total`, no postulates / `believe_me` / `assert_total`; the solo core is HOLE-FREE (`preservation`, `affinePreservation`, `subst2Lemma`, `uaddAssoc`, `substLemma0`, `htSubst` all `:total`).
+* Rust: `cargo test -p my-qtt` (20 tests incl. the R5/R5b `reflexivity` oracle tests + the surface-coupling tests) and `cargo test -p my-lang qtt_bridge` (6 tests) green.
+* Landed this programme increment: PR #116 (`my-qtt`), PR #117 (coupling step 2); `preservation` #108 discharged (this increment).

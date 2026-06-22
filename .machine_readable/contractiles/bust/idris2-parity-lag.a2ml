@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MPL-2.0
+# bust/idris2-parity-lag.a2ml — Failure mode: Idris2 twin lags Coq canonical
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# Verb: bust
+# Scope: my-lang Idris2 mechanised solo-core (twin of the canonical Coq core)
+# Failure mode: Idris2 ?todo_preservation open while Coq F1.4 is closed
+
+@abstract:
+The Idris2 twin of the mechanised solo-core is behind the Coq canonical.
+F1.4 preservation is discharged in Coq (axiom-free, PR #104) but
+?todo_preservation remains open on the Idris2 track (issue #108).
+This is a parity-lag failure mode: the spec the Rust checker must
+satisfy is split across two mechanisations that are not in sync.
+@end
+
+## Failure Mode
+
+### idris2-preservation-open
+- class: parity_lag
+- description: ?todo_preservation in proofs/verification/idris/ is not discharged.
+    The Idris2 twin cannot independently verify F1.4 preservation.
+- detection: "grep -r '?todo_preservation' proofs/verification/idris/ 2>/dev/null | grep -c ."
+- recovery_probe: "test -z \"$(grep -r '?todo_preservation' proofs/verification/idris/ 2>/dev/null)\""
+- recovery_path: >
+    Discharge ?todo_preservation on the Idris2 track following the Coq template.
+    Key: open-context substitution generalisation (ht_subst analogue in Idris2).
+    Subst2 is subst0 u1 (subst0 (shift 0 u2) t) — carry the shifted-substituend
+    lemma from the Coq ContextProps.v track.
+- expected_recovery_time_seconds: 14400
+- escalation: File GitHub issue (already filed as #108); track as in_progress in Intentfile
+- status: declared
+- notes: Coq F1.4 is done. The open-context subst2 generalisation is the template.
+
+### idris2-build-broken
+- class: build_integrity
+- description: idris2 --build for the solo-core package fails; the Idris2
+    mechanised core does not compile.
+- detection: "cd proofs/verification/idris && idris2 --build solo-core.ipkg 2>&1 | grep -q 'error'"
+- recovery_path: >
+    Run idris2 --build; fix type errors.  Usually triggered by upstream
+    Idris2 API changes.  Pin the Idris2 version in CI to 0.7.0 until the
+    solo-core is updated.
+- expected_recovery_time_seconds: 1800
+- status: declared

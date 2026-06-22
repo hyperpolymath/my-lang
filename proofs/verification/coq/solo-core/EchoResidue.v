@@ -26,12 +26,11 @@
 (* reindexing modality over a thin poset (design note §6).    *)
 (* ========================================================== *)
 
-Require Import Quantity.
+(* Quantity import dropped — it was vestigial (no Quantity symbol used here).
+   Syntax/Usage/Typing/Soundness merged into the consolidated SoloCore functor;
+   its bare names (has_type, step, TEcho, MkEcho, Weaken, ...) come from there. *)
 Require Import EchoMode.
-Require Import Syntax.
-Require Import Usage.
-Require Import Typing.
-Require Import Soundness.
+Require Import SoloCore.
 
 (** * 1. The weakening is well-typed and reduces (kernel-backed).
 

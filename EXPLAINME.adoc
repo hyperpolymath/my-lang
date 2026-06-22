@@ -101,8 +101,12 @@ link:docs/design/echo-types-integration.md[docs/design/echo-types-integration.md
 
 | `proofs/verification/coq/solo-core/`
 | Coq mechanisation: `Quantity.v` (semiring laws, all real `Qed`),
-  `Syntax.v`, `Context.v`, `Typing.v`, `Soundness.v` (progress /
-  preservation as named `Prop`s — no `Admitted` in the trusted base).
+  `ResourceAlgebra.v` (the `SEMIRING` resource-algebra boundary), and
+  `SoloCore.v` — the consolidated functor whose `progress` /
+  `preservation` / `affine_pres` are real axiom-free `Qed`, proved
+  parametrically over `SEMIRING` (`Include SoloCoreF Linear3` recovers
+  the concrete development). Plus `EchoMode.v` / `EchoResidue.v` and the
+  parallel `Context.v` / `ContextProps.v`.
 
 | `proofs/verification/idris/solo-core/`
 | Idris2 twin: same five modules plus `.ipkg`. Semiring laws by

@@ -1,0 +1,95 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Affirmation
+:toc: preamble
+:sectnums:
+:revdate: 2026-06-21T02:22:08Z
+:revnumber: 2
+
+This AFFIRMATION records the standing of *my-lang* against the hyperpolymath
+standards and this project's own honesty discipline, at the timestamp below.
+It follows the AFFIRMATION convention of the hyperpolymath `standards`
+repository (governance + Hypatia); that guidance could not be read in the
+session that authored this file, so it is followed *in spirit*, per the RSR
+(Rhodium Standard Repository) discipline this repo consumes. Refine against
+the canonical template when `standards` is in scope.
+
+This is a point-in-time affirmation, not a perpetual claim: it is true of the
+verified state at `:revdate:` and is superseded by the next dated affirmation.
+
+== Scope of affirmation
+
+my-lang is the QTT (quantitative type theory) multi-dialect language with a
+mechanised solo-core proved on *dual tracks* (Coq + Idris2) and an AI-first
+Rust compiler. The normative obligation — the *must* — is that the language be
+*sound*, and that its soundness *live in the compiler* and not merely on paper.
+
+== Affirmed true at this timestamp
+
+To the verified state of this repository, I affirm:
+
+. *Soundness is mechanised, not asserted — now on BOTH tracks.* The Coq
+  solo-core proves `progress`, `preservation`, and `affine_pres`; the
+  algorithmic checker (`check`, R5) and the affine decision (`aff_type_dec`,
+  R5b); the `me -> solo` elaboration adequacy (M1); the session-pi metatheory
+  through S3c.3; and the echo residue-measure seam (E4). All are real `Qed`,
+  *axiom-free* (`Print Assumptions` closed), and CI-gated. The *Idris2 twin*
+  now also proves both `progress` and `preservation` (#108, discharged
+  2026-06-21): total, hole-free functions under `%default total` with no
+  postulates — `:total preservation` confirms — via the QTT substitution
+  lemmas `htSubst` / `substLemma0` / `subst2Lemma` (with `uaddAssoc`). The
+  solo core is hole-free on both tracks.
+
+. *No overclaim.* Every proof hole is recorded as an obligation, never as a
+  result (`proofs/STATUS.md` is authoritative and wins over any prose).
+  Honest-scope and matched-negative discipline is kept throughout the
+  formalisation.
+
+. *The coupling is real.* The machine-checked usage-walk is now executed by
+  the compiler, not re-implemented ad hoc: `crates/my-qtt` is a faithful Rust
+  port of the Coq R5/R5b algorithm (checked against that algorithm's own
+  `reflexivity` examples), and `crates/my-lang/src/qtt_bridge.rs` lowers the
+  running compiler's real `ast::Expr` onto it. The proofs and the
+  implementation are no longer disconnected universes.
+
+. *Provenance is honoured.* MPL-2.0 throughout; SPDX headers on files; sole
+  -maintainer governance (`GOVERNANCE.adoc`); RSR-consumer status; no
+  postulates, no `--safe` weakening, no escape pragmas in the trusted base.
+
+== Integrity basis
+
+* Coq: `.github/workflows/proofs.yml` compiles the solo-core and asserts the
+  headline theorems are axiom-free on every PR touching `proofs/verification/**`.
+* Idris2: `idris2 --build solo-core.ipkg` exits 0 under `%default total`,
+  no postulates / `believe_me` / `assert_total`; the solo core is HOLE-FREE
+  (`preservation`, `affinePreservation`, `htSubst`, `substLemma0`,
+  `subst2Lemma`, `uaddAssoc` all `:total`).
+* Rust: `cargo test -p my-qtt` and `cargo test -p my-lang qtt_bridge` green;
+  `my-qtt` carries the R5/R5b oracle tests.
+
+== Affirmed NOT done (the honest boundary)
+
+The normative *must* (a mechanised-sound core, coupled into the compiler) is
+met on both proof tracks. What remains is *intends* and *wishes*
+(`docs/STATUS.adoc`), affirmed as NOT done: making the QTT axis the *default*
+in `checker.rs`; surface quantity syntax for real per-binder linearity; the
+`wasm32` and `RISC-V` backend legs; the typed-wasm WasmGC verified leg
+(blocked on `typed-wasm` / AffineScript / Ephapax being added to the session);
+and Android / iOS via Tauri / Dioxus. The non-Solo dialect compilers (Duet /
+Ensemble) are scaffold only.
+
+== Affirmation
+
+I affirm the above as a true account of this repository's verified standing at
+the timestamp recorded, and I stand behind its honesty discipline: nothing
+herein is described as proved that a proof assistant does not accept today.
+
+[cols="1,3"]
+|===
+| Affirmed by | Jonathan D.A. Jewell (@hyperpolymath) <j.d.a.jewell@open.ac.uk>
+| Repository  | hyperpolymath/my-lang
+| Timestamp (UTC) | 2026-06-21T02:22:08Z
+| Verified basis | `claude/dreamy-hypatia-O8XHo` (Idris `preservation` #108 discharged, solo core hole-free) atop `main` @ `a7765e7` (PR #116 `my-qtt`, PR #117 coupling step 2)
+| Authority | `proofs/STATUS.md` (proofs) · `docs/STATUS.adoc` (programme) · `.machine_readable/contractiles/Mustfile.a2ml` (invariants)
+|===

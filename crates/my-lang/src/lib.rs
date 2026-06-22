@@ -23,6 +23,7 @@ pub mod scope;
 pub mod stdlib;
 pub mod token;
 pub mod types;
+pub mod qtt_bridge;
 
 // Library modules (common utilities and language-specific features)
 #[path = "../lib/mod.rs"]

@@ -3,7 +3,7 @@
 
 # Design note: integrating `echo-types` into the my-lang type checker
 
-**Status:** accepted (slice 1) · **Date:** 2026-06-02 · **PR:** #86
+**Status:** accepted (slices 1 + 3 landed) · **Date:** 2026-06-02, updated 2026-06-14 · **PR:** #86 (slice 1), #92 (slice 3)
 **Upstream:** [`hyperpolymath/echo-types`](https://github.com/hyperpolymath/echo-types)
 (Agda library) · executable companion
 [`hyperpolymath/EchoTypes.jl`](https://github.com/hyperpolymath/EchoTypes.jl)
@@ -112,12 +112,16 @@ function / operation), not introduced now to avoid overloading. Witnesses
 are **erased** initially.
 
 ```
-Stage 1 (this PR): checker-only Echo type former        ← done
-Stage 2: parser syntax for Echo<A => B> (solo)
-Stage 3: proof-layer residue object (EchoResidue, Coq/Idris)
+Stage 1 (PR #86): checker-only Echo type former         ← done
+Stage 2: parser syntax for Echo<A => B> (solo)          ← pending
+Stage 3: proof-layer residue object (EchoResidue, Coq/Idris)  ← done (PR #92)
+         — and Echo is now a first-class former in the mechanised
+         KERNEL: TEcho type + MkEcho/Weaken terms + THEcho/THWeaken
+         typing rules + echo reductions, covered by both progress
+         and preservation (F1.3 / F1.4).
 Stage 4: optional runtime witness — only if audit/provenance needs
          observable evidence; modelled as a single residue record,
-         not a whole fiber
+         not a whole fiber                              ← pending
 ```
 
 ## 6. Claim boundary
