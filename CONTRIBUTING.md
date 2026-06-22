@@ -1,23 +1,15 @@
+<!-- SPDX-License-Identifier: MPL-2.0-or-later -->
+<!-- Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
 # Clone the repository
-<<<<<<< HEAD
-git clone https://github.com/hyperpolymath/my-lang-archive.git
-cd my-lang-archive
-=======
 git clone https://github.com/hyperpolymath/my-lang.git
 cd my-lang
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
 
 # Using Nix (recommended for reproducibility)
 nix develop
 
 # Or using toolbox/distrobox
-<<<<<<< HEAD
-toolbox create my-lang-archive-dev
-toolbox enter my-lang-archive-dev
-=======
 toolbox create my-lang-dev
 toolbox enter my-lang-dev
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
 # Install dependencies manually
 
 # Verify setup
@@ -27,11 +19,7 @@ just test    # Run test suite
 
 ### Repository Structure
 ```
-<<<<<<< HEAD
-my-lang-archive/
-=======
 my-lang/
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
 ├── src/                 # Source code (Perimeter 1-2)
 ├── lib/                 # Library code (Perimeter 1-2)
 ├── extensions/          # Extensions (Perimeter 2)
@@ -100,17 +88,10 @@ Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md) an
 
 Look for issues labelled:
 
-<<<<<<< HEAD
-- [`good first issue`](https://github.com/hyperpolymath/my-lang-archive/labels/good%20first%20issue) — Simple Perimeter 3 tasks
-- [`help wanted`](https://github.com/hyperpolymath/my-lang-archive/labels/help%20wanted) — Community help needed
-- [`documentation`](https://github.com/hyperpolymath/my-lang-archive/labels/documentation) — Docs improvements
-- [`perimeter-3`](https://github.com/hyperpolymath/my-lang-archive/labels/perimeter-3) — Community sandbox scope
-=======
 - [`good first issue`](https://github.com/hyperpolymath/my-lang/labels/good%20first%20issue) — Simple Perimeter 3 tasks
 - [`help wanted`](https://github.com/hyperpolymath/my-lang/labels/help%20wanted) — Community help needed
 - [`documentation`](https://github.com/hyperpolymath/my-lang/labels/documentation) — Docs improvements
 - [`perimeter-3`](https://github.com/hyperpolymath/my-lang/labels/perimeter-3) — Community sandbox scope
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
 
 ---
 
