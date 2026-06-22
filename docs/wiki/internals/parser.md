@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Parser Internals
 
 The parser converts a stream of tokens into an Abstract Syntax Tree (AST).

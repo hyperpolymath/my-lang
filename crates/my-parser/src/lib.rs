@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Parser scaffolding for the My Language toolchain (Solo → Duet → Ensemble).
 //! This module exposes `Parser` helpers used by the upcoming Menhir/Tokio-driven
 //! parser and serves as the reference point for the Solo v1 grammar and Duet/Ensemble

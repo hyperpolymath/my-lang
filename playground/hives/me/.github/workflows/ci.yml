@@ -1,18 +1,16 @@
 name: CI
-
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
-
+    branches: [main]
 env:
   CARGO_TERM_COLOR: always
-
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions-rs/toolchain@v1
@@ -24,10 +22,10 @@ jobs:
         with:
           command: test
           args: --all-features --workspace
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions-rs/toolchain@v1
@@ -46,10 +44,10 @@ jobs:
         with:
           command: clippy
           args: --all-features -- -D warnings
-
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions-rs/toolchain@v1

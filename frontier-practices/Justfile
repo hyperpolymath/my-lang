@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 # Seven Tentacles - Justfile
 # Teaching Compiler Architecture Ages 8-18
 
@@ -16,13 +18,18 @@ build-docs:
     @asciidoctor -D dist/docs README.adoc VISION.adoc 2>/dev/null || echo "Note: Install asciidoctor for full docs build"
     @echo "✅ Documentation built in dist/docs/"
 
-# Build ReScript agents (when rescript is installed)
+# Type-check the AffineScript agents (requires the `affinescript` compiler).
+# AffineScript has no project-manifest build; the compiler is invoked per
+# file. See BUILD.adoc for the full per-entry-point command list.
+# Front door: `deno run -A npm:@hyperpolymath/affinescript check <file>`.
 build-agents:
-    @echo "🐙 Building agents..."
-    @if [ -f "node_modules/.bin/rescript" ]; then \
-        npx rescript build; \
+    @echo "🐙 Type-checking AffineScript agents..."
+    @if command -v affinescript >/dev/null 2>&1; then \
+        for f in agents/Types.affine agents/RedAgent.affine agents/OrangeAgent.affine agents/YellowAgent.affine agents/GreenAgent.affine agents/BlueAgent.affine agents/IndigoAgent.affine agents/VioletAgent.affine tools/RevealSystem.affine; do \
+            echo "  check $$f"; affinescript check "$$f" || exit 1; \
+        done; \
     else \
-        echo "Note: Run 'npm install' to enable ReScript builds"; \
+        echo "Note: install the 'affinescript' compiler (or use 'deno run -A npm:@hyperpolymath/affinescript') to type-check. See BUILD.adoc"; \
     fi
 
 # Start development server
@@ -71,7 +78,7 @@ test:
 # Watch for changes and rebuild
 watch:
     @echo "👀 Watching for changes..."
-    @watchexec -e res,adoc,html,css,js "just build"
+    @watchexec -e affine,adoc,html,css,js "just build"
 
 # Clean build artifacts
 clean:
@@ -127,12 +134,15 @@ status:
     @echo "=================================="
     @echo ""
     @echo "📁 Structure:"
-    @echo "  Agents:     $(find agents -name '*.res' 2>/dev/null | wc -l) files"
-    @echo "  Tools:      $(find tools -name '*.res' -o -name '*.html' 2>/dev/null | wc -l) files"
-    @echo "  Languages:  $(find languages -name '*.res' -o -name '*.js' 2>/dev/null | wc -l) files"
+    @echo "  Agents:     $(find agents -name '*.affine' 2>/dev/null | wc -l) files"
+    @echo "  Tools:      $(find tools -name '*.affine' -o -name '*.html' 2>/dev/null | wc -l) files"
+    @echo "  Languages:  $(find languages -name '*.affine' -o -name '*.js' 2>/dev/null | wc -l) files"
     @echo ""
     @echo "📚 Curriculum:"
     @just count-lessons
     @echo ""
     @echo "📖 Documentation:"
     @ls -1 *.adoc docs/*.adoc 2>/dev/null | wc -l | xargs echo "  AsciiDoc files:"
+
+secret-scan-trufflehog:
+    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true

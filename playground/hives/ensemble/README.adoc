@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Ensemble Playground
 :toc: macro
 :icons: font
 
-// SPDX-License-Identifier: MPL-2.0
 
 *Playground for Ensemble - AI-Native Application Language*
 
@@ -89,3 +91,4 @@ Culmination of My-Lang family:
 == License
 
 SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>

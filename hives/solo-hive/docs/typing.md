@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Solo Typing (Core Rules)
 
 This defines the Solo core type system over the grammar in `syntax.md`.

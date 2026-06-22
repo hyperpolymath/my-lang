@@ -1,7 +1,14 @@
 -R . SoloCore
 
 Quantity.v
-Syntax.v
+EchoMode.v
+ResourceAlgebra.v
+SoloCore.v
+Eval.v
+Tropical.v
 Context.v
-Typing.v
-Soundness.v
+ContextProps.v
+EchoResidue.v
+EchoMeasure.v
+SessionPi.v
+SessionEval.v

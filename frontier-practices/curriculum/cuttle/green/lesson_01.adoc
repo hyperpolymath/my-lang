@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Lesson 1: Building Blocks
 :lesson-id: cuttle-green-01
 :agent: Green

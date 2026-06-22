@@ -11,9 +11,12 @@ authors = "Jonathan D.A. Jewell"
 license = "MPL-2.0"
 
 modules = Quantity
+        , EchoMode
         , Syntax
         , Context
         , Typing
         , Soundness
+        , EchoResidue
+        , Substitution
 
 main = Soundness

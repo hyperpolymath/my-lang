@@ -1,0 +1,186 @@
+// SPDX-License-Identifier: MPL-2.0
+// Types.affine - Shared types for the Seven Tentacles agent system
+//
+// Ported from Types.res (ReScript -> AffineScript). See CONVERSION-NOTES.md
+// for the full mapping and every nontrivial decision.
+
+module Types;
+
+use prelude::{ Option, Some, None };
+// `Deno::random_in_range(lo, hi)` — uniform integer draw in [lo, hi). Used by
+// `random_element` below as the replacement for ReScript's
+// `Js.Math.random_int`. See stdlib/Deno.affine.
+use Deno;
+
+// Age stages in the cephalopod journey
+pub enum Stage {
+  Cuttle,      // Ages 8-12
+  Squidlet,    // Ages 13-14
+  Duet,        // Age 15
+  Octopus,     // Ages 16+
+}
+
+// Agent colors matching compiler components
+pub enum AgentColor {
+  Red,     // Parser
+  Orange,  // Concurrency
+  Yellow,  // Type System
+  Green,   // AST Architect
+  Blue,    // Auditor
+  Indigo,  // Metaprogrammer
+  Violet,  // Governance
+}
+
+// Lesson difficulty levels
+pub enum Difficulty {
+  Introductory,
+  Beginner,
+  Intermediate,
+  Advanced,
+  Expert,
+}
+
+// Game configuration
+pub struct GameConfig {
+  gameName: String,
+  rules: [String],
+  winCondition: String,
+}
+
+// Puzzle configuration
+pub struct PuzzleConfig {
+  puzzleType: String,
+  pieces: Int,
+  solution: String,
+}
+
+// Creative activity configuration
+pub struct CreativeConfig {
+  medium: String,
+  prompt: String,
+}
+
+// Challenge configuration
+pub struct ChallengeConfig {
+  challengeType: String,
+  timeLimit: Option<Int>,
+  scoring: String,
+}
+
+// Types of activities
+pub enum ActivityType {
+  Game(GameConfig),
+  Puzzle(PuzzleConfig),
+  Creative(CreativeConfig),
+  Challenge(ChallengeConfig),
+}
+
+// An activity within a lesson
+pub struct Activity {
+  activityId: String,
+  activityType: ActivityType,
+  instructions: String,
+  hints: [String],
+}
+
+// A lesson in the curriculum
+pub struct Lesson {
+  id: String,
+  title: String,
+  agent: AgentColor,
+  stage: Stage,
+  difficulty: Difficulty,
+  description: String,
+  objectives: [String],
+  activities: [Activity],
+  hiddenConcept: String,        // What they're really learning
+  revealedConcept: Option<String>, // What it becomes at reveal
+}
+
+// Agent personality traits
+pub struct Personality {
+  voice: String,         // How they speak
+  catchphrase: String,   // Their signature line
+  encouragement: [String],
+  corrections: [String],
+  celebrations: [String],
+}
+
+// Agent name at different stages
+pub struct AgentNames {
+  cuttle: String,
+  squidlet: String,
+  duet: String,
+  octopus: String,
+}
+
+// Complete agent definition
+pub struct Agent {
+  color: AgentColor,
+  names: AgentNames,
+  compilerRole: String,
+  teaches: [String],
+  personality: Personality,
+  lessons: [Lesson],
+}
+
+// Progress tracking
+pub struct LearnerProgress {
+  visitorId: String,
+  currentStage: Stage,
+  completedLessons: [String],
+  currentLesson: Option<String>,
+  favoriteAgent: Option<AgentColor>,
+  startDate: Float,
+  lastActive: Float,
+}
+
+// Helper functions
+
+pub fn stage_to_age(s: Stage) -> (Int, Int) {
+  match s {
+    Cuttle => (8, 12),
+    Squidlet => (13, 14),
+    Duet => (15, 15),
+    Octopus => (16, 99),
+  }
+}
+
+pub fn color_to_emoji(c: AgentColor) -> String {
+  match c {
+    Red => "🔴",
+    Orange => "🟠",
+    Yellow => "🟡",
+    Green => "🟢",
+    Blue => "🔵",
+    Indigo => "🟣",
+    Violet => "🟤",
+  }
+}
+
+pub fn color_to_hex(c: AgentColor) -> String {
+  match c {
+    Red => "#E74C3C",
+    Orange => "#E67E22",
+    Yellow => "#F1C40F",
+    Green => "#2ECC71",
+    Blue => "#3498DB",
+    Indigo => "#9B59B6",
+    Violet => "#8E44AD",
+  }
+}
+
+// Pick a pseudo-random element from `arr`, returning `fallback` when the
+// array is empty. Replaces the ReScript idiom
+//   arr[Js.Math.random_int(0, len)]->Option.getOr(fallback)
+// `Deno::random_in_range(lo, hi)` is the canonical uniform integer draw in
+// `[lo, hi)` (stdlib/Deno.affine; lowers to Math.floor(Math.random()*(hi-lo))+lo
+// on the --deno-esm backend). See CONVERSION-NOTES.md "RNG".
+pub fn random_element(arr: [String], fallback: String) -> String {
+  let n = len(arr);
+  if n > 0 {
+    arr[Deno::random_in_range(0, n)]
+  } else {
+    fallback
+  }
+}

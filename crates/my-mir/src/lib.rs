@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Mid-level Intermediate Representation for My Language
 //!
 //! MIR is the SSA-form IR used for optimization and codegen:

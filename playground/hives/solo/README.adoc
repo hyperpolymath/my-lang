@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Solo Playground
 :toc: macro
 :icons: font
 
-// SPDX-License-Identifier: MPL-2.0
 
 *Playground for Solo - Systems Programming Foundation Language*
 
@@ -123,3 +125,4 @@ Solo is part of the My-Lang progressive family:
 == License
 
 SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>

@@ -1,0 +1,116 @@
+# SPDX-License-Identifier: MPL-2.0
+# Intentfile (A2ML Canonical) — north-star contractile for my-lang
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# Paired runner: intend.ncl
+# Verb:          intend
+#
+# Semantics: North-star contractile. Declares BOTH concrete committed
+#            next-actions AND horizon aspirations the project wishes to
+#            become. Two sections share one file because they answer
+#            the same question at different ranges:
+#              [[intents]] — "we WILL do this; track progress"
+#                            status: declared -> in_progress -> done |
+#                                    deferred | retired
+#              [[wishes]]  — "we WISH this were true; revisit later"
+#                            status: declared -> in_progress -> achieved |
+#                                    abandoned
+#                            grouped by horizon: near / mid / far.
+#            Non-gating — this is a report, not a gate. See the `must`
+#            contractile for hard gates.
+
+@abstract:
+North-star contractile for my-lang: a multi-dialect programming language with a
+Quantitative Type Theory (QTT) semantic core, whose affine Solo kernel is
+mechanised twice (Coq + Idris2) as a first-class deliverable alongside the Rust
+compiler. Echo-types are integrated into the formal type system.
+@end
+
+## Purpose
+
+my-lang explores a QTT-cored language with THREE NESTED dialects —
+Solo (affine, single-agent) c Duet (session-typed, two-party) c Ensemble
+(multi-agent) — plus "Me", an on-the-fly agent-generated PROJECTION over the
+dialect hierarchy (NOT a fourth dialect). Formal verification of the kernel
+(progress + preservation over the separated QTT context, both products, and the
+Echo modality) is a first-class deliverable: the mechanised solo-core leads the
+Rust implementation and becomes the spec the checker must satisfy.
+
+## Anti-Purpose
+
+my-lang is NOT:
+- The RSR template repository (it is a CONSUMER of that template)
+- A single-dialect language (the dialect hierarchy is the point)
+- A dependently-typed language (Echo is the non-dependent approximation)
+- A finished compiler (the mechanised core currently leads the implementation)
+
+## If In Doubt
+
+If you are unsure whether a change is in scope, ask. Sensitive areas:
+- proofs/verification/ mechanised cores (Coq + Idris2 solo-core)
+- .machine_readable/ contractile + 6a2 definitions
+- the scope-arrest ANCHOR and AUTHORITY_STACK
+- governance / licence policy documents
+
+## Committed Next-Actions
+
+### proof-ci
+- description: Add a CI leg that runs coqc (solo-core) + idris2 --build so the
+    proofs are machine-checked, not only locally-checked (closes proof-ci=absent)
+- probe: test -f .github/workflows/proofs.yml
+- status: declared
+- notes: Mirror echo-types' agda.yml pattern; the root F5 gap
+
+### idris-track-preservation
+- description: Discharge ?todo_preservation on the Idris2 twin (Coq F1.4 is done)
+- probe: test -z "$(grep -r '?todo_preservation' proofs/verification/idris 2>/dev/null)"
+- status: in_progress
+- notes: Open-context subst2 generalisation from the Coq track is the template
+
+### four-point-semiring
+- description: Extend the three-point QTT semiring to four-point affine (add ?)
+- status: declared
+- notes: F1.2; matches proofs/solo/affine-types/formal-system.md
+
+### echo-parser-syntax
+- description: Surface syntax for Echo<A => B> in the solo dialect (slice 2)
+- status: declared
+
+## Wishes
+
+### Near Horizon
+
+#### dialect-parity
+- description: Duet + Ensemble mechanised cores reach the Solo core's rigour
+- horizon: near
+- status: declared
+
+### Mid Horizon
+
+#### effects-and-memory-metatheory
+- description: Mechanised effect-row + ownership/borrowing soundness (F2/F3)
+- horizon: mid
+- status: declared
+
+### Far Horizon
+
+#### me-projection-runtime
+- description: The "Me" projector renders dialect-hierarchy projections on the fly
+- horizon: far
+- status: declared
+- notes: Specified in tentacles-agentic-syllabus/me/README.adoc (out-of-repo)
+
+## Structure Note
+
+The six contractile verbs are intend / must / trust / adjust / bust / dust.
+intend, must, trust, adjust are SINGULAR (one flat *.a2ml each). bust and dust
+are MULTI-FILE by design and live as directories: one `bust` entry per
+failure-mode / issue, one `dust` entry per cleanup intention (e.g. uninstall,
+detach-a-component-as-plugin, larger teardown operations).
+
+### contractile-completeness
+- description: Four singular verbs present as flat files; bust/ and dust/ present
+    as (multi-file) directories
+- probe: test -f .machine_readable/contractiles/Intentfile.a2ml && test -f .machine_readable/contractiles/Mustfile.a2ml && test -f .machine_readable/contractiles/Trustfile.a2ml && test -f .machine_readable/contractiles/Adjustfile.a2ml && test -d .machine_readable/contractiles/bust && test -d .machine_readable/contractiles/dust
+- status: done
+- notes: Six verbs; bust/dust are directories (see Structure Note)

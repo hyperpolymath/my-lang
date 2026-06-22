@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Standard Library Design
 
 This document describes the design principles and patterns used in the My Language standard library, inspired by the [hyperpolymath/aggregate-library](https://github.com/hyperpolymath/aggregate-library) specification.

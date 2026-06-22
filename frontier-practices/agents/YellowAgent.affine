@@ -1,0 +1,179 @@
+// SPDX-License-Identifier: MPL-2.0
+// YellowAgent.affine - The Type System
+// Teaches: Type systems, affine types, memory safety, ownership
+//
+// Ported from YellowAgent.res. Public fns prefixed `yellow_*` to avoid
+// cross-module name collisions in RevealSystem (see CONVERSION-NOTES.md).
+
+module YellowAgent;
+
+use Types::{
+  Stage, Cuttle, Squidlet, Duet, Octopus,
+  AgentColor, Yellow,
+  Difficulty, Introductory,
+  Lesson, Activity, ActivityType, Game, Puzzle, Creative, Challenge,
+  GameConfig, PuzzleConfig, CreativeConfig, ChallengeConfig,
+  Personality, AgentNames, Agent,
+  random_element,
+};
+use prelude::{ Option, Some, None };
+
+pub fn names() -> AgentNames {
+  #{
+    cuttle: "Safety Yellow",
+    squidlet: "Checker Yellow",
+    duet: "Type System Yellow",
+    octopus: "Safety Guarantor Yellow",
+  }
+}
+
+pub fn personality() -> Personality {
+  #{
+    voice: "Careful and methodical, always making sure things are in the right place",
+    catchphrase: "Everything has its place!",
+    encouragement: [
+      "Perfect classification!",
+      "You found exactly the right spot!",
+      "That's the correct type!",
+      "You're keeping everything organized!",
+    ],
+    corrections: [
+      "Hmm, that doesn't quite fit there...",
+      "Let's check what type this is again.",
+      "Almost! But this belongs somewhere else.",
+      "The shapes don't match - let's look closer.",
+    ],
+    celebrations: [
+      "Everything is in perfect order!",
+      "Type-safe perfection!",
+      "Not a single thing out of place!",
+      "You've organized it all beautifully!",
+    ],
+  }
+}
+
+pub fn teaches() -> [String] {
+  [
+    "Classification and categorization",
+    "Rules and constraints",
+    "Logical thinking",
+    "Type checking",
+    "Affine types and ownership",
+    "Linear logic",
+    "Memory safety",
+    "Formal verification basics",
+  ]
+}
+
+// Get the agent's name for a given stage
+pub fn yellow_get_name(stage: Stage) -> String {
+  match stage {
+    Cuttle => names().cuttle,
+    Squidlet => names().squidlet,
+    Duet => names().duet,
+    Octopus => names().octopus,
+  }
+}
+
+// Get what the agent is "secretly" teaching at each stage
+pub fn yellow_get_hidden_concept(stage: Stage) -> String {
+  match stage {
+    Cuttle => "Classification and organization",
+    Squidlet => "Type checking and contracts",
+    Duet => "Type inference and affine types",
+    Octopus => "Formal type systems and proofs",
+  }
+}
+
+// Get a random encouragement message
+pub fn yellow_encourage() -> String {
+  random_element(personality().encouragement, personality().catchphrase)
+}
+
+// Get a random correction message
+pub fn yellow_correct() -> String {
+  random_element(personality().corrections, "Let's try again!")
+}
+
+// Get a random celebration message
+pub fn yellow_celebrate() -> String {
+  random_element(personality().celebrations, personality().catchphrase)
+}
+
+// Lesson definitions from curriculum/cuttle/yellow/
+pub fn lessons() -> [Lesson] {
+  [
+    #{
+      id: "cuttle-yellow-01",
+      title: "Color Sorting",
+      agent: Yellow,
+      stage: Cuttle,
+      difficulty: Introductory,
+      description: "Learn to sort and organize things by color - the basics of classification",
+      objectives: [
+        "How to identify colors",
+        "How to sort into groups",
+        "Why organization matters",
+      ],
+      activities: [
+        #{
+          activityId: "yellow-01-color-matching",
+          activityType: Puzzle(#{
+            puzzleType: "matching",
+            pieces: 4,
+            solution: "Apple=Red, Banana=Yellow, Blueberry=Blue, Lettuce=Green",
+          }),
+          instructions: "Look at these items. What color is each one? Match them!",
+          hints: ["Look at each item carefully", "Think about the color you see"],
+        },
+        #{
+          activityId: "yellow-01-sort-shapes",
+          activityType: Game(#{
+            gameName: "Sorting Game",
+            rules: ["Drag each shape to the correct color bin", "Red shapes go in Red Bin", "Blue shapes go in Blue Bin"],
+            winCondition: "All shapes correctly sorted",
+          }),
+          instructions: "Drag each shape to the correct color bin!",
+          hints: ["Look at the color of each shape", "Match it to the bin with the same color"],
+        },
+        #{
+          activityId: "yellow-01-doesnt-belong",
+          activityType: Puzzle(#{
+            puzzleType: "odd-one-out",
+            pieces: 4,
+            solution: "Lemon (yellow, not red)",
+          }),
+          instructions: "One of these is NOT like the others. Which item doesn't belong in the RED group?",
+          hints: ["Look for the item that's a different color", "The lemon stands out"],
+        },
+      ],
+      hiddenConcept: "Basic type classification",
+      revealedConcept: None,
+    },
+  ]
+}
+
+// Create the complete agent definition
+pub fn agent() -> Agent {
+  #{
+    color: Yellow,
+    names: names(),
+    compilerRole: "Type System - Ensures type safety and prevents errors at compile time",
+    teaches: teaches(),
+    personality: personality(),
+    lessons: lessons(),
+  }
+}
+
+// Reveal text shown when transitioning stages
+pub fn yellow_reveal_text(fromStage: Stage, toStage: Stage) -> Option<String> {
+  match (fromStage, toStage) {
+    (Cuttle, Squidlet) =>
+      Some("All that sorting and organizing? Yellow was teaching you about TYPES! Every category you created was like a type in a programming language."),
+    (Squidlet, Duet) =>
+      Some("Yellow has been teaching you TYPE SAFETY! When you made sure shapes fit in the right holes, you were learning how compilers prevent crashes and bugs."),
+    (Duet, Octopus) =>
+      Some("You now understand type systems deeply! You know how Yellow checks that everything fits together, preventing entire categories of bugs before code even runs."),
+    _ => None,
+  }
+}

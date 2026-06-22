@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Solo Semantics (Operational Outline)
 
 This is a minimal, implementable semantics for the Solo core. It is intended

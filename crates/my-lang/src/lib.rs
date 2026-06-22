@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! My Language: A programming language with first-class AI integration
 //!
 //! This crate provides a lexer, parser, and type checker for a language that treats
@@ -21,6 +23,7 @@ pub mod scope;
 pub mod stdlib;
 pub mod token;
 pub mod types;
+pub mod qtt_bridge;
 
 // Library modules (common utilities and language-specific features)
 #[path = "../lib/mod.rs"]

@@ -70,3 +70,5 @@ CoqMakefile.conf
 *.vos
 *.glob
 .*.aux
+.*.d
+.lia.cache

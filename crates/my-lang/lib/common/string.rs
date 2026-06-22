@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Common String Operations
 //!
 //! Generic string manipulation functions.
@@ -213,7 +215,10 @@ pub fn int_to_string_radix(n: i64, radix: u32) -> Option<String> {
 
     while num > 0 {
         let digit = (num % radix as u64) as u32;
-        let c = char::from_digit(digit, radix).unwrap();
+        // Total: `radix` is validated to 2..=36 above and `digit = num % radix`
+        // is therefore `< radix <= 36`, so `from_digit` always returns `Some`.
+        let c = char::from_digit(digit, radix)
+            .expect("digit = num % radix < radix <= 36, so from_digit is total");
         result.insert(0, c);
         num /= radix as u64;
     }

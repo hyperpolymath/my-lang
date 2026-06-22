@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Heap-profiling harness for the type checker (hyperpolymath/my-lang#14).
 //!
 //! The issue asked for `heaptrack` / `dhat` / ETW localisation of the

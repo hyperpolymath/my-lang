@@ -1,0 +1,249 @@
+// SPDX-License-Identifier: MPL-2.0
+// RevealSystem.affine - The Progressive Reveal System
+// Manages age-based transitions and concept revelations
+//
+// Ported from RevealSystem.res. See CONVERSION-NOTES.md for the mapping and
+// the cross-module name-collision decision (agent fns are uniquely prefixed,
+// so qualified calls through the `as` aliases resolve unambiguously).
+
+module RevealSystem;
+
+use Types::{
+  Stage, Cuttle, Squidlet, Duet, Octopus,
+  AgentColor, Red, Orange, Yellow, Green, Blue, Indigo, Violet,
+};
+use prelude::{ Option, Some, None };
+
+// Import all agents (mirrors `module Red = RedAgent` etc.). The `as` alias
+// binds a module qualifier; `Red::red_get_name(s)` lowers to the (uniquely
+// named) flat-imported `red_get_name`.
+use RedAgent as Red;
+use OrangeAgent as Orange;
+use YellowAgent as Yellow;
+use GreenAgent as Green;
+use BlueAgent as Blue;
+use IndigoAgent as Indigo;
+use VioletAgent as Violet;
+
+// Determine the stage based on age
+pub fn stage_from_age(age: Int) -> Stage {
+  if age < 8 {
+    Cuttle // Pre-program, but use Cuttle as default
+  } else if age <= 12 {
+    Cuttle
+  } else if age <= 14 {
+    Squidlet
+  } else if age == 15 {
+    Duet
+  } else {
+    Octopus
+  }
+}
+
+// Get the mascot name for a stage
+pub fn mascot_name(s: Stage) -> String {
+  match s {
+    Cuttle => "Cuttle the Cuttlefish",
+    Squidlet => "Squidlet the Growing Squid",
+    Duet => "The Dancing Duet",
+    Octopus => "Octavia the Octopus",
+  }
+}
+
+// Get the mascot description for a stage
+pub fn mascot_description(s: Stage) -> String {
+  match s {
+    Cuttle => "A curious baby cuttlefish exploring the ocean, learning one thing at a time",
+    Squidlet => "An adolescent squid growing bigger, starting to see how things connect",
+    Duet => "Two squid dancing together, learning to work as a team",
+    Octopus => "A wise octopus with all eight tentacles working in harmony",
+  }
+}
+
+// Get the language for a stage
+pub fn language_name(s: Stage) -> String {
+  match s {
+    Cuttle => "Me Language",
+    Squidlet => "Solo Language",
+    Duet => "Duet Language",
+    Octopus => "Ensemble Language",
+  }
+}
+
+// Get the language description for a stage
+pub fn language_description(s: Stage) -> String {
+  match s {
+    Cuttle => "Visual blocks that snap together - no typing needed!",
+    Squidlet => "Text-based code with helpful types that keep things organized",
+    Duet => "Protocols for two agents to work together",
+    Octopus => "Full orchestration of all seven agents building compilers",
+  }
+}
+
+// Get an agent's name for the current stage
+pub fn get_agent_name(color: AgentColor, stage: Stage) -> String {
+  match color {
+    Red => Red::red_get_name(stage),
+    Orange => Orange::orange_get_name(stage),
+    Yellow => Yellow::yellow_get_name(stage),
+    Green => Green::green_get_name(stage),
+    Blue => Blue::blue_get_name(stage),
+    Indigo => Indigo::indigo_get_name(stage),
+    Violet => Violet::violet_get_name(stage),
+  }
+}
+
+// Get what an agent secretly teaches at the current stage
+pub fn get_hidden_concept(color: AgentColor, stage: Stage) -> String {
+  match color {
+    Red => Red::red_get_hidden_concept(stage),
+    Orange => Orange::orange_get_hidden_concept(stage),
+    Yellow => Yellow::yellow_get_hidden_concept(stage),
+    Green => Green::green_get_hidden_concept(stage),
+    Blue => Blue::blue_get_hidden_concept(stage),
+    Indigo => Indigo::indigo_get_hidden_concept(stage),
+    Violet => Violet::violet_get_hidden_concept(stage),
+  }
+}
+
+// Get the reveal text when transitioning stages
+pub fn get_reveal_text(color: AgentColor, fromStage: Stage, toStage: Stage) -> Option<String> {
+  match color {
+    Red => Red::red_reveal_text(fromStage, toStage),
+    Orange => Orange::orange_reveal_text(fromStage, toStage),
+    Yellow => Yellow::yellow_reveal_text(fromStage, toStage),
+    Green => Green::green_reveal_text(fromStage, toStage),
+    Blue => Blue::blue_reveal_text(fromStage, toStage),
+    Indigo => Indigo::indigo_reveal_text(fromStage, toStage),
+    Violet => Violet::violet_reveal_text(fromStage, toStage),
+  }
+}
+
+// Structure for a complete stage transition reveal
+pub struct StageReveal {
+  fromStage: Stage,
+  toStage: Stage,
+  mascotChange: String,
+  languageChange: String,
+  agentReveals: [(AgentColor, String)],
+}
+
+// Generate the complete reveal when transitioning stages
+pub fn generate_stage_reveal(fromStage: Stage, toStage: Stage) -> StageReveal {
+  let colors = [Red, Orange, Yellow, Green, Blue, Indigo, Violet];
+
+  // ReScript's `colors->Array.filterMap(...)` with `Option.map(text => (color, text))`.
+  // Implemented as an explicit fold so we do not depend on the (non-public)
+  // option/array combinators in stdlib. See CONVERSION-NOTES.md "filterMap".
+  let mut agentReveals = [];
+  for color in colors {
+    match get_reveal_text(color, fromStage, toStage) {
+      Some(text) => { agentReveals = agentReveals ++ [(color, text)]; },
+      None => {}
+    }
+  }
+
+  #{
+    fromStage: fromStage,
+    toStage: toStage,
+    mascotChange:
+      mascot_name(fromStage) ++ " is growing up into " ++ mascot_name(toStage) ++ "!",
+    languageChange:
+      "You're ready for " ++ language_name(toStage) ++ ": " ++ language_description(toStage),
+    agentReveals: agentReveals,
+  }
+}
+
+// The "Big Reveal" at age 16 - when everything comes together
+pub fn the_big_reveal() -> String {
+  "
+=== THE BIG REVEAL ===
+
+You've been on an incredible journey!
+
+Remember Speedy Red? Those racing games?
+Red was teaching you PARSING - how compilers read code!
+
+Remember Juggler Orange? All that coordination?
+Orange was teaching you CONCURRENCY - how computers handle many tasks!
+
+Remember Safety Yellow? The sorting games?
+Yellow was teaching you TYPE SYSTEMS - how to prevent bugs!
+
+Remember Builder Green? Those construction projects?
+Green was teaching you AST ARCHITECTURE - how code is structured!
+
+Remember Detective Blue? Those mystery puzzles?
+Blue was teaching you VERIFICATION - how to prove code is correct!
+
+Remember Magic Indigo? Those spell-casting games?
+Indigo was teaching you METAPROGRAMMING - code that writes code!
+
+Remember Teacher Violet? Those fair-play rules?
+Violet was teaching you LANGUAGE DESIGN - how programming languages are made!
+
+For 8 YEARS, you've been learning COMPILER ARCHITECTURE.
+
+And now? You can build your own programming language.
+
+Welcome to the Octopus stage. All eight tentacles are yours.
+
+=== BUILD SOMETHING AMAZING ===
+"
+}
+
+// Calculate progress through the curriculum
+pub struct CurriculumProgress {
+  currentStage: Stage,
+  lessonsCompleted: Int,
+  lessonsTotal: Int,
+  percentComplete: Float,
+  nextMilestone: String,
+}
+
+pub fn calculate_progress(
+  completedLessons: [String],
+  currentStage: Stage
+) -> CurriculumProgress {
+  let lessonsCompleted = len(completedLessons);
+
+  let (lessonsTotal, nextMilestone) = match currentStage {
+    Cuttle => (140, "Complete all Cuttle lessons to become a Squidlet!"),
+    Squidlet => (350, "Complete all Squidlet lessons to enter the Duet stage!"),
+    Duet => (420, "Complete all Duet lessons to become an Octopus!"),
+    Octopus => (500, "You're at the top! Keep building amazing things!"),
+  };
+
+  // ReScript: Int.toFloat(a) /. Int.toFloat(b) *. 100.0.
+  // AffineScript uses plain `*` / `/` on Float (no `*.` operator) and the
+  // `float(n)` Int->Float builtin. See CONVERSION-NOTES.md "Float arithmetic".
+  let percentComplete = float(lessonsCompleted) / float(lessonsTotal) * 100.0;
+
+  #{
+    currentStage: currentStage,
+    lessonsCompleted: lessonsCompleted,
+    lessonsTotal: lessonsTotal,
+    percentComplete: percentComplete,
+    nextMilestone: nextMilestone,
+  }
+}
+
+// Check if a learner is ready to advance to the next stage
+pub fn can_advance(progress: CurriculumProgress) -> Bool {
+  match progress.currentStage {
+    Cuttle => progress.lessonsCompleted >= 140,
+    Squidlet => progress.lessonsCompleted >= 350,
+    Duet => progress.lessonsCompleted >= 420,
+    Octopus => false, // Already at top
+  }
+}
+
+// Get the next stage (if available)
+pub fn next_stage(current: Stage) -> Option<Stage> {
+  match current {
+    Cuttle => Some(Squidlet),
+    Squidlet => Some(Duet),
+    Duet => Some(Octopus),
+    Octopus => None,
+  }
+}

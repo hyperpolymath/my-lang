@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Collections utilities for My Language
 //!
 //! Provides HashMap, HashSet, and Vec helper functions.

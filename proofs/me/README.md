@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: MPL-2.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Me Dialect: Formal Specification
 
 The **Me** dialect is My Language's visual, block-based programming interface

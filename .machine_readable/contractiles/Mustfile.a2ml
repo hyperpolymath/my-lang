@@ -1,0 +1,102 @@
+# SPDX-License-Identifier: MPL-2.0
+# Mustfile — Physical state contract for my-lang
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# What MUST be true about this repository. Hard requirements.
+# Run with: must check
+# Fix with: must fix (where a deterministic fix exists)
+
+@abstract:
+Physical-state invariants for my-lang (the QTT multi-dialect language with a
+mechanised Coq + Idris2 solo-core). These are hard requirements — CI and
+pre-commit hooks fail if any check fails. my-lang is a CONSUMER of the RSR
+(Rhodium Standard Repository) template, not the template itself.
+@end
+
+## File Presence
+
+### license-present
+- description: LICENSE file must exist
+- run: test -f LICENSE
+- severity: critical
+
+### readme-present
+- description: README.adoc must exist
+- run: test -f README.adoc
+- severity: critical
+
+### security-policy
+- description: SECURITY.md must exist
+- run: test -f SECURITY.md
+- severity: critical
+
+### ai-manifest
+- description: 0-AI-MANIFEST.a2ml must exist (under 6a2/)
+- run: test -f .machine_readable/6a2/0-AI-MANIFEST.a2ml
+- severity: critical
+
+### governance-docs
+- description: GOVERNANCE.adoc, MAINTAINERS.adoc, CODEOWNERS must exist
+- run: test -f GOVERNANCE.adoc && test -f MAINTAINERS.adoc && test -f .github/CODEOWNERS
+- severity: critical
+
+### machine-readable-dir
+- description: .machine_readable/ directory must exist
+- run: test -d .machine_readable
+- severity: critical
+
+## Directory Structure
+
+### contractiles-complete
+- description: The contractiles dir exists, with bust/ and dust/ as DIRECTORIES.
+    bust and dust are multi-file by design (one bust per failure-mode/issue;
+    one dust per cleanup intention, e.g. uninstall / detach-component-as-plugin),
+    so they are directories, not single flat files.
+- run: test -d .machine_readable/contractiles && test -d .machine_readable/contractiles/bust && test -d .machine_readable/contractiles/dust
+- severity: critical
+
+### contractiles-singular-present
+- description: The four SINGULAR contractile verbs exist as flat files
+- run: test -f .machine_readable/contractiles/Intentfile.a2ml && test -f .machine_readable/contractiles/Mustfile.a2ml && test -f .machine_readable/contractiles/Trustfile.a2ml && test -f .machine_readable/contractiles/Adjustfile.a2ml
+- severity: critical
+
+### bust-dust-files-present
+- description: bust/ and dust/ each hold at least one contractile file (more allowed)
+- run: test -n "$(ls .machine_readable/contractiles/bust/*.a2ml 2>/dev/null)" && test -n "$(ls .machine_readable/contractiles/dust/*.a2ml 2>/dev/null)"
+- severity: critical
+
+### six-directory-present
+- description: 6a2 directory exists with required files
+- run: test -d .machine_readable/6a2 && test -f .machine_readable/6a2/META.a2ml && test -f .machine_readable/6a2/ECOSYSTEM.a2ml && test -f .machine_readable/6a2/STATE.a2ml && test -f .machine_readable/6a2/PLAYBOOK.a2ml && test -f .machine_readable/6a2/AGENTIC.a2ml && test -f .machine_readable/6a2/NEUROSYM.a2ml
+- severity: critical
+
+### scope-arrest-anchor
+- description: The scope-arrest ANCHOR exists at the repo root
+- run: test -n "$(ls ANCHOR.scope-arrest.*.scm 2>/dev/null)"
+- severity: warning
+
+### self-validating-structure
+- description: self-validating/ exists and holds at least one k9 contract
+- run: test -d .machine_readable/self-validating && test -n "$(ls .machine_readable/self-validating/*.k9.ncl 2>/dev/null)"
+- severity: warning
+
+## Identity
+
+### identifies-as-my-lang
+- description: The north-star contractile names my-lang as its subject (guards
+    against re-introducing un-customised upstream-template boilerplate)
+- run: grep -q 'my-lang' .machine_readable/contractiles/Intentfile.a2ml
+- severity: warning
+- notes: Template-identity / placeholder drift is tracked advisorily in Adjustfile.a2ml
+
+## Git State
+
+### no-untracked-contractiles
+- description: All contractile files are tracked in git
+- run: test -z "$(git ls-files -o --exclude-standard .machine_readable/contractiles/ 2>/dev/null)"
+- severity: critical
+
+### signed-commits
+- description: Commits should be signed (aspirational for my-lang; not yet enforced)
+- run: git verify-commit HEAD
+- severity: warning

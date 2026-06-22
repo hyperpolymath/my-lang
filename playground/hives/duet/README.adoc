@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Duet Playground
 :toc: macro
 :icons: font
 
-// SPDX-License-Identifier: MPL-2.0
 
 *Playground for Duet - AI-Assisted Neuro-Symbolic Development Language*
 
@@ -114,3 +116,4 @@ Part of the My-Lang progressive family:
 == License
 
 SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
