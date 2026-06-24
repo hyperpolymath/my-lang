@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: CC-BY-SA-4.0
 // Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = RSR Template Repository
@@ -212,7 +212,7 @@ This template is part of:
 
 == License
 
-SPDX-License-Identifier: MPL-2.0
+SPDX-License-Identifier: CC-BY-SA-4.0
 // Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
 == Links
