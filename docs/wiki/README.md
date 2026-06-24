@@ -1,5 +1,5 @@
 <!--
-SPDX-License-Identifier: MPL-2.0
+SPDX-License-Identifier: CC-BY-SA-4.0
 Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # My Language Wiki
@@ -121,4 +121,4 @@ See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) and
 
 My Language is open source under the **Mozilla Public License 2.0 (MPL-2.0)** —
 see [`LICENSE`](../../LICENSE). Every source file carries an
-`SPDX-License-Identifier: MPL-2.0` header.
+`SPDX-License-Identifier: CC-BY-SA-4.0` header.
