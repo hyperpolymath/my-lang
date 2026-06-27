@@ -313,7 +313,7 @@ impl<'ctx> Codegen<'ctx> {
                     // We satisfy this invariant here because:
                     //   1. `ptr` is produced by an earlier `self.get_value(*base)` that
                     //      only yields pointer values sourced from previous lowered
-                    //      instructions — it is never a raw transmuted integer.
+                    //      instructions — it is never a raw bit-reinterpreted integer.
                     //   2. `indices` come from the MIR `GetElementPtr` instruction, which
                     //      the MIR builder only emits when the element type and index
                     //      arity have been type-checked for the pointee type upstream.

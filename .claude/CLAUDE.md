@@ -37,7 +37,7 @@ is the top-level `ANCHOR.scope-arrest.2026-01-01.Jewell.scm`.
 | **Bash/POSIX Shell** | Scripts, automation | Keep minimal |
 | **JavaScript** | Only where AffineScript cannot | MCP protocol glue, Deno APIs |
 | **Nickel** | Configuration language | For complex configs |
-| **Guile Scheme** | State/meta files | STATE.scm, META.scm, ECOSYSTEM.scm |
+| **Guile Scheme** | State/meta files | `.machine_readable/6a2/{STATE,META,ECOSYSTEM}.a2ml` (the earlier `.scm` names are retired) |
 | **Julia** | Batch scripts, data processing | Per RSR |
 | **OCaml** | AffineScript compiler | Language-specific |
 | **Ada** | Safety-critical systems | Where required |

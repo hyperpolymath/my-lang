@@ -70,3 +70,32 @@ workflow_audit/missing_timeout_minutes:scorecard.yml
 workflow_audit/missing_timeout_minutes:secret-scanner.yml
 workflow_audit/missing_timeout_minutes:spark-theatre-gate.yml
 workflow_audit/scorecard_wrapper_missing_job_permissions:scorecard.yml
+# (push-email-notify.yml is a DIRECT runs-on job, not a reusable caller, so it
+# was hardened with `timeout-minutes` at source rather than exempted.)
+
+# --- Scanner false positive: Coq `Module Type` interface. ResourceAlgebra.v
+# declares a resource-semiring INTERFACE as a `Module Type` — its `Parameter`s
+# and `Axiom`s are the interface's abstract fields/laws, DISCHARGED by every
+# concrete instance (`Module ... <: ResourceAlgebra`), not global kernel axioms.
+# The `coq_axiom` rule keyword-matches `Axiom` without distinguishing a Module
+# Type field from a top-level `Axiom`. The verified development remains
+# axiom-free in the kernel sense (`Print Assumptions` closed); see proofs/STATUS.md.
+code_safety/coq_axiom:proofs/verification/coq/solo-core/ResourceAlgebra.v
+
+# --- Scanner false positive: env-var EXAMPLES in user docs. The install /
+# getting-started guides show `export OPENAI_API_KEY="..."` / `ANTHROPIC_API_KEY`
+# setup. The secret detector flags the `<KEY>="<value>"` assignment SHAPE
+# regardless of the value (the values here are placeholders — `<your-openai-key>`,
+# truncated `sk-ant-...` stubs — NOT real credentials; verified by inspection).
+# These are documentation, not code, and a real key does not belong in them.
+# (The placeholder-content cleanup in PR #131 did not satisfy the assignment-shape
+# matcher, so a scoped exemption is the correct mechanism for this false positive.)
+security_errors/secret_detected:docs/wiki/guides/installation.md
+security_errors/secret_detected:docs/wiki/guides/getting-started.md
+
+# --- Scanner false positive: there is NO `mem::transmute` call in my-llvm.
+# The `transmute` rule keyword-matches the WORD "transmute", which appears only
+# inside a SAFETY comment ("it is never a raw transmuted integer") documenting a
+# GetElementPtr pointer invariant. `grep -nE 'transmute\s*(::<|\()'` over the file
+# returns nothing. No unchecked bit-reinterpretation exists here.
+code_safety/transmute:crates/my-llvm/src/lib.rs
