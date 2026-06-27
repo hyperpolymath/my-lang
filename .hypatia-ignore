@@ -92,3 +92,10 @@ code_safety/coq_axiom:proofs/verification/coq/solo-core/ResourceAlgebra.v
 # matcher, so a scoped exemption is the correct mechanism for this false positive.)
 security_errors/secret_detected:docs/wiki/guides/installation.md
 security_errors/secret_detected:docs/wiki/guides/getting-started.md
+
+# --- Scanner false positive: there is NO `mem::transmute` call in my-llvm.
+# The `transmute` rule keyword-matches the WORD "transmute", which appears only
+# inside a SAFETY comment ("it is never a raw transmuted integer") documenting a
+# GetElementPtr pointer invariant. `grep -nE 'transmute\s*(::<|\()'` over the file
+# returns nothing. No unchecked bit-reinterpretation exists here.
+code_safety/transmute:crates/my-llvm/src/lib.rs
