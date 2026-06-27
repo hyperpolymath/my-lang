@@ -6,7 +6,10 @@
 # `fuzz/` and stage each binary into $OUT. Run by `compile` inside the
 # base-builder-rust image (see .clusterfuzzlite/Dockerfile).
 cd "$SRC/my-lang"
-cargo +nightly fuzz build -O
+# Build for the sanitizer OSS-Fuzz requests (defaults to address). NOTE: only
+# `address` is configured — Rust/cargo-fuzz cannot emit a valid UBSan binary
+# (it links ASan regardless), which `bad_build_check` rejects; see project.yaml.
+cargo +nightly fuzz build -O --sanitizer "${SANITIZER:-address}"
 
 release="$SRC/my-lang/fuzz/target/x86_64-unknown-linux-gnu/release"
 for target in fuzz/fuzz_targets/*.rs; do
