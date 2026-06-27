@@ -120,6 +120,7 @@ fn extract_error_location(error: &CheckError) -> (usize, usize) {
         CheckError::NonBoolCondition { line, column, .. } => (*line, *column),
         CheckError::ExpressionTooDeep { line, column, .. } => (*line, *column),
         CheckError::Other { line, column, .. } => (*line, *column),
+        CheckError::ResourceViolation { line, column, .. } => (*line, *column),
     }
 }
 
