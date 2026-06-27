@@ -2,16 +2,21 @@
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = QTT conformance harness
 
-Differential-conformance evidence for impl ⇄ spec couplings #1 and #2
+Differential-conformance evidence for impl ⇄ spec couplings #1, #2 and #4
 (`proofs/STATUS.md`):
 
 * #1 — *the Rust affine checker refines the Coq `check` (R5)*;
 * #2 — *the Rust evaluator `my_qtt::step1` refines the Coq `step` semantics*,
   via the functional `step1` of `Eval.v` (proved sound+complete vs the `step`
   relation), extracted and compared one-step AND iterated to normal form;
-* #4 — *the Rust session runtime `my_qtt::session::cstep1` refines the Coq
-  `cstep` semantics* (binary fused config), via the functional `cstep1` of
-  `SessionEval.v` (proved sound+complete vs `cstep`), extracted and compared.
+* #4 — *the Rust session runtime `my_qtt::session` refines the Coq session
+  semantics at all three layers*, via the functional steppers of `SessionEval.v`,
+  extracted and compared:
+  ** `cstep1` (binary fused config) — sound+complete vs `cstep`;
+  ** `gstep1` (global type) — sound+progress vs `gstep`;
+  ** `nstep1` (n-ary located role assignment) — sound+progress vs `nstep`.
+  (For the two nondeterministic relations the stepper commits to a deterministic
+  strategy, so adequacy is soundness + progress, not functional determinism.)
 
 (Coupling #3, the echo modality, rides on #1/#2: echo terms are in the corpus
 and `my_qtt::surface` elaborates echo to the verified `check`.)
