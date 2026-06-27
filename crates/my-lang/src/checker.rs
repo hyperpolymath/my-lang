@@ -109,6 +109,13 @@ pub enum CheckError {
         line: usize,
         column: usize,
     },
+
+    #[error("`@safe` function `{name}` violates the verified linear resource discipline (a parameter is dropped or used more than once) at line {line}, column {column}")]
+    ResourceViolation {
+        name: String,
+        line: usize,
+        column: usize,
+    },
 }
 
 /// Maximum AST nesting depth the type checker will recurse through before
@@ -614,8 +621,54 @@ impl Checker {
         // Check function body
         self.check_block(&f.body);
 
+        // `@safe`: enforce the machine-checked QTT resource discipline (runs by
+        // default — no flag — for every `@safe`-annotated function).
+        if f.modifiers.contains(&FnModifier::Safe) {
+            self.check_qtt_safe_fn(f);
+        }
+
         self.current_return_type = None;
         self.symbols.exit_scope();
+    }
+
+    /// Resource-check a `@safe` function with the verified QTT core
+    /// (`my_qtt::check`, the faithful R5 port reached via [`crate::qtt_bridge`]).
+    ///
+    /// The function is modelled as a lambda over its parameters — each treated
+    /// **linearly** (`DEFAULT_Q = One`, the strictest reading) — and the
+    /// machine-checked usage-walk runs on it. A parameter dropped or used more
+    /// than once *within the resource-relevant fragment* is reported as a
+    /// [`CheckError::ResourceViolation`]. A body that uses constructs OUTSIDE
+    /// that fragment (arithmetic, records, AI expressions, calls to globals, …)
+    /// cannot be lowered and is **skipped** — unverifiable is not unsafe, and
+    /// name/type resolution of those parts is the main checker's job. So
+    /// `@safe` means "the proof core has checked this function's resource
+    /// discipline wherever it is expressible", enforced by default.
+    fn check_qtt_safe_fn(&mut self, f: &FnDecl) {
+        use crate::qtt_bridge::{check_expr, BridgeCheckError};
+        use my_qtt::surface::CheckError as QttError;
+
+        // model the @safe function as `|params| body`
+        let lam = Expr::Lambda {
+            params: f.params.clone(),
+            body: LambdaBody::Block(f.body.clone()),
+            span: f.span,
+        };
+        match check_expr(&lam) {
+            // resource-safe, or outside the verifiable fragment (skip), or a
+            // free name the main resolver already diagnoses (skip).
+            Ok(_)
+            | Err(BridgeCheckError::Bridge(_))
+            | Err(BridgeCheckError::Check(QttError::Elab(_))) => {}
+            // lowered fully, but the verified walk rejected the usage discipline.
+            Err(BridgeCheckError::Check(QttError::Untypable)) => {
+                self.errors.push(CheckError::ResourceViolation {
+                    name: f.name.name.clone(),
+                    line: f.span.line,
+                    column: f.span.column,
+                });
+            }
+        }
     }
 
     fn check_struct(&mut self, s: &StructDecl) {
@@ -1826,5 +1879,46 @@ mod tests {
         assert!(result.is_err());
         let errors = result.unwrap_err();
         assert!(errors.iter().any(|e| matches!(e, CheckError::NonBoolCondition { .. })));
+    }
+
+    // ---- `@safe` functions are resource-checked by the verified QTT core ----
+
+    /// A `#[safe]` function whose parameter is used exactly once passes the
+    /// machine-checked linear discipline.
+    #[test]
+    fn qtt_safe_linear_param_ok() {
+        let result = check_source("#[safe]\nfn id(x: Int) { x; }");
+        assert!(result.is_ok(), "expected ok, got {:?}", result);
+    }
+
+    /// A `#[safe]` function that DROPS its linear parameter is rejected by the
+    /// verified usage-walk — the resource axis is now enforced in the compiler.
+    #[test]
+    fn qtt_safe_dropped_param_rejected() {
+        let result = check_source("#[safe]\nfn drp(x: Int) { 0; }");
+        assert!(result.is_err(), "expected ResourceViolation, got Ok");
+        let errors = result.unwrap_err();
+        assert!(
+            errors.iter().any(|e| matches!(e, CheckError::ResourceViolation { .. })),
+            "expected ResourceViolation, got {:?}",
+            errors
+        );
+    }
+
+    /// The SAME body without `#[safe]` is accepted — the discipline is opt-in
+    /// per function (gated on the modifier), so nothing else changes.
+    #[test]
+    fn non_safe_dropped_param_ok() {
+        let result = check_source("fn drp(x: Int) { 0; }");
+        assert!(result.is_ok(), "non-@safe fn must not be resource-checked, got {:?}", result);
+    }
+
+    /// A `#[safe]` body that uses constructs OUTSIDE the resource fragment
+    /// (here, arithmetic) cannot be lowered and is skipped — unverifiable is
+    /// not unsafe, so no false rejection.
+    #[test]
+    fn qtt_safe_out_of_fragment_skipped() {
+        let result = check_source("#[safe]\nfn add1(x: Int) { x + 1; }");
+        assert!(result.is_ok(), "out-of-fragment @safe body should be skipped, got {:?}", result);
     }
 }
