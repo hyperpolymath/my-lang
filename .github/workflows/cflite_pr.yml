@@ -14,7 +14,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sanitizer: [address, undefined]
+        # ASan only: Rust/cargo-fuzz can't emit a valid UBSan binary (links ASan
+        # regardless), so `undefined` failed bad_build_check. See project.yaml.
+        sanitizer: [address]
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
