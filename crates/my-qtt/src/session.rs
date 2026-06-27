@@ -110,6 +110,122 @@ pub fn cstep1(c: &Config) -> Option<Config> {
     }
 }
 
+// ===== global-type stepper (Coq `SessionEval.gstep1`) =====
+
+/// Payload value types (Coq `vty`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Vty {
+    Unit,
+    Bool,
+    Nat,
+}
+
+/// Global session types (Coq `gty`); `Bra` is the labelled-branch list
+/// (Coq `gbranch`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Gty {
+    End,
+    Msg(usize, usize, Vty, Box<Gty>),
+    Bra(usize, usize, Vec<(usize, Gty)>),
+    Mu(Box<Gty>),
+    Var(usize),
+}
+
+/// One global-type reduction step (Coq `gstep1`; sound + progress vs the
+/// `gstep` relation). Commits to the head branch of a `Bra` — adequacy is
+/// soundness + progress, not functional determinism (any branch may be chosen).
+pub fn gstep1(g: &Gty) -> Option<Gty> {
+    match g {
+        Gty::Msg(_, _, _, cont) => Some((**cont).clone()),
+        Gty::Bra(_, _, bs) => bs.first().map(|(_, g)| g.clone()),
+        _ => None,
+    }
+}
+
+// ===== n-ary located stepper (Coq `SessionEval.nstep1`) =====
+
+/// A located role → endpoint assignment (Coq `role_assignment`).
+pub type RoleAssignment = Vec<(usize, Party)>;
+
+/// First binding for `r` (Coq `ra_get`).
+fn ra_get(ra: &[(usize, Party)], r: usize) -> Option<&Party> {
+    ra.iter().find(|(r2, _)| *r2 == r).map(|(_, p)| p)
+}
+
+/// Replace the FIRST binding for `r` (Coq `ra_set` — only the first occurrence).
+fn ra_set(ra: &[(usize, Party)], r: usize, p: &Party) -> RoleAssignment {
+    match ra.split_first() {
+        None => vec![],
+        Some(((r2, q), rest)) => {
+            if *r2 == r {
+                let mut v = vec![(*r2, p.clone())];
+                v.extend_from_slice(rest);
+                v
+            } else {
+                let mut v = vec![(*r2, q.clone())];
+                v.extend(ra_set(rest, r, p));
+                v
+            }
+        }
+    }
+}
+
+/// First `q != r` whose canonical party is `Recv`; yields `(q, open_party v Qc)`.
+fn find_recv(ra: &[(usize, Party)], r: usize, v: &Val) -> Option<(usize, Party)> {
+    for (q, _) in ra {
+        if *q == r {
+            continue;
+        }
+        if let Some(Party::Recv(qc)) = ra_get(ra, *q) {
+            return Some((*q, open_party(v, qc)));
+        }
+    }
+    None
+}
+
+/// First `q != r` whose canonical party is `Bra` offering label `l`; yields `(q, Q)`.
+fn find_bra(ra: &[(usize, Party)], r: usize, l: usize) -> Option<(usize, Party)> {
+    for (q, _) in ra {
+        if *q == r {
+            continue;
+        }
+        if let Some(Party::Bra(bs)) = ra_get(ra, *q) {
+            if let Some(qq) = bs.iter().find(|(k, _)| *k == l).map(|(_, p)| p.clone()) {
+                return Some((*q, qq));
+            }
+        }
+    }
+    None
+}
+
+/// Try to fire role `r` (canonical party `p`) against a partner (Coq `try_role`).
+fn try_role(ra: &[(usize, Party)], r: usize, p: &Party) -> Option<RoleAssignment> {
+    match p {
+        Party::Send(v, cont) => {
+            find_recv(ra, r, v).map(|(q, qres)| ra_set(&ra_set(ra, r, cont), q, &qres))
+        }
+        Party::Sel(l, cont) => {
+            find_bra(ra, r, *l).map(|(q, qres)| ra_set(&ra_set(ra, r, cont), q, &qres))
+        }
+        _ => None,
+    }
+}
+
+/// One synchronous n-ary step: the first sender/selector role (left-to-right)
+/// paired with its first dual partner (Coq `nstep1`; sound + progress vs the
+/// `nstep` relation).
+pub fn nstep1(ra: &[(usize, Party)]) -> Option<RoleAssignment> {
+    for (r, _) in ra {
+        if let Some(p) = ra_get(ra, *r) {
+            let p = p.clone();
+            if let Some(ra2) = try_role(ra, *r, &p) {
+                return Some(ra2);
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -162,5 +278,41 @@ mod tests {
     #[test]
     fn ended_is_normal() {
         assert_eq!(cstep1(&Config(b(Party::End), b(Party::End))), None);
+    }
+
+    /// gstep1: a message prefix steps to its continuation; a branch to its head;
+    /// `End` and an empty offer are normal.
+    #[test]
+    fn global_steps() {
+        assert_eq!(gstep1(&Gty::Msg(0, 1, Vty::Nat, b(Gty::End))), Some(Gty::End));
+        let br = Gty::Bra(0, 1, vec![(0, Gty::End), (1, Gty::Var(0))]);
+        assert_eq!(gstep1(&br), Some(Gty::End)); // head branch
+        assert_eq!(gstep1(&Gty::End), None);
+        assert_eq!(gstep1(&Gty::Bra(0, 1, vec![])), None);
+    }
+
+    /// nstep1: among n parties, the sender meets the dual receiver and both
+    /// advance; the idle third party is untouched.
+    #[test]
+    fn nary_comm_step() {
+        let ra: RoleAssignment = vec![
+            (0, Party::Send(Val::Nat(7), b(Party::End))),
+            (1, Party::Recv(b(Party::End))),
+            (2, Party::End),
+        ];
+        let stepped = nstep1(&ra).expect("should step");
+        assert_eq!(ra_get(&stepped, 0), Some(&Party::End));
+        assert_eq!(ra_get(&stepped, 1), Some(&Party::End));
+        assert_eq!(ra_get(&stepped, 2), Some(&Party::End));
+    }
+
+    /// nstep1: two senders and no receiver → no communicating pair → stuck.
+    #[test]
+    fn nary_stuck() {
+        let ra: RoleAssignment = vec![
+            (0, Party::Send(Val::Unit, b(Party::End))),
+            (1, Party::Send(Val::Unit, b(Party::End))),
+        ];
+        assert_eq!(nstep1(&ra), None);
     }
 }

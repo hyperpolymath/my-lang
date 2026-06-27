@@ -17,7 +17,7 @@
 // of-range vars, quantity/type mismatches) so both the `ok` and `none` branches
 // of `check` are exercised on both sides.
 
-use my_qtt::session::{cstep1, Config, Party, Val};
+use my_qtt::session::{cstep1, gstep1, nstep1, Config, Gty, Party, RoleAssignment, Val, Vty};
 use my_qtt::{check, step1, Mode, Q, Tm, Ty};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -317,6 +317,96 @@ fn gen_config(r: &mut Rng) -> Config {
     }
 }
 
+// ---------- global types ----------
+fn svty(t: &Vty) -> &'static str {
+    match t {
+        Vty::Unit => "vtunit",
+        Vty::Bool => "vtbool",
+        Vty::Nat => "vtnat",
+    }
+}
+fn sgty(g: &Gty) -> String {
+    match g {
+        Gty::End => "gend".into(),
+        Gty::Msg(p, q, t, c) => format!("(gmsg {} {} {} {})", p, q, svty(t), sgty(c)),
+        Gty::Bra(p, q, bs) => {
+            let mut s = format!("(gbra {} {}", p, q);
+            for (l, g) in bs {
+                s.push_str(&format!(" (gbr {} {})", l, sgty(g)));
+            }
+            s.push(')');
+            s
+        }
+        Gty::Mu(c) => format!("(gmu {})", sgty(c)),
+        Gty::Var(n) => format!("(gvar {})", n),
+    }
+}
+fn show_gstep(r: &Option<Gty>) -> String {
+    match r {
+        None => "none".into(),
+        Some(g) => format!("(some {})", sgty(g)),
+    }
+}
+fn gen_vty(r: &mut Rng) -> Vty {
+    match r.upto(3) {
+        0 => Vty::Unit,
+        1 => Vty::Bool,
+        _ => Vty::Nat,
+    }
+}
+fn gen_gty(r: &mut Rng, fuel: u32) -> Gty {
+    if fuel == 0 {
+        return Gty::End;
+    }
+    match r.upto(6) {
+        0 | 5 => Gty::End,
+        1 => Gty::Msg(r.upto(3) as usize, r.upto(3) as usize, gen_vty(r), Box::new(gen_gty(r, fuel - 1))),
+        2 => {
+            let nb = r.upto(3) as usize;
+            Gty::Bra(r.upto(3) as usize, r.upto(3) as usize, (0..nb).map(|i| (i, gen_gty(r, fuel - 1))).collect())
+        }
+        3 => Gty::Mu(Box::new(gen_gty(r, fuel - 1))),
+        _ => Gty::Var(r.upto(3) as usize),
+    }
+}
+
+// ---------- role assignments (n-ary located) ----------
+fn sra(ra: &[(usize, Party)]) -> String {
+    let mut s = String::from("(ra");
+    for (r, p) in ra {
+        s.push_str(&format!(" (rp {} {})", r, sparty(p)));
+    }
+    s.push(')');
+    s
+}
+fn show_nstep(r: &Option<RoleAssignment>) -> String {
+    match r {
+        None => "none".into(),
+        Some(ra) => format!("(some {})", sra(ra)),
+    }
+}
+// bias toward a fireable send/recv (or select/branch) pair among n roles
+fn gen_ra(r: &mut Rng) -> RoleAssignment {
+    let n = 2 + r.upto(3) as usize; // 2..=4 roles
+    let mut ra: RoleAssignment = Vec::new();
+    match r.upto(4) {
+        0 => {
+            ra.push((0, Party::Send(gen_val(r), Box::new(gen_party(r, 2)))));
+            ra.push((1, Party::Recv(Box::new(gen_party(r, 2)))));
+        }
+        1 => {
+            ra.push((0, Party::Sel(r.upto(3) as usize, Box::new(gen_party(r, 2)))));
+            ra.push((1, gen_party(r, 2)));
+        }
+        _ => {}
+    }
+    while ra.len() < n {
+        let i = ra.len();
+        ra.push((i, gen_party(r, 2)));
+    }
+    ra
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 5 {
@@ -347,10 +437,18 @@ fn main() {
         writeln!(corpus, "(nf {})", sexp_tm(&ct)).unwrap();
         writeln!(results, "{}", sexp_tm(&eval_nf(&ct, NF_FUEL))).unwrap();
 
-        // (c) session-config step (#4): Rust my_qtt::session::cstep1 vs the
-        //     extracted Coq cstep1 (proved sound+complete vs the cstep relation)
+        // (c) session steppers (#4): Rust my_qtt::session vs the extracted Coq
+        //     cstep1 / gstep1 / nstep1 (binary / global / n-ary located layers)
         let cfg = gen_config(&mut r);
         writeln!(corpus, "(cstep {})", sconfig(&cfg)).unwrap();
         writeln!(results, "{}", show_cstep(&cstep1(&cfg))).unwrap();
+
+        let g = gen_gty(&mut r, 3);
+        writeln!(corpus, "(gstep {})", sgty(&g)).unwrap();
+        writeln!(results, "{}", show_gstep(&gstep1(&g))).unwrap();
+
+        let ra = gen_ra(&mut r);
+        writeln!(corpus, "(nstep {})", sra(&ra)).unwrap();
+        writeln!(results, "{}", show_nstep(&nstep1(&ra))).unwrap();
     }
 }

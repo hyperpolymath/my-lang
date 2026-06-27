@@ -31,6 +31,8 @@ Require Import Coq.extraction.ExtrOcamlNatInt.
 
 (* The verified functions the conformance harnesses test the Rust port against:
    `check` (R5, checker coupling #1), `step1` (Eval.v, interpreter coupling #2 —
-   sound+complete vs the `step` relation), and `cstep1` (SessionEval.v, session
-   coupling #4 — sound+complete vs the `cstep` relation). *)
-Separate Extraction check step1 cstep1.
+   sound+complete vs the `step` relation), and the session steppers (SessionEval.v,
+   coupling #4): `cstep1` (binary, sound+complete vs `cstep`), `gstep1` (global,
+   sound+progress vs `gstep`), and `nstep1` (n-ary located, sound+progress vs
+   `nstep`). *)
+Separate Extraction check step1 cstep1 gstep1 nstep1.

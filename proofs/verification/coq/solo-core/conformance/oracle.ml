@@ -195,6 +195,62 @@ let show_config (Conf (p1, p2)) = "(conf " ^ show_party p1 ^ " " ^ show_party p2
 
 let show_cstep = function None -> "none" | Some c -> "(some " ^ show_config c ^ ")"
 
+(* ---------- global types (coupling #4, global layer) ---------- *)
+
+let vty_of = function
+  | Atom "vtunit" -> VTUnit
+  | Atom "vtbool" -> VTBool
+  | Atom "vtnat" -> VTNat
+  | _ -> failwith "bad vty"
+
+let rec gty_of = function
+  | Atom "gend" -> GEnd
+  | List [Atom "gmsg"; Atom p; Atom q; t; g] ->
+      GMsg (int_of_string p, int_of_string q, vty_of t, gty_of g)
+  | List (Atom "gbra" :: Atom p :: Atom q :: brs) ->
+      GBra (int_of_string p, int_of_string q, gbranch_of brs)
+  | List [Atom "gmu"; g] -> GMu (gty_of g)
+  | List [Atom "gvar"; Atom n] -> GVar (int_of_string n)
+  | _ -> failwith "bad gty"
+and gbranch_of = function
+  | [] -> GBnil
+  | List [Atom "gbr"; Atom l; g] :: rest -> GBcons (int_of_string l, gty_of g, gbranch_of rest)
+  | _ -> failwith "bad gbranch"
+
+let show_vty = function VTUnit -> "vtunit" | VTBool -> "vtbool" | VTNat -> "vtnat"
+
+let rec show_gty = function
+  | GEnd -> "gend"
+  | GMsg (p, q, t, g) ->
+      "(gmsg " ^ string_of_int p ^ " " ^ string_of_int q ^ " " ^ show_vty t ^ " " ^ show_gty g ^ ")"
+  | GBra (p, q, bs) ->
+      "(gbra " ^ string_of_int p ^ " " ^ string_of_int q ^ show_gbranch bs ^ ")"
+  | GMu g -> "(gmu " ^ show_gty g ^ ")"
+  | GVar n -> "(gvar " ^ string_of_int n ^ ")"
+and show_gbranch = function
+  | GBnil -> ""
+  | GBcons (l, g, rest) -> " (gbr " ^ string_of_int l ^ " " ^ show_gty g ^ ")" ^ show_gbranch rest
+
+let show_gstep = function None -> "none" | Some g -> "(some " ^ show_gty g ^ ")"
+
+(* ---------- role assignments (coupling #4, n-ary located layer) ---------- *)
+
+let rec ra_of = function
+  | [] -> []
+  | List [Atom "rp"; Atom r; p] :: rest -> (int_of_string r, party_of p) :: ra_of rest
+  | _ -> failwith "bad role_assignment"
+
+let ra_of_sexp = function
+  | List (Atom "ra" :: rps) -> ra_of rps
+  | _ -> failwith "bad ra"
+
+let show_ra ra =
+  "(ra"
+  ^ List.fold_left (fun acc (r, p) -> acc ^ " (rp " ^ string_of_int r ^ " " ^ show_party p ^ ")") "" ra
+  ^ ")"
+
+let show_nstep = function None -> "none" | Some ra -> "(some " ^ show_ra ra ^ ")"
+
 (* ---------- driver ---------- *)
 
 let () =
@@ -210,8 +266,12 @@ let () =
           print_endline (show_step (step1 (tm_of tm)))
         | List [Atom "nf"; tm] ->                (* iterate to normal form (cap = NF_FUEL) *)
           print_endline (show_tm (eval_nf 64 (tm_of tm)))
-        | List [Atom "cstep"; cfg] ->            (* one session-config step (coupling #4) *)
+        | List [Atom "cstep"; cfg] ->            (* one binary session-config step (#4) *)
           print_endline (show_cstep (cstep1 (config_of cfg)))
+        | List [Atom "gstep"; g] ->             (* one global-type step (#4, global) *)
+          print_endline (show_gstep (gstep1 (gty_of g)))
+        | List [Atom "nstep"; ra] ->            (* one n-ary located step (#4, multiparty) *)
+          print_endline (show_nstep (nstep1 (ra_of_sexp ra)))
         | _ -> failwith "bad query"
       end
     done

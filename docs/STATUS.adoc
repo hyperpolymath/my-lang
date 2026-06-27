@@ -45,7 +45,7 @@ the Idris twin's `preservation` (#108) is now DISCHARGED (total, hole-free;
 [cols="4,1,3",options="header"]
 |===
 | Item | Status | Note
-| Make the resource axis the *default* in `crates/my-lang/src/checker.rs` | `[ ]` | the QTT bridge is opt-in (`qtt_bridge::check_expr`) today
+| Make the resource axis the *default* in `crates/my-lang/src/checker.rs` | `[x]` | DONE — the verified QTT core runs by default (no flag) on every `#[safe]` function: `Checker::check_qtt_safe_fn` lowers it via `qtt_bridge` and a dropped/duplicated binder in the resource fragment is a `CheckError::ResourceViolation`; out-of-fragment bodies skip (unverifiable ≠ unsafe). Gated on `#[safe]` so non-linear code is unaffected.
 | Surface *quantity syntax* so the bridge enforces real per-binder linearity | `[ ]` | `Param` has no quantity field; bridge defaults to `One`
 | `wasm32` via the existing LLVM backend (`TargetSpec::wasm32` + `wasm-ld`) | `[ ]` | fastest target leg; backend already emits objects
 | `RISC-V` (`riscv64gc-unknown-linux-gnu`) via LLVM | `[ ]` | near-free once `wasm32` target wiring exists
