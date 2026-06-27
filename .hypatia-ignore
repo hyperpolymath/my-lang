@@ -70,3 +70,14 @@ workflow_audit/missing_timeout_minutes:scorecard.yml
 workflow_audit/missing_timeout_minutes:secret-scanner.yml
 workflow_audit/missing_timeout_minutes:spark-theatre-gate.yml
 workflow_audit/scorecard_wrapper_missing_job_permissions:scorecard.yml
+# (push-email-notify.yml is a DIRECT runs-on job, not a reusable caller, so it
+# was hardened with `timeout-minutes` at source rather than exempted.)
+
+# --- Scanner false positive: Coq `Module Type` interface. ResourceAlgebra.v
+# declares a resource-semiring INTERFACE as a `Module Type` — its `Parameter`s
+# and `Axiom`s are the interface's abstract fields/laws, DISCHARGED by every
+# concrete instance (`Module ... <: ResourceAlgebra`), not global kernel axioms.
+# The `coq_axiom` rule keyword-matches `Axiom` without distinguishing a Module
+# Type field from a top-level `Axiom`. The verified development remains
+# axiom-free in the kernel sense (`Print Assumptions` closed); see proofs/STATUS.md.
+code_safety/coq_axiom:proofs/verification/coq/solo-core/ResourceAlgebra.v
