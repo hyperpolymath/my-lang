@@ -1,47 +1,100 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # Architecture
 
 ## Overview
 
-This repository follows a modular, maintainable architecture designed for clarity, scalability, and long-term sustainability.
+my-lang is a Rust-implemented language with a mechanised proof core.
+The repository is a Cargo workspace plus proof, dialect, and
+conformance trees. This file describes the layout as it actually is;
+for the authoritative state of the proofs, see `proofs/STATUS.md`
+(that registry wins over any other prose, including this file).
 
-## Directory Structure
+## The dialect containment hierarchy
+
+The three real dialects are **nested subsets, not parallel languages**:
+
+```
+Solo  ⊂  Duet  ⊂  Ensemble
+```
+
+- **Solo** — the innermost kernel.
+- **Duet** — everything in Solo plus more; mechanised as
+  "ensemble restricted to 2-party by projection" (S2 track).
+- **Ensemble** — the full language (session-typed π-calculus core,
+  S1 track).
+- **Me** — not a fourth layer: an on-the-fly projector that cuts the
+  hierarchy at a chosen point. Its Rust scaffolding is sidelined in
+  `_exploratory/me-scaffolding/` (see `SIDELINED.adoc` there) and is
+  **not** part of the active workspace.
+
+Audits must grade the layered stack, not three separate compilers: a
+broken Solo breaks Duet and Ensemble by transitivity.
+
+## Directory structure
 
 ```
 .
-├── src/           # Source code
-├── tests/        # Test suites
-├── docs/         # Documentation
-├── scripts/      # Utility scripts
-├── config/       # Configuration files
-├── LICENSE       # License file
-├── LICENSES/     # Full license texts
-└── README.adoc   # Project documentation
+├── crates/            # Cargo workspace (15 members)
+│   ├── my-lang/       #   core: lexer/parser/checker (largest crate)
+│   ├── my-cli/        #   `my` binary
+│   ├── my-parser/     #   parser scaffolding
+│   ├── my-hir/        #   high-level IR
+│   ├── my-mir/        #   mid-level IR
+│   ├── my-qtt/        #   QTT verified-core checker (faithful port of
+│   │                  #   the Coq R5 `check` / R5b `aff_type_dec`)
+│   ├── my-llvm/       #   LLVM codegen (needs system LLVM 21; excluded
+│   │                  #   from coverage CI for hermeticity)
+│   ├── my-lsp/        #   language server
+│   ├── my-dap/        #   debug adapter
+│   ├── my-debug/      #   debugging support
+│   ├── my-fmt/        #   formatter
+│   ├── my-lint/       #   linter
+│   ├── my-test/       #   test harness
+│   ├── my-pkg/        #   package manager
+│   └── my-ai/         #   AI integration
+├── proofs/            # Mechanised core — Coq (solo-core, SessionPi)
+│                      # + Idris2 tracks; STATUS.md is the registry
+├── dialects/          # solo/ and duet/ compilers + examples
+├── _exploratory/      # sidelined scaffolding (me-scaffolding/)
+├── conformance/       # impl ⇄ verified-spec differential tests
+├── spec/              # language specification
+├── grammar.ebnf       # surface grammar
+├── examples/          # example programs
+├── playground/        # demo playground (+ hives/)
+├── my-ssg/            # site generator input
+├── vscode-extension/  # editor support
+├── docs/              # documentation (published via Ddraig SSG)
+├── LICENSE            # MPL-2.0 (code); CC-BY-SA-4.0 for docs
+└── LICENSES/          # full licence texts (REUSE layout)
 ```
 
-## Design Principles
+## CI gates
 
-- **Separation of Concerns**: Each module has a single responsibility
-- **Testability**: Code is written to be easily testable
-- **Documentation**: All public APIs are documented
-- **Configuration**: Environment-specific settings are externalized
+- `proofs.yml` — machine-checks the Coq solo-core and asserts the
+  soundness theorems, the usage-walk checker (R5/R5b), the me→solo
+  elaboration (M1), the session-π core (S1.x), and the
+  duet-by-projection results (S2) are **axiom-free**
+  (`Print Assumptions` must report "Closed under the global context").
+- `coverage.yml` — cargo-llvm-cov over the workspace excluding
+  `my-llvm`, with an enforced line-coverage floor.
+- `checker-scaling.yml` — checker performance scaling gate.
+- `codeql.yml`, `hypatia-scan.yml`, `secret-scanner.yml`,
+  `scorecard.yml`, `cflite_*.yml` — security/fuzzing gates.
+- `governance.yml` — estate policy via hyperpolymath/standards
+  reusable workflows.
+- `pages.yml` — docs deployment via Ddraig SSG.
 
-## Dependencies
+## Design principles
 
-- External dependencies are minimized and clearly declared
-- Version pinning is used for reproducibility
-
-## Security Considerations
-
-- Sensitive data is never committed to the repository
-- Secrets are managed through environment variables or secure vaults
-- Regular dependency audits are performed
-
-## Maintainability
-
-- Code follows consistent style guidelines
-- Pull requests require review and CI checks
-- Issues and discussions are tracked transparently
+- **No proof hole is ever described as "proved"** — statement-only
+  theorems are tracked obligations (`proofs/STATUS.md` vocabulary).
+- **Layered dialects** — features land in the innermost layer that can
+  express them; outer layers add, never fork.
+- **Hermetic CI** — the LLVM back end is isolated so every other gate
+  runs without a system toolchain.
 
 ---
 
-*Last updated: 2026-07-18*
+*Last updated: 2026-07-27*
