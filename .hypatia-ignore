@@ -99,3 +99,13 @@ security_errors/secret_detected:docs/wiki/guides/getting-started.md
 # GetElementPtr pointer invariant. `grep -nE 'transmute\s*(::<|\()'` over the file
 # returns nothing. No unchecked bit-reinterpretation exists here.
 code_safety/transmute:crates/my-llvm/src/lib.rs
+
+# --- Rule cannot be satisfied: `unsafe_block` is a bare `unsafe\s*\{` regex
+# (hypatia lib/rules/code_safety.ex) — it flags EVERY unsafe block regardless
+# of documentation; the "requires SAFETY comment" in its description is not
+# actually checked. The single unsafe block here is mandatory (inkwell declares
+# `build_gep` unsafe) and carries a 17-line SAFETY invariant argument plus an
+# adjacent `// SAFETY:` marker. Until the rule checks for SAFETY comments
+# (upstream fix candidate), a scoped exemption is the only correct mechanism —
+# a baseline entry would just regenerate as expiring debt for a permanent fact.
+code_safety/unsafe_block:crates/my-llvm/src/lib.rs
