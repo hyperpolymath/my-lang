@@ -90,10 +90,10 @@ description = "Run type system tests when type checker changes"
 
 [workflows.abi-verify]
 trigger = "file_save"
-match = "src/abi/*.idr"
+match = "proofs/verification/idris/solo-core/*.idr"
 action = "run_command"
-command = "idris2 --check src/abi/Types.idr"
-description = "Verify ABI definitions when Idris2 files change"
+command = "idris2 --build proofs/verification/idris/solo-core/solo-core.ipkg"
+description = "Verify the mechanised solo-core when Idris2 files change (ipkg build, not per-file --check, so a missing module is a hard failure)"
 
 ; ─────────────────────────────────────────────────────────────────────
 ; [clades] — panel clade taxonomy for this project

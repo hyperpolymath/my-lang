@@ -83,8 +83,8 @@ workflow_audit/scorecard_wrapper_missing_job_permissions:scorecard.yml
 code_safety/coq_axiom:proofs/verification/coq/solo-core/ResourceAlgebra.v
 
 # --- Scanner false positive: env-var EXAMPLES in user docs. The install /
-# getting-started guides show `export OPENAI_API_KEY="..."` / `ANTHROPIC_API_KEY`
-# setup. The secret detector flags the `<KEY>="<value>"` assignment SHAPE
+# getting-started guides show how to export the OpenAI / Anthropic API-key
+# environment variables. The secret detector flags the assignment SHAPE
 # regardless of the value (the values here are placeholders — `<your-openai-key>`,
 # truncated `sk-ant-...` stubs — NOT real credentials; verified by inspection).
 # These are documentation, not code, and a real key does not belong in them.

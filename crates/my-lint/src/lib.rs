@@ -119,7 +119,7 @@ impl Linter {
             TopLevel::Function(f) => self.lint_function(f),
             TopLevel::Struct(s) => {
                 if self.config.check_naming_conventions {
-                    if !s.name.name.chars().next().unwrap().is_uppercase() {
+                    if s.name.name.chars().next().is_some_and(|c| !c.is_uppercase()) {
                         self.diagnostics.push(Diagnostic {
                             severity: Severity::Warning,
                             code: "naming-convention".to_string(),
@@ -137,7 +137,7 @@ impl Linter {
     fn lint_function(&mut self, func: &FnDecl) {
         // Check naming conventions
         if self.config.check_naming_conventions {
-            if !func.name.name.chars().next().unwrap().is_lowercase() {
+            if func.name.name.chars().next().is_some_and(|c| !c.is_lowercase()) {
                 self.diagnostics.push(Diagnostic {
                     severity: Severity::Warning,
                     code: "naming-convention".to_string(),

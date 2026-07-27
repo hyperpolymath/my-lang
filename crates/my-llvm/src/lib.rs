@@ -320,6 +320,7 @@ impl<'ctx> Codegen<'ctx> {
                     //   3. We use `i8_type()` as the element type so the indices are
                     //      byte-offset indices; the caller is responsible for having
                     //      scaled them to the intended element width before lowering.
+                    // SAFETY: see the GetElementPtr invariant argument directly above.
                     unsafe {
                         let gep = self.builder.build_gep(
                             self.context.i8_type(),

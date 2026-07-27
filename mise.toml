@@ -1,57 +1,9 @@
+# SPDX-License-Identifier: MPL-2.0
+# mise toolchain pins — only what this repo actually uses.
+# The previous file was mint-time boilerplate pinning ~30 tools to "latest"
+# (Node/Go/Zig/Java/… none used here), which contradicts the estate's
+# reproducibility doctrine. my-lang is a Rust workspace + Coq/Idris2 proofs;
+# the provers are installed by CI (proofs.yml), not by mise.
+
 [tools]
-# Language runtimes
-node = "latest"
-python = "latest"
-rust = "latest"
-go = "latest"
-zig = "latest"
-java = "latest"
-bun = "latest"
-denojs = "latest"
-
-# Package managers
-npm = "latest"
-yarn = "latest"
-pnpm = "latest"
-pip = "latest"
-cargo = "latest"
-go-task = "latest"
-
-# Formatting & Linting
-gofmt = "latest"
-black = "latest"
-isort = "latest"
-ruff = "latest"
-prettier = "latest"
-shfmt = "latest"
-stylua = "latest"
-
-# Build tools
-cmake = "latest"
-make = "latest"
-ninja = "latest"
-
-# Shell tools
-git = "latest"
-gnu-sed = "latest"
-gnu-tar = "latest"
-gnu-grep = "latest"
-
-# Testing
-vitest = "latest"
-pytest = "latest"
-jest = "latest"
-
-[env]
-# Common environment variables
-NODE_ENV = "development"
-PYTHONDONTWRITEBYTECODE = "1"
-PYTHONUNBUFFERED = "1"
-
-# Task runner alias
-[alias]
-task = "go-task"
-build = "cargo build --release || npm run build || go build"
-test = "cargo test || npm test || go test ./..."
-lint = "ruff check . || prettier --check . || black --check ."
-fmt = "ruff format . || prettier --write . || black ."
+rust = "1.97.0"

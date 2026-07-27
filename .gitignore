@@ -72,3 +72,11 @@ CoqMakefile.conf
 .*.aux
 .*.d
 .lia.cache
+
+# Secrets & local environment — never commit (salvaged from the 07-26 sweep,
+# the only useful entries in an otherwise template-clobbering diff)
+.env
+.env.*
+*.pem
+*.key
+.venv/
