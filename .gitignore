@@ -1,9 +1,12 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 # Rust/Cargo
 /target/
 Cargo.lock
 **/*.rs.bk
+
+# dhat heap-profile output (#14 checker profiling)
+dhat-heap.json
 *.pdb
 
 # IDE
@@ -24,6 +27,9 @@ Cargo.lock
 .coverage/
 *.profraw
 *.profdata
+# cargo-llvm-cov outputs (see .github/workflows/coverage.yml / TESTING.md)
+lcov.info
+coverage-html/
 
 # OS
 Thumbs.db
@@ -34,9 +40,43 @@ Thumbs.db
 *.log
 target/
 node_modules/
+# JS lockfiles — not tracked, mirroring the Cargo.lock policy above
+# (all under vscode-extension/; the extension is built on a registry-reachable
+#  host with Deno/bun per the package-manager policy, lockfile regenerated there)
+package-lock.json
+bun.lock
+bun.lockb
+deno.lock
+
+# npm-avoidant (standards#67)
+**/package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.npmrc
+# Built VS Code extension artefact — distributed via GitHub Release, not git
+*.vsix
 _build/
 deps/
 .elixir_ls/
 .cache/
 build/
 dist/
+
+# Generated Coq build drivers (coq_makefile output)
+CoqMakefile
+CoqMakefile.conf
+*.vo
+*.vok
+*.vos
+*.glob
+.*.aux
+.*.d
+.lia.cache
+
+# Secrets & local environment — never commit (salvaged from the 07-26 sweep,
+# the only useful entries in an otherwise template-clobbering diff)
+.env
+.env.*
+*.pem
+*.key
+.venv/

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 #![forbid(unsafe_code)]
-// SPDX-License-Identifier: PMPL-1.0-or-later
 //! Debug Adapter Protocol (DAP) implementation for My Language
 //!
 //! This is a minimal DAP server for My Language.

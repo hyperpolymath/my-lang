@@ -1,6 +1,5 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
-// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
-
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Abstract Syntax Tree definitions for My Language with AI integration.
 
 use crate::token::Span;
@@ -691,6 +690,143 @@ impl Literal {
     pub fn span(&self) -> Span {
         match self {
             Literal::Int(_, s) | Literal::Float(_, s) | Literal::String(_, s) | Literal::Bool(_, s) => *s,
+        }
+    }
+}
+
+// ============================================
+// Non-recursive AST teardown (hyperpolymath/my-lang#37)
+// ============================================
+
+/// One pending node in the iterative teardown worklist.
+enum DropNode {
+    Expr(Expr),
+    Block(Block),
+}
+
+/// Drop an entire [`Program`] without recursing through the AST.
+///
+/// # Why this exists
+///
+/// `Expr` is a tree of `Box<Expr>` (plus `Block`/`Stmt`/`Match`/… edges).
+/// The compiler-derived `Drop` recurses once per nesting level, so a
+/// sufficiently deep AST overflows the thread stack *on drop* — independently
+/// of the type checker, and for **any** shape, not just the `Call` chains the
+/// former test-only `drop_program_iteratively` helper special-cased
+/// (hyperpolymath/my-lang#37, subtlety 1).
+///
+/// Implementing `Drop for Expr` would be the other option, but it is rejected
+/// deliberately: a `Drop` impl forbids by-value destructuring of `Expr`
+/// (`cannot move out of a type which implements Drop`), which the parser /
+/// HIR / MIR crates rely on pervasively. A standalone teardown keeps the AST a
+/// plain movable tree while still giving any owner a non-overflowing drop.
+///
+/// # How it works
+///
+/// Owned nodes are pushed onto an explicit heap worklist. Each node is popped
+/// **by value** and destructured (legal precisely because `Expr` has no `Drop`
+/// impl); every recursive child is moved into the worklist *before* the
+/// shallow remainder of the node goes out of scope. The derived drop therefore
+/// only ever runs at depth 1. O(n) time, O(n) heap, **O(1) stack** — no
+/// recursion and no assumptions about AST shape.
+pub fn drop_program_iteratively(mut program: Program) {
+    let mut work: Vec<DropNode> = Vec::new();
+
+    // Seed from function bodies — the only place unbounded nesting can arise.
+    // Every other `TopLevel` is a shallow declaration and drops at O(1) depth.
+    for item in program.items.drain(..) {
+        if let TopLevel::Function(f) = item {
+            work.push(DropNode::Block(f.body));
+        }
+    }
+
+    while let Some(node) = work.pop() {
+        match node {
+            DropNode::Expr(e) => detach_expr_children(e, &mut work),
+            DropNode::Block(b) => detach_block_children(b, &mut work),
+        }
+        // `node` is fully consumed above; its non-recursive remainder (spans,
+        // operators, identifiers, literals) drops here at depth 1.
+    }
+}
+
+fn detach_expr_children(e: Expr, work: &mut Vec<DropNode>) {
+    match e {
+        Expr::Call { callee, args, .. } => {
+            work.push(DropNode::Expr(*callee));
+            work.extend(args.into_iter().map(DropNode::Expr));
+        }
+        Expr::Field { object, .. } => work.push(DropNode::Expr(*object)),
+        Expr::Binary { left, right, .. } => {
+            work.push(DropNode::Expr(*left));
+            work.push(DropNode::Expr(*right));
+        }
+        Expr::Unary { operand, .. }
+        | Expr::Try { operand, .. }
+        | Expr::Restrict { operand, .. } => work.push(DropNode::Expr(*operand)),
+        Expr::Block(b) => work.push(DropNode::Block(b)),
+        Expr::Ai(ai) => detach_ai_expr(ai, work),
+        Expr::Lambda { body, .. } => match body {
+            LambdaBody::Expr(b) => work.push(DropNode::Expr(*b)),
+            LambdaBody::Block(bl) => work.push(DropNode::Block(bl)),
+        },
+        Expr::Match { scrutinee, arms, .. } => {
+            work.push(DropNode::Expr(*scrutinee));
+            work.extend(arms.into_iter().map(|a| DropNode::Expr(a.body)));
+        }
+        Expr::Array { elements, .. } => {
+            work.extend(elements.into_iter().map(DropNode::Expr));
+        }
+        Expr::Record { fields, .. } => {
+            work.extend(fields.into_iter().map(|f| DropNode::Expr(f.value)));
+        }
+        Expr::Literal(_) | Expr::Ident(_) => {}
+    }
+}
+
+fn detach_ai_expr(ai: AiExpr, work: &mut Vec<DropNode>) {
+    match ai {
+        AiExpr::Block { body, .. } => {
+            for item in body {
+                if let AiBodyItem::Field { value, .. } = item {
+                    work.push(DropNode::Expr(value));
+                }
+            }
+        }
+        AiExpr::Call { args, .. } | AiExpr::PromptInvocation { args, .. } => {
+            work.extend(args.into_iter().map(DropNode::Expr));
+        }
+        AiExpr::Quick { .. } => {}
+    }
+}
+
+fn detach_block_children(b: Block, work: &mut Vec<DropNode>) {
+    for stmt in b.stmts {
+        match stmt {
+            Stmt::Expr(e)
+            | Stmt::Let { value: e, .. }
+            | Stmt::Await { value: e, .. }
+            | Stmt::Try { value: e, .. } => work.push(DropNode::Expr(e)),
+            Stmt::If { condition, then_block, else_block, .. } => {
+                work.push(DropNode::Expr(condition));
+                work.push(DropNode::Block(then_block));
+                if let Some(eb) = else_block {
+                    work.push(DropNode::Block(eb));
+                }
+            }
+            Stmt::Go { block, .. } | Stmt::Comptime { block, .. } => {
+                work.push(DropNode::Block(block))
+            }
+            Stmt::Return { value, .. } => {
+                if let Some(v) = value {
+                    work.push(DropNode::Expr(v));
+                }
+            }
+            Stmt::Ai(ai) => match ai.body {
+                AiStmtBody::Block(bl) => work.push(DropNode::Block(bl)),
+                AiStmtBody::Expr(e) => work.push(DropNode::Expr(*e)),
+            },
+            Stmt::Belief { .. } => {}
         }
     }
 }

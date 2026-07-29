@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Common Type Conversion and Checking Operations
 //!
 //! Generic type conversion and type checking functions.
@@ -91,7 +93,7 @@ pub fn int_to_str(n: i64) -> String {
 
 /// Convert integer to string with radix
 pub fn int_to_str_radix(n: i64, radix: u32) -> Option<String> {
-    if radix < 2 || radix > 36 {
+    if !(2..=36).contains(&radix) {
         return None;
     }
 
@@ -100,7 +102,10 @@ pub fn int_to_str_radix(n: i64, radix: u32) -> Option<String> {
     }
 
     let mut result = String::new();
-    let mut num = n.abs() as u64;
+    // `unsigned_abs` instead of `n.abs() as u64`: the latter panics in debug
+    // on `i64::MIN` because `i64::MIN.abs()` overflows. `unsigned_abs`
+    // returns the absolute value as a `u64` losslessly for every `i64`.
+    let mut num = n.unsigned_abs();
 
     while num > 0 {
         let digit = (num % radix as u64) as u32;
@@ -294,14 +299,14 @@ mod tests {
 
     #[test]
     fn test_float_conversions() {
-        assert_eq!(str_to_float("3.14"), Some(3.14));
+        assert_eq!(str_to_float("2.5"), Some(2.5));
         assert_eq!(int_to_float(42), 42.0);
     }
 
     #[test]
     fn test_str_conversions() {
         assert_eq!(int_to_str(42), "42");
-        assert_eq!(float_to_str(3.14), "3.14");
+        assert_eq!(float_to_str(2.5), "2.5");
         assert_eq!(bool_to_str(true), "true");
     }
 
@@ -313,13 +318,23 @@ mod tests {
     }
 
     #[test]
+    fn test_int_to_str_radix_i64_min_does_not_panic() {
+        // Regression for `n.abs() as u64` panicking on `i64::MIN` in debug
+        // builds. After the switch to `unsigned_abs`, this must round-trip.
+        assert_eq!(
+            int_to_str_radix(i64::MIN, 10),
+            Some("-9223372036854775808".to_string())
+        );
+    }
+
+    #[test]
     fn test_bool_conversions() {
         assert_eq!(str_to_bool("true"), Some(true));
         assert_eq!(str_to_bool("false"), Some(false));
         assert_eq!(str_to_bool("yes"), Some(true));
         assert_eq!(str_to_bool("no"), Some(false));
-        assert_eq!(int_to_bool(0), false);
-        assert_eq!(int_to_bool(1), true);
+        assert!(!int_to_bool(0));
+        assert!(int_to_bool(1));
     }
 
     #[test]

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! My Language: A programming language with first-class AI integration
 //!
 //! This crate provides a lexer, parser, and type checker for a language that treats
@@ -21,6 +23,7 @@ pub mod scope;
 pub mod stdlib;
 pub mod token;
 pub mod types;
+pub mod qtt_bridge;
 
 // Library modules (common utilities and language-specific features)
 #[path = "../lib/mod.rs"]
@@ -38,12 +41,24 @@ pub use types::Ty;
 // Library prelude for easy access to common functions and types
 pub use library::prelude;
 
-/// Parse source code into an AST
+/// Parse source code into an AST.
+///
+/// `Parser::parse_program` itself runs error recovery and always returns
+/// `Ok(Program)` with whatever it managed to parse, exposing collected
+/// errors via `Parser::errors()`. This crate-level wrapper preserves the
+/// stricter single-error contract that downstream callers (`compile`,
+/// `eval`) rely on: if any error was collected, return the first one as
+/// `Err`. Callers that want partial-AST recovery should drive the
+/// `Parser` directly and consult `parser.errors()`.
 pub fn parse(source: &str) -> ParseResult<Program> {
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize();
     let mut parser = Parser::new(tokens);
-    parser.parse_program()
+    let program = parser.parse_program()?;
+    if let Some(first) = parser.errors().first() {
+        return Err(first.clone());
+    }
+    Ok(program)
 }
 
 /// Parse and type-check source code

@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # My Language VSCode Extension
 
 Language support for My Language - an AI-native programming language with four dialects (Solo, Duet, Ensemble, Me).
@@ -48,17 +52,39 @@ My Language has four dialects:
 
 ## Building from Source
 
+The runtime entry the host loads is `src/index.cjs` (a vendored adapter +
+wrapper); `package.json` `main` points there, and `out/extension.cjs` is the
+committed last-good build. Recompiling from the AffineScript source requires:
+
+- the **AffineScript compiler** on `PATH` (`affinescript`), and
+- `AFFINESCRIPT_STDLIB` pointing at the AffineScript `stdlib/` directory
+  (the compiler does not yet bundle stdlib bindings).
+
 ```bash
 cd vscode-extension
-npm install
-npm run compile
-npm run package
-code --install-extension my-lang-0.2.0.vsix
+npm install               # needs a reachable npm registry (NOT WSL here)
+export AFFINESCRIPT_STDLIB=/path/to/affinescript/stdlib
+npm run compile           # affinescript compile --vscode-extension …
+npm run package           # @vscode/vsce package -> my-lang-<version>.vsix
+code --install-extension my-lang-0.3.0.vsix
 ```
+
+> **Status:** `src/extension.affine` **compiles** (`affinescript compile
+> --vscode-extension`) and the upstream `stdlib/Vscode.affine` /
+> `VscodeLanguageClient.affine` bindings type-check on affinescript `main`
+> (#35 Phase 2 effectively complete). `src/index.cjs` (the `main`) +
+> `out/extension.cjs` are the runtime artifacts.
+>
+> **Packaging** needs `@vscode/vsce` (the old deprecated `vsce` 2.x cannot
+> handle a `.cjs` entrypoint — it looks for `index.cjs.js`) **and** a
+> registry-reachable environment for `npm install` (the WSL dev box's npm
+> registry is unreachable, so package/publish must run elsewhere — CI or a
+> non-WSL host). `vsce package` → `.vsix` needs **no** Azure Marketplace
+> PAT; only `vsce publish` (Marketplace upload) does.
 
 ## License
 
-PMPL-1.0-or-later
+MPL-2.0
 
 ## Author
 

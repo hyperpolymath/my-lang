@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Tree-walking interpreter for My Language
 //!
 //! This module implements a tree-walking interpreter that directly
@@ -129,6 +131,7 @@ pub struct AiResultValue {
 
 /// Environment for variable bindings
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct Environment {
     values: HashMap<String, Value>,
     parent: Option<Env>,
@@ -173,15 +176,6 @@ impl Environment {
             parent.borrow_mut().set(name, value)
         } else {
             Err(RuntimeError::UndefinedVariable(name.to_string()))
-        }
-    }
-}
-
-impl Default for Environment {
-    fn default() -> Self {
-        Environment {
-            values: HashMap::new(),
-            parent: None,
         }
     }
 }

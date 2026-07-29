@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 = My Language Master Index & Roadmap
 
 *Source material: October 26, 2025 master index (My-Newsroom project summary).* This document anchors that vision inside the repo and links each highlighted piece to current artifacts.

@@ -1,48 +1,36 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
-<<<<<<< HEAD
+# SPDX-License-Identifier: MPL-2.0
 name: ClusterFuzzLite Batch
-on:
-  schedule:
-    - cron: '0 0 * * 0'
-permissions: read-all
-jobs:
-  BatchFuzzing:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        sanitizer: [address, undefined]
-    steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-      - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
-        with:
-          sanitizer: ${{ matrix.sanitizer }}
-=======
-name: ClusterFuzzLite Batch Fuzzing
 on:
   schedule:
     - cron: '0 0 * * 0'  # Weekly
 permissions: read-all
 jobs:
-  fuzz:
+  BatchFuzzing:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # ASan only: Rust/cargo-fuzz can't emit a valid UBSan binary (links ASan
+        # regardless), so `undefined` failed bad_build_check. See project.yaml.
+        sanitizer: [address]
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
       - uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117
           language: rust
+          sanitizer: ${{ matrix.sanitizer }}
       - uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fuzz-seconds: 1800
-<<<<<<< HEAD
           sanitizer: ${{ matrix.sanitizer }}
           mode: batch
           output-sarif: true
-      - uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3
-        if: always()
+      - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v3
+        # Only upload when a SARIF was actually produced: a CLEAN fuzz run
+        # (no crashes) writes no `vulnerabilities.sarif`, and an unconditional
+        # `always()` upload then fails with "Path does not exist".
+        if: always() && hashFiles('vulnerabilities.sarif') != ''
         with:
           sarif_file: vulnerabilities.sarif
-=======
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117

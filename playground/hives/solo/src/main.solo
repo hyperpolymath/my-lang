@@ -1,5 +1,5 @@
 // Solo Language - Main Entry Point
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Solo is the systems programming foundation of the My-Lang family.
 // It provides low-level control with memory safety through linear/affine types.

@@ -1,5 +1,5 @@
 // Linear Types - Must Be Used Exactly Once
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Linear types are the foundation of Solo's memory safety guarantees.
 // They ensure resources are properly managed without garbage collection.

@@ -1,0 +1,111 @@
+# Hypatia scanner exemptions for hyperpolymath/my-lang
+#
+# Format (per hyperpolymath/hypatia .hypatia-ignore spec):
+#   <rule_module>/<rule_type>:<path-fragment>   scoped rule exemption
+#   <rule_module>/*:<path-fragment>             whole-module exemption
+#   <path-fragment>                             unscoped (any rule)
+# Path-fragments are SUBSTRING-matched against repo-relative paths.
+# Lines beginning with '#' are comments.
+#
+# Rationale is recorded inline so future maintainers can re-evaluate each
+# exemption. See docs/wiki/internals/checker-allocation-investigation.md for
+# how the standing Hypatia backlog was triaged. Burn-down: issue #34.
+
+# --- Non-shipping trees: separate packages, NOT in the root Cargo workspace
+# (see Cargo.toml `members`). They are scratch/playground and alternate
+# dialect code, intentionally rougher than shipped crates; scanning them on
+# every PR produced repeated noise unrelated to any PR's diff.
+playground/
+dialects/
+# _exploratory/me-scaffolding is the sidelined `me` dialect scaffolding,
+# explicitly removed from the active workspace (Cargo.toml note +
+# _exploratory/me-scaffolding/SIDELINED.adoc). my-ssg is a separate, non-workspace
+# static-site-generator crate. Neither ships from the root workspace, so their
+# unwrap()/dangerous-default findings are non-shipping noise (same rationale as
+# playground/ and dialects/ above), not a security backlog on shipped code.
+_exploratory/
+my-ssg/
+
+# --- frontier-practices/ is exploratory forward-looking research code outside
+# the Cargo workspace. The .res (ReScript) agent files pre-date the estate's
+# AffineScript preference; CLAUDE.md continues to permit ReScript as a primary
+# application language. AffineScript migration is a direction, not a blocker
+# for non-shipping frontier work. Exempted path-wide (consistent with the
+# playground/ and dialects/ treatment) so CI stays clean without forcing a
+# disruptive migration of non-shipping research code.
+frontier-practices/
+
+# --- Scanner false positive: this Nickel file is a POLICY that *bans*
+# Dockerfile (`banned_files = ["Makefile", "Dockerfile"]`). The rule fires on
+# the substring "Dockerfile" even though the config enforces the very policy
+# the rule wants. Correct behaviour, not a defect.
+code_safety/ncl_docker_not_podman:.machine_readable/svc/k9/my-lang-metadata.k9.ncl
+
+# --- Property-test scaffolding: deliberate unwrap()/panic! is idiomatic in
+# proptest generators and shrink paths (a panic IS the test signal there).
+code_safety/unwrap_without_check:src/proptest.rs
+code_safety/panic_macro:src/proptest.rs
+
+# NOTE: lib/common/string.rs `char::from_digit().unwrap()` was RESOLVED AT
+# SOURCE (replaced with `.expect(...)` documenting the digit<radix<=36
+# invariant), so it needs no exemption. Likewise the Coq "Admitted" finding
+# was a false positive on the word inside a comment for a fully-proved
+# (`Qed.`) lemma; the comment was reworded so the finding no longer exists.
+# Both were closed under issue #34 rather than suppressed.
+
+# --- Reusable-workflow CALLER jobs (issue #95). Each of these workflows is a thin
+# wrapper whose single job is `uses: hyperpolymath/standards/.github/workflows/
+# *-reusable.yml@<pinned-sha>`. GitHub Actions FORBIDS `timeout-minutes` on a
+# `uses:` job (schema error — it would break the workflow), so this finding is
+# un-actionable in my-lang: the timeout belongs INSIDE the standards reusable
+# workflow, and Hypatia should exempt reusable-workflow caller jobs. Same for
+# scorecard's job-permissions finding (a property of the wrapper/reusable
+# pattern). Exempted with rationale; revisit when the upstream fix (#95) lands.
+# (Contrast: checker-scaling/codeql/stack-depth are direct `runs-on` jobs and
+# WERE hardened with timeout-minutes in PRs #89/#90.)
+workflow_audit/missing_timeout_minutes:governance.yml
+workflow_audit/missing_timeout_minutes:hypatia-scan.yml
+workflow_audit/missing_timeout_minutes:mirror.yml
+workflow_audit/missing_timeout_minutes:scorecard.yml
+workflow_audit/missing_timeout_minutes:secret-scanner.yml
+workflow_audit/missing_timeout_minutes:spark-theatre-gate.yml
+workflow_audit/scorecard_wrapper_missing_job_permissions:scorecard.yml
+# (push-email-notify.yml is a DIRECT runs-on job, not a reusable caller, so it
+# was hardened with `timeout-minutes` at source rather than exempted.)
+
+# --- Scanner false positive: Coq `Module Type` interface. ResourceAlgebra.v
+# declares a resource-semiring INTERFACE as a `Module Type` — its `Parameter`s
+# and `Axiom`s are the interface's abstract fields/laws, DISCHARGED by every
+# concrete instance (`Module ... <: ResourceAlgebra`), not global kernel axioms.
+# The `coq_axiom` rule keyword-matches `Axiom` without distinguishing a Module
+# Type field from a top-level `Axiom`. The verified development remains
+# axiom-free in the kernel sense (`Print Assumptions` closed); see proofs/STATUS.md.
+code_safety/coq_axiom:proofs/verification/coq/solo-core/ResourceAlgebra.v
+
+# --- Scanner false positive: env-var EXAMPLES in user docs. The install /
+# getting-started guides show how to export the OpenAI / Anthropic API-key
+# environment variables. The secret detector flags the assignment SHAPE
+# regardless of the value (the values here are placeholders — `<your-openai-key>`,
+# truncated `sk-ant-...` stubs — NOT real credentials; verified by inspection).
+# These are documentation, not code, and a real key does not belong in them.
+# (The placeholder-content cleanup in PR #131 did not satisfy the assignment-shape
+# matcher, so a scoped exemption is the correct mechanism for this false positive.)
+security_errors/secret_detected:docs/wiki/guides/installation.md
+security_errors/secret_detected:docs/wiki/guides/getting-started.md
+
+# --- Scanner false positive: there is NO `mem::transmute` call in my-llvm.
+# The `transmute` rule keyword-matches the WORD "transmute", which appears only
+# inside a SAFETY comment ("it is never a raw transmuted integer") documenting a
+# GetElementPtr pointer invariant. `grep -nE 'transmute\s*(::<|\()'` over the file
+# returns nothing. No unchecked bit-reinterpretation exists here.
+code_safety/transmute:crates/my-llvm/src/lib.rs
+
+# --- Rule cannot be satisfied: `unsafe_block` is a bare `unsafe\s*\{` regex
+# (hypatia lib/rules/code_safety.ex) — it flags EVERY unsafe block regardless
+# of documentation; the "requires SAFETY comment" in its description is not
+# actually checked. The single unsafe block here is mandatory (inkwell declares
+# `build_gep` unsafe) and carries a 17-line SAFETY invariant argument plus an
+# adjacent `// SAFETY:` marker. Until the rule checks for SAFETY comments
+# (upstream fix candidate), a scoped exemption is the only correct mechanism —
+# a baseline entry would just regenerate as expiring debt for a permanent fact.
+code_safety/unsafe_block:crates/my-llvm/src/lib.rs

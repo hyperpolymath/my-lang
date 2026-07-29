@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Standard Library for My Language
 //!
 //! This module provides built-in functions and types that are automatically
@@ -44,6 +46,15 @@ pub fn register_stdlib(define: &mut impl FnMut(String, Value)) {
 
     // Environment Extras (env_args; complements existing env(name))
     register_env_extras(define);
+
+    // Map / Dict Functions (string-keyed maps over Value::Record; my-lang#46)
+    register_map_functions(define);
+
+    // JSON Functions (json_parse / json_stringify; my-lang#47)
+    register_json_functions(define);
+
+    // Date Functions (date_today; my-lang#48)
+    register_date_functions(define);
 }
 
 // ============================================================================
@@ -365,14 +376,17 @@ fn register_string_functions(define: &mut impl FnMut(String, Value)) {
             arity: 2,
             func: |args| match (&args[0], &args[1]) {
                 (Value::String(s), Value::Int(idx)) => {
-                    let idx = *idx as usize;
-                    if idx < s.len() {
-                        Ok(Value::String(s.chars().nth(idx).unwrap().to_string()))
-                    } else {
-                        Err(RuntimeError::IndexOutOfBounds {
-                            index: idx as i64,
-                            length: s.len(),
-                        })
+                    // Index by *character*, not byte: `s.len()` is the byte
+                    // length, so the old `idx < s.len()` guard let a multi-byte
+                    // UTF-8 string reach `chars().nth(idx) == None` and panic.
+                    // `try_from` also rejects negative indices. Length is
+                    // reported as the char count to match char-indexing.
+                    match usize::try_from(*idx).ok().and_then(|i| s.chars().nth(i)) {
+                        Some(c) => Ok(Value::String(c.to_string())),
+                        None => Err(RuntimeError::IndexOutOfBounds {
+                            index: *idx,
+                            length: s.chars().count(),
+                        }),
                     }
                 }
                 _ => Err(RuntimeError::TypeError {
@@ -1462,6 +1476,37 @@ fn register_fs_functions(define: &mut impl FnMut(String, Value)) {
             },
         }),
     );
+
+    // fs_list_dir(path) -> Array<String> - entry names (not full paths) in
+    // `path`, sorted for deterministic tooling output. Errors if `path` is not
+    // a readable directory. See hyperpolymath/my-lang#55.
+    define(
+        "fs_list_dir".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "fs_list_dir".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::String(path) => {
+                    let rd = std::fs::read_dir(path).map_err(|e| {
+                        RuntimeError::Custom(format!("fs_list_dir({}) failed: {}", path, e))
+                    })?;
+                    let mut names: Vec<String> = Vec::new();
+                    for entry in rd {
+                        let entry = entry.map_err(|e| {
+                            RuntimeError::Custom(format!("fs_list_dir({}) failed: {}", path, e))
+                        })?;
+                        names.push(entry.file_name().to_string_lossy().into_owned());
+                    }
+                    names.sort();
+                    Ok(Value::Array(names.into_iter().map(Value::String).collect()))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
 }
 
 // ============================================================================
@@ -1483,6 +1528,302 @@ fn register_env_extras(define: &mut impl FnMut(String, Value)) {
                     None => std::env::args().skip(1).map(Value::String).collect(),
                 };
                 Ok(Value::Array(args))
+            },
+        }),
+    );
+}
+
+// ============================================================================
+// MAP / DICT FUNCTIONS
+// ============================================================================
+//
+// String-keyed maps backed by `Value::Record(HashMap<String, Value>)`. The
+// interpreter's `eval_field` only resolves *static* identifier keys, so tooling
+// (config tables, lookup tables, JSON-shaped data) has no way to use dynamic /
+// computed keys without these builtins. See hyperpolymath/my-lang#46 / #45.
+//
+// Mutation builtins follow the same immutable convention as `push`: they clone
+// the underlying map and return a new `Record` rather than mutating in place.
+
+fn register_map_functions(define: &mut impl FnMut(String, Value)) {
+    // map_new() -> Record - an empty string-keyed map.
+    define(
+        "map_new".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_new".to_string(),
+            arity: 0,
+            func: |_| Ok(Value::Record(HashMap::new())),
+        }),
+    );
+
+    // map_set(map, key, value) -> Record - new map with `key` set to `value`.
+    define(
+        "map_set".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_set".to_string(),
+            arity: 3,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => {
+                    let mut new_map = map.clone();
+                    new_map.insert(key.clone(), args[2].clone());
+                    Ok(Value::Record(new_map))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string, value".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_get(map, key) -> value - errors if the key is absent (use map_has to test).
+    define(
+        "map_get".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_get".to_string(),
+            arity: 2,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => map
+                    .get(key)
+                    .cloned()
+                    .ok_or_else(|| RuntimeError::FieldNotFound(key.clone())),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_has(map, key) -> Bool - true iff `key` is present.
+    define(
+        "map_has".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_has".to_string(),
+            arity: 2,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => Ok(Value::Bool(map.contains_key(key))),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_keys(map) -> Array<String> - keys in sorted order (deterministic for tooling).
+    define(
+        "map_keys".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_keys".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::Record(map) => {
+                    let mut keys: Vec<String> = map.keys().cloned().collect();
+                    keys.sort();
+                    Ok(Value::Array(keys.into_iter().map(Value::String).collect()))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+
+    // map_remove(map, key) -> Record - new map without `key` (no-op if absent).
+    define(
+        "map_remove".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_remove".to_string(),
+            arity: 2,
+            func: |args| match (&args[0], &args[1]) {
+                (Value::Record(map), Value::String(key)) => {
+                    let mut new_map = map.clone();
+                    new_map.remove(key);
+                    Ok(Value::Record(new_map))
+                }
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map, string".to_string(),
+                    got: format!("{:?}, {:?}", args[0], args[1]),
+                }),
+            },
+        }),
+    );
+
+    // map_len(map) -> Int - number of entries.
+    define(
+        "map_len".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "map_len".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::Record(map) => Ok(Value::Int(map.len() as i64)),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "map".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+}
+
+// ============================================================================
+// JSON FUNCTIONS
+// ============================================================================
+//
+// json_parse(s) -> Value and json_stringify(v) -> String, backed by serde_json
+// (a non-optional dependency of this crate). See hyperpolymath/my-lang#47 / #45.
+//
+// Representation mapping (paired with the Map/dict builtins, #46):
+//   JSON object  <-> Value::Record   JSON array  <-> Value::Array
+//   JSON string  <-> Value::String   JSON bool   <-> Value::Bool
+//   JSON null    <-> Value::Unit
+//   JSON number  ->  Value::Int when integral and i64-representable, else Float
+//                <-  Int as integer, Float as fractional
+// Object keys serialize in sorted order (serde_json's default Map is a
+// BTreeMap), matching the deterministic ordering of `map_keys`.
+
+/// serde_json::Value -> My Value (total; never fails).
+fn json_to_value(j: serde_json::Value) -> Value {
+    match j {
+        serde_json::Value::Null => Value::Unit,
+        serde_json::Value::Bool(b) => Value::Bool(b),
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Value::Int(i)
+            } else {
+                // u64 too large for i64, or a real: fall back to float.
+                Value::Float(n.as_f64().unwrap_or(f64::NAN))
+            }
+        }
+        serde_json::Value::String(s) => Value::String(s),
+        serde_json::Value::Array(arr) => Value::Array(arr.into_iter().map(json_to_value).collect()),
+        serde_json::Value::Object(obj) => {
+            let mut map = HashMap::new();
+            for (k, v) in obj {
+                map.insert(k, json_to_value(v));
+            }
+            Value::Record(map)
+        }
+    }
+}
+
+/// My Value -> serde_json::Value. Errors on values with no JSON analogue
+/// (functions, native functions, AI results).
+fn value_to_json(v: &Value) -> Result<serde_json::Value, RuntimeError> {
+    match v {
+        Value::Unit => Ok(serde_json::Value::Null),
+        Value::Bool(b) => Ok(serde_json::Value::Bool(*b)),
+        Value::Int(i) => Ok(serde_json::Value::Number((*i).into())),
+        Value::Float(f) => serde_json::Number::from_f64(*f)
+            .map(serde_json::Value::Number)
+            .ok_or_else(|| {
+                RuntimeError::Custom(format!(
+                    "json_stringify: {} has no JSON representation (NaN/Infinity)",
+                    f
+                ))
+            }),
+        Value::String(s) => Ok(serde_json::Value::String(s.clone())),
+        Value::Array(arr) => {
+            let mut out = Vec::with_capacity(arr.len());
+            for item in arr {
+                out.push(value_to_json(item)?);
+            }
+            Ok(serde_json::Value::Array(out))
+        }
+        Value::Record(map) => {
+            let mut obj = serde_json::Map::new();
+            for (k, val) in map {
+                obj.insert(k.clone(), value_to_json(val)?);
+            }
+            Ok(serde_json::Value::Object(obj))
+        }
+        other => Err(RuntimeError::TypeError {
+            expected: "JSON-representable value".to_string(),
+            got: format!("{:?}", other),
+        }),
+    }
+}
+
+fn register_json_functions(define: &mut impl FnMut(String, Value)) {
+    // json_parse(s) -> Value - parse a JSON document into a My value.
+    define(
+        "json_parse".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "json_parse".to_string(),
+            arity: 1,
+            func: |args| match &args[0] {
+                Value::String(s) => serde_json::from_str::<serde_json::Value>(s)
+                    .map(json_to_value)
+                    .map_err(|e| RuntimeError::Custom(format!("json_parse: invalid JSON: {}", e))),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: format!("{:?}", args[0]),
+                }),
+            },
+        }),
+    );
+
+    // json_stringify(v) -> String - serialize a My value to a JSON string
+    // (compact, object keys sorted for deterministic output).
+    define(
+        "json_stringify".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "json_stringify".to_string(),
+            arity: 1,
+            func: |args| {
+                let j = value_to_json(&args[0])?;
+                serde_json::to_string(&j)
+                    .map(Value::String)
+                    .map_err(|e| RuntimeError::Custom(format!("json_stringify: {}", e)))
+            },
+        }),
+    );
+}
+
+// ============================================================================
+// DATE FUNCTIONS
+// ============================================================================
+//
+// date_today() -> String, ISO `YYYY-MM-DD` in UTC. `time()` only yields a Unix
+// timestamp float; tooling that stamps generated artifacts needs a calendar
+// date. See hyperpolymath/my-lang#48 / #45.
+//
+// The civil date is derived from epoch seconds with Howard Hinnant's
+// `civil_from_days` algorithm (public domain) — no date crate dependency, and
+// correct for all Gregorian dates.
+
+/// (year, month [1..=12], day [1..=31]) for a count of days since 1970-01-01.
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365; // [0, 399]
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); // [0, 365]
+    let mp = (5 * doy + 2) / 153; // [0, 11]
+    let d = doy - (153 * mp + 2) / 5 + 1; // [1, 31]
+    let m = if mp < 10 { mp + 3 } else { mp - 9 }; // [1, 12]
+    (y + if m <= 2 { 1 } else { 0 }, m, d)
+}
+
+fn register_date_functions(define: &mut impl FnMut(String, Value)) {
+    // date_today() -> String - current UTC date as ISO `YYYY-MM-DD`.
+    define(
+        "date_today".to_string(),
+        Value::NativeFunction(NativeFunction {
+            name: "date_today".to_string(),
+            arity: 0,
+            func: |_| {
+                use std::time::{SystemTime, UNIX_EPOCH};
+                let secs = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as i64;
+                let days = secs.div_euclid(86_400);
+                let (y, m, d) = civil_from_days(days);
+                Ok(Value::String(format!("{:04}-{:02}-{:02}", y, m, d)))
             },
         }),
     );
@@ -1575,7 +1916,21 @@ pub fn stdlib_functions() -> Vec<&'static str> {
         "fs_read_file",
         "fs_create_dir_all",
         "fs_exists",
+        "fs_list_dir",
         // Env extras
         "env_args",
+        // Map / dict
+        "map_new",
+        "map_set",
+        "map_get",
+        "map_has",
+        "map_keys",
+        "map_remove",
+        "map_len",
+        // JSON
+        "json_parse",
+        "json_stringify",
+        // Date
+        "date_today",
     ]
 }

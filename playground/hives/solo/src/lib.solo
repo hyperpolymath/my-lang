@@ -1,5 +1,5 @@
 // Solo Language - Library Root
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // This is the library entry point for Solo projects.
 // Re-exports core modules and defines the public API.

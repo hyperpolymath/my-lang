@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: MPL-2.0
+# bust/proof-ci-gate-absent.a2ml — Failure mode: proof CI not running
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# Verb: bust
+# Scope: my-lang (QTT multi-dialect language with mechanised Coq + Idris2 solo-core)
+# Failure mode: F5 gap — the proof CI leg is absent or disabled
+
+@abstract:
+The mechanised solo-core proofs (Coq + Idris2) are not machine-checked in CI.
+This is the F5 gap: progress/preservation/axiom-freedom are locally verified
+but not enforced on every push. A regression that slips an `Admitted` into the
+substitution chain would pass CI silently.
+@end
+
+## Failure Mode
+
+### proof-ci-gate-absent
+- class: ci_gap
+- description: .github/workflows/proofs.yml missing or disabled; Coq + Idris2 proofs
+    are not machine-checked on push. Any `Admitted` or axiom regression
+    reaches main silently.
+- injection_probe: "mv .github/workflows/proofs.yml /tmp/proofs.yml.bak"
+- recovery_probe: "mv /tmp/proofs.yml.bak .github/workflows/proofs.yml"
+- detection: "test -f .github/workflows/proofs.yml && grep -q 'coqc\|coq_makefile' .github/workflows/proofs.yml"
+- recovery_path: Restore proofs.yml; see Intentfile.a2ml probe 'proof-ci'
+- expected_recovery_time_seconds: 300
+- status: declared
+- notes: F5 intent recorded in Intentfile.a2ml; mirrors echo-types' agda.yml pattern
+
+### axiom-regression
+- class: proof_integrity
+- description: An `Admitted`, `admit`, or stray `Axiom` enters the substitution /
+    preservation dependency cone without CI catching it.
+- detection: "coqtop -R proofs/verification/coq/solo-core SoloCore -e 'Require Import SoloCore. Print Assumptions preservation.' 2>/dev/null | grep -q 'Closed under the global context'"
+- recovery_path: >
+    Identify the regression via `Print Assumptions preservation.` in coqtop.
+    Remove the admitted term; discharge the obligation or file a Bustfile entry
+    for the open proof obligation.
+- expected_recovery_time_seconds: 3600
+- status: declared
+- notes: CI currently checks this via proofs.yml axiom-free steps for all headline theorems

@@ -1,4 +1,4 @@
-; SPDX-License-Identifier: PMPL-1.0-or-later
+; SPDX-License-Identifier: MPL-2.0
 ; Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 ;
 ; ENSAID_CONFIG.a2ml — PanLL configuration for the my-lang language project.
@@ -90,10 +90,10 @@ description = "Run type system tests when type checker changes"
 
 [workflows.abi-verify]
 trigger = "file_save"
-match = "src/abi/*.idr"
+match = "proofs/verification/idris/solo-core/*.idr"
 action = "run_command"
-command = "idris2 --check src/abi/Types.idr"
-description = "Verify ABI definitions when Idris2 files change"
+command = "idris2 --build proofs/verification/idris/solo-core/solo-core.ipkg"
+description = "Verify the mechanised solo-core when Idris2 files change (ipkg build, not per-file --check, so a missing module is a hard failure)"
 
 ; ─────────────────────────────────────────────────────────────────────
 ; [clades] — panel clade taxonomy for this project

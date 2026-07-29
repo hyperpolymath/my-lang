@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! High-level Intermediate Representation for My Language
 //!
 //! HIR is the first IR after parsing, providing:
@@ -585,10 +586,9 @@ fn lower_ai_expr(ai_expr: &AiExpr) -> Result<HirExpr, HirError> {
                 .map(lower_expr)
                 .collect::<Result<Vec<_>, _>>()?;
 
-            let prompt = if hir_args.is_empty() {
-                Box::new(HirExpr::Literal(HirLiteral::String(String::new())))
-            } else {
-                Box::new(hir_args.into_iter().next().unwrap())
+            let prompt = match hir_args.into_iter().next() {
+                None => Box::new(HirExpr::Literal(HirLiteral::String(String::new()))),
+                Some(first) => Box::new(first),
             };
 
             Ok(HirExpr::AI(match keyword {

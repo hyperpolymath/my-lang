@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Modules and Imports
 
 My Language uses a module system for organizing code into reusable, encapsulated units.

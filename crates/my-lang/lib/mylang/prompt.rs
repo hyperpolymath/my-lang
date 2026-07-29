@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Prompt Building Module
 //!
 //! Utilities for constructing, templating, and managing AI prompts
@@ -135,7 +137,12 @@ impl PromptBuilder {
         }
     }
 
-    /// Add a part to the prompt
+    /// Add a part to the prompt.
+    ///
+    /// This is a fluent-builder method, not `std::ops::Add::add` (which would
+    /// be the wrong shape -- `Add` is for the `+` operator and consumes two
+    /// values, while this returns `Self` for chaining).
+    #[allow(clippy::should_implement_trait)]
     pub fn add(mut self, text: &str) -> Self {
         self.parts.push(text.to_string());
         self

@@ -1,6 +1,9 @@
 homepage: "https://github.com/hyperpolymath/my-lang"
 language: rust
 main_repo: "https://github.com/hyperpolymath/my-lang"
+# Only ASan: Rust/cargo-fuzz does not produce a valid UndefinedBehaviorSanitizer
+# build (it links ASan regardless), which OSS-Fuzz's `bad_build_check` rejects
+# ("UBSan build ... seems to be compiled with ASan"). ASan is the supported,
+# meaningful sanitizer for Rust fuzzing here.
 sanitizers:
   - address
-  - undefined

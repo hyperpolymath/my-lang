@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Package Manager for My Language
 //!
 //! Provides dependency management and project tooling:
@@ -131,6 +132,12 @@ pub struct LockedPackage {
 
 /// Dependency resolver
 pub struct Resolver {
+    // Not yet consulted during resolution -- the resolver currently uses
+    // a placeholder version pick (see the `TODO: Query registry` in
+    // `resolve_dependency`). The field is kept (rather than dropped) so
+    // the constructor signature stays put for when the real resolver
+    // lands; allow the lint until then.
+    #[allow(dead_code)]
     registry: Registry,
 }
 
@@ -144,8 +151,9 @@ impl Resolver {
         let mut graph: DiGraph<(String, Version), ()> = DiGraph::new();
         let mut resolved = HashMap::new();
 
-        // Add root package
-        let root_version = Version::parse(&manifest.package.version)
+        // Add root package. Parsed for validation -- when the real
+        // resolver lands it will seed the graph with this version.
+        let _root_version = Version::parse(&manifest.package.version)
             .map_err(|e| PkgError::InvalidManifest(e.to_string()))?;
 
         // Resolve each dependency
@@ -173,7 +181,10 @@ impl Resolver {
         &self,
         name: &str,
         dep: &Dependency,
-        graph: &mut DiGraph<(String, Version), ()>,
+        // Threaded through for the real resolver (see the `TODO: Query
+        // registry` below) -- the placeholder version-pick implementation
+        // doesn't touch the graph yet.
+        _graph: &mut DiGraph<(String, Version), ()>,
         resolved: &mut HashMap<String, Version>,
     ) -> Result<(), PkgError> {
         let version_req = match dep {
@@ -306,12 +317,17 @@ impl PackageCache {
         }
     }
 
-    /// Store package in cache
+    /// Store package in cache.
+    ///
+    /// `data` is the raw tarball bytes; currently ignored because tarball
+    /// extraction (`TODO` below) is not yet implemented. The parameter
+    /// stays in the public signature so adding the body doesn't require
+    /// a breaking API change.
     pub async fn store(
         &self,
         name: &str,
         version: &Version,
-        data: &[u8],
+        _data: &[u8],
     ) -> Result<PathBuf, PkgError> {
         let path = self
             .cache_dir

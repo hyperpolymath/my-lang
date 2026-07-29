@@ -1,56 +1,162 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # STATE.a2ml — My Lang project state
 [metadata]
 project = "my-lang"
-version = "0.0.2"
-last-updated = "2026-03-14"
+version = "0.2.0"                                # matches Cargo.toml [workspace.package]
+last-updated = "2026-07-27"
 status = "active"
-session = "converted from scheme — 2026-04-11"
+session = "CI/CD + supply-chain close-out (PRs #143/#146/#147): codeql-action repointed off a NONEXISTENT SHA; all 15 Hypatia findings triaged (8 fixed at source incl. a self-referential critical, 7 baselined to 2026-10-27 under issue #145); unsafe_block ruled unsatisfiable and scoped-exempted; GitHub Pages un-stuck (workflow was disabled_manually) and LIVE; ARCHITECTURE.md + Justfile de-boilerplated. main FULLY GREEN — 2026-07-27"
+prior-session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.3-msg (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection, n-ary located operational semantics, head-coupled message subject reduction = first earned n-party safety half) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
 
 [project-context]
 name = "My Lang"
-purpose = """Merge my-newsroom solo-compiler and mylang-playground dialects into main repo"""
-completion-percentage = 65
+purpose = """
+Multi-dialect programming language with QTT (Quantitative Type Theory) semantic
+core. Formal verification — mechanised Coq + Idris2 solo-core — is a first-class
+deliverable alongside the Rust compiler implementation.
+"""
+# CORRECTION (2026-07-27): the dialects are NOT four co-equal surfaces. They are
+# three NESTED SUBSETS plus a projector that sits outside the hierarchy:
+#     solo  ⊂  duet  ⊂  ensemble
+# solo    = innermost kernel (affine, single-agent)
+# duet    = solo + session-typed two-party (mechanised as ensemble|2-party by projection)
+# ensemble= duet + multi-agent (session-typed π-calculus core) = the full language
+# me      = NOT a fourth dialect; an on-the-fly projector that cuts the hierarchy
+#           at a chosen point. Its Rust scaffolding is SIDELINED in
+#           _exploratory/me-scaffolding/ and is not in the Cargo workspace.
+# Consequence for audits: grade the layered stack, not three standalone compilers.
+# A broken solo breaks duet and ensemble by transitivity.
+dialect-model = "nested-subsets"
+dialects-ordered = ["solo", "duet", "ensemble"]
+dialect-projector = "me"
+architecture-doc = "ARCHITECTURE.md"
+completion-percentage = 50
 
 [position]
-phase = "alpha-substantial-implementation"   # design | implementation | testing | maintenance | archived
-maturity = "experimental"  # experimental | alpha | beta | production | lts
+phase = "early-alpha"
+maturity = "experimental"
+
+[proof-status]
+qtt-semiring-coq = "machine-checked"            # CI-gated (proofs.yml), Print Assumptions closed
+qtt-semiring-idris2 = "locally-checked"
+solo-syntax-contexts-typing = "machine-checked"
+operational-semantics = "machine-checked"      # F1.1 — CBV step/Step committed both tracks
+progress = "machine-checked"                    # F1.3 — Coq Qed (axiom-free), CI Print Assumptions closed; Idris total/hole-free
+preservation = "machine-checked"                # F1.4 — Coq Qed (axiom-free, ht_subst), CI-gated; Idris ?todo_preservation deliberately open (D1 option A)
+resource-algebra-functor = "machine-checked"   # R2 — SoloCoreF over Module Type SEMIRING; Include Linear3 = R0 axiom-free
+affine-pres = "machine-checked"                 # R3 — distinct affine budget-preservation over ORDERED_SEMIRING qle
+tropical-instance = "machine-checked"           # R4 — SoloCoreF Tropical, infinite min-plus carrier, axiom-free
+usage-walk-checker = "machine-checked"          # R5 — check + check_correct (sound+complete); R5b aff_type_dec
+me-elaboration = "machine-checked"              # M1.0/1.1/1.1b — elab + me_wt_sound over the whole me_tm, axiom-free
+session-pi = "machine-checked"                  # S1.0–S3c.3-msg — subject reduction / fidelity / progress / duet-by-projection / n-party projection totality / static n-party config / label-union merge / union-projection / n-ary located operational semantics / head-coupled message subject reduction, all axiom-free
+echo-measure-seam = "machine-checked"           # E4 (Coq mirror) — RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective, axiom-free
+echo-type-former = "machine-checked"           # Rust checker Ty::Echo + EchoMode/THEcho/THWeaken; kernel mechanised
+echo-residue = "machine-checked"               # EchoResidue.v backs Ty::is_assignable_from
+paper-proofs = "proved-on-paper"
+proof-ci = "present"                            # F5 done — .github/workflows/proofs.yml (coqc solo-core + idris2 --build), per-rung Print-Assumptions gates
+
+[echo-integration]
+# echo-types is now a first-class feature of the FORMAL type system, not only the
+# Rust checker. Kernel: TEcho type former + MkEcho/Weaken terms + THEcho/THWeaken
+# rules + echo reductions; progress covers them. EchoMode = Linear/Affine thin
+# poset (weaken + no-section laws). EchoResidue = proof-layer object (slice 3 of
+# docs/design/echo-types-integration.md) pinning the laws behind the Rust
+# Ty::is_assignable_from Echo case. 5/5 Rust echo_tests are exactly these laws.
+slice-1-checker = "done"      # PR #86
+slice-3-proof-layer = "done"  # PR #92 (this session)
+slice-2-parser-syntax = "pending"
 
 [route-to-mvp]
 milestones = [
-  # No milestones recorded
+  { id = "F1.0", description = "Dual-track QTT solo-core scaffold (Coq + Idris2), semiring laws proved", status = "done", date = "2026-06-02" },
+  { id = "F1.1", description = "Small-step CBV operational semantics constructors (Step/step), both tracks", status = "done", date = "2026-06-05" },
+  { id = "F1.2", description = "Four-point affine semiring extension (0 ⊏ ? ⊏ 1 ⊏ ω)", status = "pending" },
+  { id = "F1.3", description = "Progress theorem proved on both tracks (canonical forms + closed-ctx inversion)", status = "done", date = "2026-06-05" },
+  { id = "F1.4", description = "Preservation + QTT substitution lemma (ht_subst), affine-accounting corollary (affine_pres)", status = "done", date = "2026-06-14", note = "product/elimination resolved: additive & + multiplicative ⊗ both coherent" },
+  { id = "echo-1", description = "Echo type former + affine weakening semantics in Rust type checker", status = "done", date = "2026-06-02" },
+  { id = "echo-2", description = "Parser syntax for Echo<A => B>", status = "pending" },
+  { id = "echo-3", description = "EchoResidue proof layer (Coq + Idris2) + Echo type former in the formal kernel", status = "done", date = "2026-06-05" },
+  { id = "R2", description = "Functorise solo-core over Module Type SEMIRING (SoloCoreF); Include Linear3 recovers R0 axiom-free", status = "done", date = "2026-06-13" },
+  { id = "R3", description = "ORDERED_SEMIRING + subusage rule → affine_pres a DISTINCT theorem (not an alias)", status = "done", date = "2026-06-13" },
+  { id = "R4", description = "Tropical (min-plus, infinite carrier) instance SoloCoreF Tropical, axiom-free", status = "done", date = "2026-06-13" },
+  { id = "R5", description = "Executable usage-walk checker check + check_correct (sound+complete); R5b aff_type_dec", status = "done", date = "2026-06-13" },
+  { id = "M1", description = "me→solo elaboration (elab) + me_wt_sound over the whole me_tm, axiom-free (M1.0/1.1/1.1b)", status = "done", date = "2026-06-14" },
+  { id = "S1-S2", description = "Structure climb: session-π subject reduction / fidelity / progress (S1) + duet-by-projection (S2.0–S2.2), axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3a-S3b", description = "n-party projection totality (S3a) + static n-party config (S3b), axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.0", description = "Full label-union merge umerge/umerge_br + keystone umerge_idem (Honda-Yoshida-Carbone), added ALONGSIDE plain merge; type-algebra only, axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.1", description = "Union-projection proj_u/projectable_u_wf + keystone existence theorem projection_total_u + one-directional monotonicity bridge projectable_wf_implies_u (on keystone merge_forces_eq: plain merge is the identity-meet); SEPARATE proj_u added ALONGSIDE proj (canonical proj byte-identical, NOT re-pointed); projection-EXISTENCE only, non-vacuity g_union3 in union-projectable minus plain-projectable; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.2", description = "n-ary LOCATED operational semantics: nstep (located mirror of fused cstep; one comm ra_set-updates exactly the two roles) + ra_set + global gstep + nstar/gstar closures + functional wf_assignment_f (wf_assignment_to_f keeps S3b green); 3-party ring run 0->1->2->0 witnessed both sides (ring_runs_to_end, g_ring_gsteps); ADEQUACY-only, nstep_breaks_wf_at_fixed_G PROVES no fixed-G subject reduction; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.3-msg", description = "Head-coupled message subject reduction nstep_sr_msg_head (the FIRST EARNED n-party safety half): the head communication sanctioned by GMsg p q t G' carries wf_assignment_f from G to its continuation G' (3-way located role split; same v:t sender ships = receiver substitutes via pty_subst0); coupled corollary nstep_gstep_sr_msg_head; earned-safety headline sr_earns_safety_across_step (same ra_ring1 S3c.2 refuted at fixed g is wf at stepped g); run-ahead fence SELF-WITNESSED (runahead_breaks_head_coupling). Design-panel-validated + independently adversary-verified (sound-and-honest). HEAD message fragment, preservation only; axiom-free", status = "done", date = "2026-06-14" },
+  { id = "S3c.3-choice/perm + S3c.4", description = "remaining n-party safety: select/branch SR (S3c.3-choice, couple NStep_Sel with a choice-gstep), run-ahead/permutation SR (S3c.3-perm, needs gstep-with-swap relation), n-party progress (S3c.4 = coherence ⇒ safety, research-hard — fence; wf_assignment ra -> deadlock-free is FALSE)", status = "pending", note = "S3c.0/.1/.2/.3-msg landed; the message-HEAD safety half is earned; choice/permutation/progress remain, solo" },
+  { id = "E4", description = "Echo residue-measure SEAM (Coq mirror): RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective; full measure-independence upstream-cited", status = "done", date = "2026-06-14" },
+  { id = "F2", description = "Effects metatheory mechanised", status = "pending" },
+  { id = "F3", description = "Memory model mechanised", status = "pending" },
+  { id = "F4", description = "Paper-proof topic parity with AffineScript", status = "pending" },
+  { id = "F5", description = "Proof CI (coqc + idris2 --build in CI) — close the proof-ci=absent gap", status = "done", date = "2026-06-14", note = ".github/workflows/proofs.yml live; per-rung Print-Assumptions gates" },
 ]
 
 [blockers-and-issues]
 issues = [
-  # No blockers recorded
+  { id = "product-elim", description = "RESOLVED (F1.4): additive & (projections) + multiplicative ⊗ (let-pair elim) both coherent; preservation proved sound over the open-term substitution lemma ht_subst.", severity = "resolved" },
+  { id = "typeck", description = "Solo dialect affine type-checker is TODO(#typeck) — mechanised solo-core (check / check_correct, R5) leads the implementation and is its spec; a hand-written Rust checker is tested against, not Coq-proved equal to, check", severity = "high" },
+  { id = "proof-ci", description = "RESOLVED (F5): .github/workflows/proofs.yml compiles the Coq solo-core + idris2 --build and asserts Print Assumptions closed per rung", severity = "resolved" },
+  { id = "hypatia-reusable-timeout", description = "UPSTREAM/STANDARDS (issue #95): Hypatia workflow_audit/missing_timeout_minutes fired on reusable-workflow CALLER jobs. MEASURED 2026-07-27: no longer reproduces — the current governance scan returns zero workflow_audit findings (PR #134 dropped the invalid timeout-minutes keys that were making those files parse-dead; wrappers are SHA-pinned). Kept open as the upstream tracker only.", severity = "low" },
+  { id = "expect-hot-path", description = "SUPERSEDED by panic-surface (below). The parser.rs x157 count was a SCANNER FALSE POSITIVE — a name collision with the parser's own `self.expect(TokenKind) -> Result` method, not Option/Result::expect panics. Issue #94 closed as consolidated into #145.", severity = "resolved" },
+  { id = "panic-surface", description = "Hypatia code_safety unwrap/expect debt, BASELINED not fixed (7 entries in .hypatia-baseline.json, expire 2026-10-27, tracked in issue #145): my-fmt x26 unwrap (infallible fmt::Write-to-String), my-llvm x3 unwrap (internal MIR invariants), my-mir x5 + string.rs x1 + measure_depth.rs x2 expect (deliberate invariant style), parser.rs x157 (scanner FP), modules.md SD022 (illustrative user-project layout). Revisit before the expiry or the gate re-reds.", severity = "medium", tracking = "hyperpolymath/my-lang#145" },
+  { id = "justfile-parse-dead", description = "RESOLVED 2026-07-27: the Justfile carried a `// Owner:` C-style comment on line 2, so `just` refused the WHOLE file (`error: unknown start of token '.'`) and every recipe was unavailable — while README documented `just build` / `just test` as the golden path. Recipes were also `@echo` stubs. Now real cargo commands, parse-verified. ESTATE-WIDE: 143 of 751 Justfiles measured parse-dead (76x unindented shell `-`, 35x `//` comment, 32x Justfile/justfile case collision).", severity = "resolved" },
 ]
 
 [critical-next-actions]
 actions = [
-  "Create dialects/ directory structure, merge scattered repos",
-  "10-15 hours",
-  "Finish LLVM backend for native binary output",
-  "crates/my-llvm/",
-  "15-20 hours",
-  "Consolidate AI features across dialects",
-  ")
-        (effort ",
-  ")))
-    (this-month
-      (expand-stdlib
-        (description ",
-  ")
-        (effort ",
-  "))
-      (write-documentation
-        (description ",
-  ")
-        (effort ",
+  { priority = 1, description = "S3c: n-party operational metatheory — full label-union merge + n-party subject reduction / progress (coherence ⇒ safety); the last structure-climb rung", estimate = "large" },
+  { priority = 2, description = "S1.3b-meta: μ typing / subject-reduction up-to-unfolding (PT_Unfold rule + soundness + up-to-unfolding inversions)", estimate = "large" },
+  { priority = 3, description = "F1.2: extend to four-point affine semiring (add ? = at-most-once quantity)", estimate = "6-8 hours" },
+  { priority = 4, description = "Echo parser syntax stage 2: Echo<A => B> surface syntax in solo dialect", estimate = "4-6 hours" },
 ]
 
+[security-posture]
+# Added 2026-07-27. How this repo's scanner findings are dispositioned, so an
+# agent can tell "clean" from "suppressed" without re-deriving it.
+hypatia-baseline = ".hypatia-baseline.json"
+hypatia-baseline-entries = 7
+hypatia-baseline-expires = "2026-10-27"
+hypatia-baseline-tracking = "hyperpolymath/my-lang#145"
+hypatia-baseline-schema = "array of {severity, rule_module, type, file|file_pattern, note?, expires_at?, tracking_issue?}; validated by hyperpolymath/standards scripts/apply-baseline.sh"
+hypatia-ignore = ".hypatia-ignore"
+# Scoped exemptions live in .hypatia-ignore (PERMANENT facts) rather than the
+# baseline (EXPIRING debt). Three are active, each a rule-precision problem:
+exemptions = [
+  { rule = "code_safety/coq_axiom", file = "proofs/verification/coq/solo-core/ResourceAlgebra.v", reason = "keyword-matches `Axiom` without distinguishing a Module Type field from a top-level Axiom; the development is axiom-free in the kernel sense (Print Assumptions closed)" },
+  { rule = "code_safety/transmute", file = "crates/my-llvm/src/lib.rs", reason = "keyword-matches the WORD transmute, which appears only inside a SAFETY comment; no mem::transmute call exists" },
+  { rule = "code_safety/unsafe_block", file = "crates/my-llvm/src/lib.rs", reason = "UNSATISFIABLE RULE: a bare `unsafe\\s*\\{` regex (hypatia lib/rules/code_safety.ex) — the 'requires SAFETY comment' in its description is never checked, so no documentation can clear it. The single unsafe block is mandated by inkwell's unsafe build_gep and carries a 17-line invariant argument." },
+]
+# Upstream rule-fix candidates surfaced by the 2026-07-27 triage:
+upstream-rule-fixes = [
+  "code_safety/expect_in_hot_path: disambiguate a user-defined `self.expect(..) -> Result` method from the panicking Option/Result::expect (157 false hits here)",
+  "code_safety/unsafe_block: actually check for an adjacent SAFETY comment, per the rule's own description",
+  "security_errors/secret_detected: an exemption file's own explanatory comment should not re-trigger the assignment-shape matcher (this produced the only critical)",
+]
+secret-scanning = "gitleaks (Secret Scanner workflow) + trufflehog (just secret-scan-trufflehog); no live credentials known in tree or history"
+
+[toolchain]
+rust = "1.97.0"                       # mise.toml + .tool-versions
+llvm = "21"                           # my-llvm only, via LLVM_SYS_211_PREFIX; excluded from default build/test and from coverage CI
+coq = "distro (apt) — see proofs.yml"
+idris2 = "built from source in CI — see proofs.yml"
+task-runner = "just (Justfile); parse-verified 2026-07-27"
+
 [maintenance-status]
-last-run-utc = "2026-03-14T00:00:00Z"
-last-result = "unknown"  # unknown | pass | warn | fail
+last-run-utc = "2026-07-27T18:15:00Z"
+last-result = "pass"
+main-commit = "8636e15"
+main-board = "FULLY GREEN — every workflow on main succeeds or is deliberately skipped"
+ci-governance = "pass"                 # incl. Validate Hypatia Baseline, green for the first time since >=2026-07-22
+ci-security-scan = "pass"              # Hypatia Security Scan + Secret Scanner + CodeQL + Scorecard
+ci-rust-tests = "pass"                 # Coverage (llvm-cov, floor 40%)
+ci-pages = "pass"                      # https://hyperpolymath.github.io/my-lang/ returns HTTP 200
+ci-pr = "PRs #143/#146/#147 merged 2026-07-27; no open PRs"
+proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3c.3-msg, E4)"
+known-local-limitation = "my-llvm cannot be built in the maintainer's WSL environment (no system LLVM 21). `cargo build --workspace` FAILS there; `--exclude my-llvm` succeeds. Do not read a bare workspace build failure as a regression without checking for the llvm-sys compile_error."
+superseded-branch = "origin/feat/stdlib-fs-env-format — SUPERSEDED, safe to delete: main carries every builtin it adds PLUS fs_list_dir, its stdlib.rs is 355 lines behind, it conflicts on stdlib.rs + CONTRIBUTING.md, and it is 188 commits behind main"

@@ -1,0 +1,348 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+//
+// Reconstructed reproduction for hyperpolymath/my-lang#14 (follow-up to #1/#12).
+//
+// The original ~330 LOC scaffold tool that triggered the 16-32 GiB Windows
+// allocation was never attached to the issue. This file rebuilds the *shape*
+// the report describes: a code-scaffolding tool whose output is assembled
+// almost entirely from nested str_concat / format string-building
+// constructs, with many independent templating sites ("aggregate complexity
+// of nested string-building constructs") and moderate per-expression nesting
+// kept well below the #12 MAX_EXPR_DEPTH guard so it represents a
+// deep-but-otherwise-legal program, not a pathological depth bomb.
+
+fn scaffold_1(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_2(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_3(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_4(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_5(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_6(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_7(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_8(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_9(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_10(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_11(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_12(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_13(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_14(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_15(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_16(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_17(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_18(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_19(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_20(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_21(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_22(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_23(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_24(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_25(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_26(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_27(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_28(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_29(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_30(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_31(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_32(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_33(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_34(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_35(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_36(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_37(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_38(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_39(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn scaffold_40(a: String, b: String, c: String) -> String {
+    let part = str_concat(a, str_concat(b, c));
+    let wrapped = format(str_concat("<", str_concat(part, ">")));
+    let line = str_concat(wrapped, str_concat(" | ", str_concat(a, str_concat(b, c))));
+    let deep = str_concat("L0:", str_concat(line, str_concat("L1:", str_concat(part, str_concat("L2:", str_concat(wrapped, "end"))))));
+    return str_concat(deep, format(str_concat(line, part)));
+}
+
+fn build_project(name: String) -> String {
+    let header = scaffold_1(name, "v1", "crate");
+    let body = str_concat(scaffold_2(header, "mod", "main"), scaffold_3(name, "lib", "api"));
+    let manifest = format(str_concat(header, str_concat(body, scaffold_4(name, "dep", "core"))));
+    let doc = str_concat(manifest, str_concat(scaffold_5(name, "readme", "intro"), scaffold_6(body, "usage", "end")));
+    let out = str_concat(header, str_concat(body, str_concat(manifest, str_concat(doc, scaffold_7(name, "foot", "eof")))));
+    return out;
+}
+
+fn main() -> Int {
+    let project = build_project("demo");
+    let report = str_concat("built:", str_concat(project, format(project)));
+    return 0;
+}

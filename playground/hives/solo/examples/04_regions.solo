@@ -1,5 +1,5 @@
 // Region-Based Memory Management
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Regions provide scoped memory allocation without garbage collection.
 // All memory in a region is freed when the region exits.

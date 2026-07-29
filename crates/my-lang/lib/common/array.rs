@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Common Array/Collection Operations
 //!
 //! Generic array and collection manipulation functions.
@@ -310,7 +312,7 @@ mod tests {
         let a = vec![1, 2];
         let b = vec![3, 4];
         assert_eq!(concat(&a, &b), vec![1, 2, 3, 4]);
-        assert_eq!(slice(&vec![1, 2, 3, 4, 5], 1, 4), vec![2, 3, 4]);
+        assert_eq!(slice(&[1, 2, 3, 4, 5], 1, 4), vec![2, 3, 4]);
     }
 
     #[test]

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Common String Operations
 //!
 //! Generic string manipulation functions.
@@ -135,7 +137,7 @@ pub fn pad_start(s: &str, len: usize, pad: char) -> String {
     if s.len() >= len {
         s.to_string()
     } else {
-        let padding: String = std::iter::repeat(pad).take(len - s.len()).collect();
+        let padding: String = std::iter::repeat_n(pad, len - s.len()).collect();
         format!("{}{}", padding, s)
     }
 }
@@ -145,7 +147,7 @@ pub fn pad_end(s: &str, len: usize, pad: char) -> String {
     if s.len() >= len {
         s.to_string()
     } else {
-        let padding: String = std::iter::repeat(pad).take(len - s.len()).collect();
+        let padding: String = std::iter::repeat_n(pad, len - s.len()).collect();
         format!("{}{}", s, padding)
     }
 }
@@ -197,7 +199,7 @@ pub fn parse_float(s: &str) -> Option<f64> {
 
 /// Format integer to string with radix
 pub fn int_to_string_radix(n: i64, radix: u32) -> Option<String> {
-    if radix < 2 || radix > 36 {
+    if !(2..=36).contains(&radix) {
         return None;
     }
 
@@ -206,11 +208,17 @@ pub fn int_to_string_radix(n: i64, radix: u32) -> Option<String> {
     }
 
     let mut result = String::new();
-    let mut num = n.abs() as u64;
+    // `unsigned_abs` instead of `n.abs() as u64`: the latter panics in debug
+    // on `i64::MIN` because `i64::MIN.abs()` overflows. `unsigned_abs`
+    // returns the absolute value as a `u64` losslessly for every `i64`.
+    let mut num = n.unsigned_abs();
 
     while num > 0 {
         let digit = (num % radix as u64) as u32;
-        let c = char::from_digit(digit, radix).unwrap();
+        // Total: `radix` is validated to 2..=36 above and `digit = num % radix`
+        // is therefore `< radix <= 36`, so `from_digit` always returns `Some`.
+        let c = char::from_digit(digit, radix)
+            .expect("digit = num % radix < radix <= 36, so from_digit is total");
         result.insert(0, c);
         num /= radix as u64;
     }
@@ -297,12 +305,22 @@ mod tests {
     #[test]
     fn test_parse() {
         assert_eq!(parse_int("42"), Some(42));
-        assert_eq!(parse_float("3.14"), Some(3.14));
+        assert_eq!(parse_float("2.5"), Some(2.5));
     }
 
     #[test]
     fn test_radix() {
         assert_eq!(int_to_string_radix(255, 16), Some("ff".to_string()));
         assert_eq!(int_to_string_radix(10, 2), Some("1010".to_string()));
+    }
+
+    #[test]
+    fn test_radix_i64_min_does_not_panic() {
+        // Regression for `n.abs() as u64` panicking on `i64::MIN` in debug
+        // builds. After the switch to `unsigned_abs`, this must round-trip.
+        assert_eq!(
+            int_to_string_radix(i64::MIN, 10),
+            Some("-9223372036854775808".to_string())
+        );
     }
 }

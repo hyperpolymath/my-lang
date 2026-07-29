@@ -1,24 +1,36 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # META.a2ml — My Lang meta-level information
 [metadata]
 version = "0.1.0"
-last-updated = "2026-04-11"
+last-updated = "2026-06-14"
 
 [project-info]
-license = "PMPL-1.0-or-later"
+license = "MPL-2.0"
 author = "Jonathan D.A. Jewell (hyperpolymath)"
 
 [architecture-decisions]
+# ADRs. Prose design notes live in docs/ (e.g. docs/design/echo-types-integration.md);
+# proofs/ALIGNMENT-PLAN.md tracks the mechanisation roadmap.
 decisions = [
-  # No ADRs recorded
+  { id = "ADR-001", date = "2026-06-02", title = "Dual-track QTT mechanisation (Coq + Idris2) for the solo-core", status = "accepted", note = "The solo dialect's affine/linear kernel is mechanised twice — Coq (Prop) and Idris2 (Type) — so the two flagship metatheories track the same shape. Methodology is statements-first: theorems committed as statements, then discharged. Semiring laws proved by exhaustive Refl/reflexivity." },
+  { id = "ADR-002", date = "2026-06-05", title = "Echo-types is a first-class type former in the formal kernel", status = "accepted", note = "echo-types is integrated into the type SYSTEM, not only the Rust checker: TEcho type former + MkEcho/Weaken terms + THEcho/THWeaken typing rules + echo reduction rules in the Coq/Idris solo-core. EchoMode = Linear/Affine thin poset (weaken + no-section laws); EchoResidue = proof-layer object pinning the laws behind the Rust Ty::is_assignable_from Echo case (closes slice 3 of docs/design/echo-types-integration.md). Claim line held to R-2026-05-18: Echo is a loss-graded reindexing modality over a thin poset — NOT graded-comonad/universal-property/adjunction." },
+  { id = "ADR-003", date = "2026-06-05", title = "Idris splitting rules carry explicit context/quantity fields", status = "accepted", note = "On the Idris track the four context-splitting rules (THApp/THPair/THCase/THLet) carry their split contexts (and the App/Let quantity) as explicit constructor fields. Rationale: Idris2 QTT erases the typing-derivation context indices at runtime, but the closed-context progress inversion (g1+g2=Empty implies both Empty) needs them relevant. The Coq twin leaves them as Prop binders (Prop has no erasure). Documented track divergence; the derivation now records its own split, which is arguably more faithful." },
+  { id = "ADR-004", date = "2026-06-05", title = "Product/elimination form undecided — gates F1.4 preservation", status = "resolved", resolved-date = "2026-06-13", note = "RESOLVED by ADR-007 (both products). Original concern: kernel pairs were multiplicative (split context at intro) but eliminated by projection (Fst/Snd) — neither & nor ⊗, and strictly weaker than both. The resolution is to provide BOTH genuine products. See ADR-007." },
+  { id = "ADR-005", date = "2026-06-05", title = "Scope unchanged — no new realignment ANCHOR", status = "accepted", note = "This session (operational semantics, progress, Echo-in-the-typesystem) is progress WITHIN the 2026-01-01 scope-arrest ANCHOR (Solo-first; Rust impl; contain other dialects). It is not a scope realignment, so no new ANCHOR.*.a2ml is issued. Formal mechanisation remains a first-class deliverable consistent with that anchor; proof assistants (Coq/Idris/Agda) are verification tooling, not new compiler host languages." },
+  { id = "ADR-006", date = "2026-06-12", title = "Separated QTT context: type context (tctx) + usage vector (uvec)", status = "accepted", note = "The conflated QTT context (types and quantities together in one Snoc, with ctx_add taking its type annotation from its FIRST argument — so context addition was NOT commutative in the types) is replaced by a SEPARATED representation: a type context tctx (TEmpty/TSnoc) shared verbatim across every premise of a rule, and a usage vector uvec (UEmpty/USnoc) that is the only thing split (uadd) or scaled (uscale). Payoff: uadd is genuinely commutative + associative and uscale distributes (uadd_comm, uadd_assoc, uscale_add in Usage.v), which is exactly the clean algebra the F1.4 substitution lemma needs. has_type : tctx -> uvec -> tm -> ty -> Prop. PRs #102 (Usage.v) + #103 (migration)." },
+  { id = "ADR-007", date = "2026-06-13", title = "Two genuine products: additive & (TWith) and multiplicative ⊗ (TTensor)", status = "accepted", note = "Resolves ADR-004. The additive product & (TWith) introduces under SHARED usage (both components typed under the same D — safe because only one survives elimination) and is eliminated by Fst/Snd projection. The multiplicative product ⊗ (TTensor) introduces by SPLITTING usage (uadd D1 D2) and is eliminated by a let-pair `let (x,y)=e1 in e2` that binds two variables and delivers both components. This replaces the single incoherent product. PRs #103 (&) + #104 (⊗)." },
+  { id = "ADR-008", date = "2026-06-13", title = "Additive-& evaluation is eager (lazy deferred)", status = "accepted", note = "The additive pair With t1 t2 is a value only once BOTH components are values (eager); Fst/Snd project from that value. This is type-safe and, under the current strongly-normalising kernel (no recursion/fixpoint), observationally equivalent to the canonical LAZY & semantics. Switch to lazy & (With always a value; project-then-evaluate) is deferred to when recursion or effects enter the language, at which point lazy becomes required. Flagged, not forgotten." },
+  { id = "ADR-009", date = "2026-06-14", title = "F1.4 preservation via an open-context QTT substitution lemma", status = "accepted", note = "Preservation (Coq) is discharged by a substitution lemma ht_subst that holds for OPEN substituends (not only closed values), because the let-pair (⊗) eliminator substitutes tensor components that are typed in a non-empty context. subst2 u1 u2 t = subst0 u1 (subst0 (shift 0 u2) t) (the shift 0 makes it correct for open u2; identity on closed terms, so closed-program evaluation is unchanged). Theorem preservation + affine_pres are real axiom-free Qed (Print Assumptions closed). PR with d174c06." },
 ]
 
 [development-practices]
 versioning = "SemVer"
 documentation = "AsciiDoc"
 build-tool = "just"
+proof-assistants = ["Coq 8.18", "Idris2 0.7.0"]
+proof-discipline = "no Admitted/Axiom/postulate/sorry/believe_me/assert_*; statements-first; proofs/STATUS.md is the authoritative proof-status registry"
 
 [maintenance-axes]
 scoping-first = true

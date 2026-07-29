@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: MPL-2.0
+# Checker allocation-scaling harness for hyperpolymath/my-lang#14.
+#
+# The original 16-32 GiB OOM was reported on stable-x86_64-pc-windows-msvc and
+# could not be reproduced on Linux. This workflow runs the in-tree scaling
+# harness on BOTH ubuntu-latest and windows-latest so the Windows allocator
+# behaviour is measured on every change instead of relying on a manual report.
+# On Linux it also produces a dhat per-call-site heap profile and uploads it
+# as an artifact for hotspot localisation (the step the issue asked for).
+name: Checker Scaling (#14)
+on:
+  push:
+    paths:
+      - 'crates/my-lang/**'
+      - '.github/workflows/checker-scaling.yml'
+  pull_request:
+    paths:
+      - 'crates/my-lang/**'
+      - '.github/workflows/checker-scaling.yml'
+permissions: read-all
+jobs:
+  scaling:
+    name: scaling (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # stable
+        with:
+          toolchain: stable
+      - name: Run allocation-scaling harness
+        run: cargo test -p my-lang --test checker_alloc_scaling --release -- --nocapture
+      - name: Run dhat heap profile (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo run -p my-lang --example dhat_checker_profile --features dhat-heap --release
+      - name: Upload dhat heap profile
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dhat-heap-profile
+          path: dhat-heap.json
+          if-no-files-found: warn

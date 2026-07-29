@@ -1,13 +1,15 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Duet Playground
 :toc: macro
 :icons: font
 
-// SPDX-License-Identifier: PMPL-1.0-or-later
 
 *Playground for Duet - AI-Assisted Neuro-Symbolic Development Language*
 
 image:https://img.shields.io/badge/Language-Duet-purple[Duet]
-image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+image:https://img.shields.io/badge/License-MPL--2.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
 
 toc::[]
 
@@ -113,4 +115,5 @@ Part of the My-Lang progressive family:
 
 == License
 
-SPDX-License-Identifier: PMPL-1.0-or-later-or-later
+SPDX-License-Identifier: CC-BY-SA-4.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>

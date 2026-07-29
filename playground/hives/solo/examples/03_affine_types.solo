@@ -1,5 +1,5 @@
 // Affine Types - Can Be Used At Most Once
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 //
 // Affine types are less strict than linear types - they can be
 // dropped without use, but still prevent double-use.

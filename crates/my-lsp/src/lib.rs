@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Language Server Protocol implementation for My Language
 //!
 //! Provides IDE features through LSP:
@@ -117,7 +118,9 @@ fn extract_error_location(error: &CheckError) -> (usize, usize) {
         CheckError::WrongArgCount { line, column, .. } => (*line, *column),
         CheckError::InvalidBinaryOp { line, column, .. } => (*line, *column),
         CheckError::NonBoolCondition { line, column, .. } => (*line, *column),
+        CheckError::ExpressionTooDeep { line, column, .. } => (*line, *column),
         CheckError::Other { line, column, .. } => (*line, *column),
+        CheckError::ResourceViolation { line, column, .. } => (*line, *column),
     }
 }
 

@@ -1,0 +1,249 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
+= ARG-PROFILE — My
+:toc: left
+:toclevels: 2
+
+[cols="1,3"]
+|===
+| Field | Value
+
+| Language | My (`.my`, four dialects)
+| Repository | https://github.com/hyperpolymath/my-lang
+| Current ARG Grade | *D-leaning-E*  (toy-project usable in places, but multi-dialect ambition not yet matched by external adoption)
+| Assessed | 2026-05-28
+| Assessor | Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+| ARG Spec Version | 1.0
+| FRG Profile | spec/FRG-PROFILE.adoc
+| TRG Profile | spec/TRG-PROFILE.adoc (TBD)
+|===
+
+== About this profile
+
+My is a progressive-disclosure language with four dialects (visual
+blocks → solo → duet → ensemble) and four-dialect structure
+mirrored in `dialects/` + `crates/` + `proofs/`. It has the most
+*architectural* maturity of the three audit-cohort languages
+(11 production crates including `my-ai`, `my-cli`, `my-dap`,
+`my-debug`, `my-fmt`, `my-hir`, `my-lang`, `my-lint`, `my-llvm`,
+`my-lsp`), an EBNF grammar (`grammar.ebnf`, 381 lines), and a
+playground directory. The honest current ARG grade is D-leaning-E
+— the language *has* the surfaces but they are sparsely populated
+for external adoption.
+
+ARG = D-leaning-E. The full chain of axes:
+
+* ARG: D-leaning-E
+* TRG: TBD (likely D given 11 crates)
+* FRG: E (see `spec/FRG-PROFILE.adoc` — proofs/ exists with subdirs
+  but PROOF-NEEDS.md indicates no domain-specific Idris2 proofs
+  have landed yet)
+* CRG: TBD
+* RSR: Compliant at TRG-D level
+
+Cross-axis rule: ARG ≤ TRG holds.
+
+== Grade rationale (evidence for D-leaning-E)
+
+[cols="2,1,4", options="header"]
+|===
+| Criterion | Met? | Evidence
+
+| *D1 — Landing page / README*
+| YES
+| `README.adoc` (top-level, comprehensive; "Let learning unfold"
+  lead; OpenSSF Best Practices badge)
+
+| *D2 — Elevator pitch*
+| YES
+| README "Progressive-disclosure programming language with
+  first-class AI integration — four dialects scaling from visual
+  blocks to agentic orchestration"
+
+| *D3 — Provenance*
+| YES
+| MAINTAINERS.adoc + LICENSE + CITATION (via CONTRIBUTING.adoc) +
+  CODE_OF_CONDUCT
+
+| *TRG ≥ D estate-wide*
+| LIKELY YES
+| 11 crates implementing the toolchain spine (cli, lsp, dap,
+  formatter, linter, codegen via my-llvm, debug)
+
+| *RSR-compliant at TRG-D*
+| YES
+| SPDX headers, MPL-2.0 + PMPL choice declared, comprehensive
+  estate-discipline files present
+
+| *O1 — 5-minute hello-world*
+| PARTIAL
+| `examples/` directory exists; not explicitly time-measured
+
+| *O2 — Tutorial covering distinctive features*
+| PARTIAL
+| `docs/` covers dialects but tutorial form is sparse
+
+| *O4 — Cookbook ≥ 3 worked examples ≥ 100 LoC each*
+| UNCLEAR
+| examples/ present; LoC threshold not verified
+
+| *R1 — Reference manual*
+| PARTIAL
+| `IMPLEMENTATION.md` + docs/; not "complete reference"
+
+| *R3 — Formal grammar*
+| YES
+| `grammar.ebnf` (381 lines)
+
+| *Δ1 — Stable release artefacts*
+| PARTIAL
+| Git tags; not signed release process documented
+
+| *External programs ≥ 100 LoC each parse/typecheck/run*
+| UNCLEAR
+| Not externally verified
+
+| *Diversity-metrics: ≥ 2 distinct external authors*
+| NO
+| Founder is sole author
+
+| *O3 — Playground*
+| PARTIAL (D-permissive; required from C)
+| `playground/` directory exists; browser-runnable status TBD
+
+| *R2 — Stdlib reference*
+| NO
+|
+
+| *R4 — Operational/denotational semantics*
+| NO
+|
+
+| *R5 — Stable error-code index*
+| NO
+|
+
+| *C1-C5 community*
+| PARTIAL
+| Issue tracker, CONTRIBUTING (.adoc + .md), CoC, MAINTAINERS;
+  no public discussion venue
+
+| *Δ2-Δ5 distribution*
+| PARTIAL
+| Cargo workspace; versioning policy implicit
+
+| *E1-E4 education*
+| NO
+| (Despite the "Me-curious / educators" target audience)
+
+| *X1-X4 ecosystem*
+| NO
+|
+
+| *VeriSimDB attestation*
+| NO (D-permissive; required from C)
+|
+|===
+
+== Honest reading
+
+My is *architecturally* the most ambitious of the three audit cohort
+languages: four dialects, AI integration via `my-ai`, debug-adapter
+protocol, full LSP, codegen via LLVM. The architecture *sets up*
+ARG-C territory but the *content* of each surface is sparsely
+populated.
+
+The honest current grade is *D-leaning-E*:
+
+* D criteria mostly satisfied at the level of "the surface exists",
+* but the cookbook + external-author diversity floor for honest D is
+  not met,
+* and the strong vision (educators, AI-native, progressive disclosure)
+  has not yet translated into adoption surfaces matching that
+  ambition.
+
+This is the inverse of ephapax's pattern: ephapax has strong FRG
+ambition with sparse ARG surfaces. My has strong ARG architecture
+with sparse FRG/proof-content.
+
+== Language-specific tightening
+
+For My, the following ARG tightening applies:
+
+* *Grade C tightening:* The dialects (`solo`, `duet`, `ensemble`,
+  `me`) MUST each have ≥ 3 cookbook examples honouring the
+  progressive-disclosure principle (an example in `me` MUST be
+  reachable from an `ensemble` example via the disclosure path).
+* *Grade B tightening:* The AI-integration claim (`my-ai`) MUST be
+  exercised by ≥ 5 external users (the AI-native positioning of the
+  language is load-bearing — adoption MUST exercise it).
+* *Grade A tightening:* The "Me-curious / educators" target MUST be
+  validated by at least one external educator using `me` dialect
+  in a multi-week curriculum.
+
+== What is NOT yet met (honest gaps)
+
+* No external authors at the diversity floor.
+* No browser-runnable playground confirmed.
+* No stdlib reference (despite `lib/`).
+* No operational-semantics document.
+* No stable error-code index (despite `my-lint` infrastructure).
+* No public discussion venue.
+* No education materials despite educator-target audience.
+* No release-process documentation (Δ3).
+
+== Path to next grade (honest D — toy-project usable)
+
+* Author 3 cookbook examples ≥ 100 LoC each, one per dialect (solo,
+  duet, ensemble) at minimum.
+* Time-measure the hello-world clean-install path.
+* Recruit 2 distinct external program authors.
+* Tag a signed release artefact via documented process.
+
+*Realistic timeline estimate:* 2-3 months — the surfaces exist; they
+need population.
+
+== Path to grade beyond that (C — alpha gate)
+
+* Confirm playground browser-runnable.
+* Stdlib reference per `lib/` symbol.
+* Operational semantics document at R4.
+* Stable error-code index (use `my-lint` codes as seed).
+* Public discussion venue.
+* RFC/ADR process activated (the `INTENT.contractile` +
+  `MUST.contractile` structure is the seed — needs RFC bridge).
+* Slide deck (E1) for the progressive-disclosure pedagogy.
+* 10 dogfood users meeting diversity-metrics.
+* ≥ 2 substantive domains, ≥ 3 cookbook examples each.
+* VeriSimDB ingestion.
+
+== Demotion risk
+
+* *Lowest:* `playground/` not browser-runnable on inspection — drops
+  toward E.
+* *Medium:* Multi-dialect ambition becomes "vapourware" perception
+  if dialects ship empty — risks F over time.
+* *Catastrophic:* `my-ai` claim not exercised by real AI integration
+  (`my-ai` becoming a placeholder) — risks F for misrepresentation.
+
+== Iteration history
+
+[cols="1,1,4", options="header"]
+|===
+| Date | Grade | Notes
+
+| 2026-05-28 | D-leaning-E | Initial ARG assessment. Strong architecture (11 crates, 4 dialects, EBNF, playground/ dir) but surfaces sparsely populated. Diversity-floor and content-density gates are the binding constraints for honest D.
+|===
+
+== Review cycle
+
+* *Routine:* Reassess on every release cycle.
+* *Immediate:* Reassess within 7 days of any demotion trigger.
+
+== Footer
+
+This profile is itself a VCL-total proposition. `DECLARE`'d to
+VeriSimDB on each commit (once ingestion wired).

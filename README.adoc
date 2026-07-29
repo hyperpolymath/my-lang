@@ -1,195 +1,176 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
-// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) 2026 Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
 
-= My: Progressive AI-Native Language
-
-image:https://img.shields.io/badge/OpenSSF-Best_Practices-green?logo=opensourcesecurity[OpenSSF Best Practices,link="https://www.bestpractices.dev/en/projects/new?repo_url=https://github.com/hyperpolymath/my-lang"]
-image:https://img.shields.io/badge/License-PMPL--1.0-indigo.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
-image:https://api.thegreenwebfoundation.org/greencheckimage/github.com[Green Web,link="https://www.thegreenwebfoundation.org/green-web-check/?url=github.com"]
-
-
-:toc: macro
+= my-lang (AsciiDoc edition)
+:author: Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
+:revdate: 2026-06-02
+:toc: left
 :toclevels: 2
-:icons: font
-:source-highlighter: rouge
 
-[.lead]
-*Let learning unfold. Let types guard. Let agents compose.*
+`my-lang` is the *next-generation language* working project — a
+multi-dialect surface for the hyperpolymath language stack. It is one
+of two flagship language experiments in the estate (the other being
+link:https://github.com/hyperpolymath/affinescript[`affinescript`]).
+The two projects are *siblings*, not a fork — they share design
+principles but diverge in dialect scope and proof strategy.
 
-Progressive-disclosure programming language with first-class AI integration—four dialects scaling from visual blocks to agentic orchestration.
+For a gentler entry point see link:EXPLAINME.adoc[EXPLAINME.adoc].
 
-'''
+== What's in here
 
-toc::[]
+`crates/`::
+Rust crates implementing the compiler / interpreter layers. The core
+type checker lives in `crates/my-lang/src/types.rs` and includes
+`EchoMode`, `Ty::Echo`, and full affine-weakening semantics.
 
-== Who This Is For
+`dialects/`::
+Per-dialect surface-syntax definitions. The `my-lang` umbrella admits
+multiple surface dialects sharing a common semantic core: *solo*
+(affine, single-agent), *duet* (session-typed, two-party), *ensemble*
+(multi-agent), and *me* (block/visual/pedagogic).
 
-[cols="1,3"]
-|===
-|*Me-curious* |Educators seeking visual programming that secretly teaches affine types and reversible computation
-|*Solo practitioners* |Developers wanting Rust-level safety with Python-level approachability—human-first, AI-assisted
-|*Duet partners* |Teams exploring balanced human-AI pair programming with explicit collaboration protocols
-|*Ensemble conductors* |Architects orchestrating multi-agent systems with neurosymbolic grammar extensions
-|===
+`proofs/`::
+Formal verification assets — paper proofs, mechanised Coq + Idris2
+solo-core, and the alignment roadmap toward AffineScript parity.
+See link:proofs/STATUS.md[`proofs/STATUS.md`] for the authoritative
+proof-status registry and link:proofs/ALIGNMENT-PLAN.md[`proofs/ALIGNMENT-PLAN.md`]
+for the phased roadmap.
 
-== The Four Dialects
+`conformance/`::
+Conformance tests — programs that any compliant `my-lang` implementation
+must accept (or reject) identically.
 
-My is not four languages—it is one language with *progressive reveal*. Concepts introduced as playful metaphors in Me unmask their CS foundations as learners advance.
+`examples/`::
+Worked examples covering each dialect, suitable as a learning
+reference and CI smoke-test.
 
-[cols="1,1,2,2"]
-|===
-|Dialect |Stage |Mode |Core Insight
+`docs/`::
+Design notes, language-reference drafts, and ADRs (Architecture Decision
+Records). Includes link:docs/design/echo-types-integration.md[the echo-types
+integration design note].
 
-|*Me*
-|Visual (ages 8-12)
-|Blockly-like drag-and-drop
-|Resources as colored tokens; affine types as "use once" rules
+`frontier-practices/`::
+Forward-looking experiments — things that may become part of the
+language but are not yet stable.
 
-|*Solo*
-|Text (ages 13+)
-|Human-first, AI-assists
-|Explicit affine/linear types, checkpoint/rollback, cut operators
+`contractiles/`::
+Project-level Mustfile / Dustfile contracts: invariant checks and
+recovery semantics for `my-lang` tooling.
 
-|*Duet*
-|Collaborative
-|Balanced co-creation
-|Two-party protocols, neurosymbolic extensions
-
-|*Ensemble*
-|Orchestration
-|AI-leads, human-refines
-|Full agentic composition, Newtonian spectrum agents
-|===
-
-== Why My?
-
-[source,my]
-----
-// Type-safe AI with effect tracking
-fn summarize(text: String) -> AI<String> {
-    ai query {
-        prompt: "Summarize concisely"
-        context: text
-        model: claude
-    }
-}
-
-// Affine types prevent resource bugs
-fn transfer(affine token: Token) -> Result {
-    checkpoint save_state {
-        let result = process(move token);  // must move, can't copy
-        if !result.is_ok() {
-            rollback save_state;
-        }
-        return result;
-    }
-}
-
-// Cut operator for parser commitment
-fn parse(input: String) -> Expr {
-    match input {
-        "(" => { let e = parse_nested(); !; expect(")"); e },
-        _ => parse_simple()
-    }
-}
-----
-
-=== Technical Differentiators
-
-[cols="2,3"]
-|===
-|*AI as First-Class Citizen* |Native `ai!` expressions, typed `AI<T>` return values, prompt templates with effect tracking
-|*Progressive Safety* |Optional affine/linear types—start simple, add safety constraints as complexity grows
-|*Reversible Computation* |Checkpoint/rollback at language level, not library level
-|*Prolog-Heritage Parsing* |Cut operator (`!`) for committed choice in recursive descent
-|*Neurosymbolic Bridge* |Duet dialect enables explicit symbolic-neural protocol boundaries
-|===
-
-== Quick Start
+== Quickstart
 
 [source,bash]
 ----
-# Clone and build
-git clone https://github.com/hyperpolymath/my-lang
+git clone git@github.com:hyperpolymath/my-lang.git
 cd my-lang
-cargo build --release
 
-# Run the REPL
-cargo run -- repl
-
-# Run a program
-cargo run -- run examples/hello.my
-
-# Build a static site with My SSG
-cd my-ssg && cargo run -- new my-blog
+just build    # builds the workspace (Rust)
+just test     # runs unit + conformance tests
 ----
 
-== Architecture
+To check a single Coq proof file:
 
+[source,bash]
 ----
-my-lang/
-├── src/                    # Core language (Rust)
-│   ├── lexer.rs
-│   ├── parser.rs
-│   ├── checker.rs         # Type checker with AI<T> support
-│   └── interpreter.rs
-├── my-ssg/                 # Static site generator
-├── docs/wiki/              # Full documentation
-├── solo-dialect/           # OCaml reference (Solo mode)
-└── grammar.ebnf            # Formal specification
+cd proofs/verification/coq/solo-core
+coq_makefile -f _CoqProject -o CoqMakefile && make -f CoqMakefile
 ----
 
-== Ecosystem Integration
+To check the Idris2 solo-core:
 
-My participates in the *poly-mcp* constellation:
+[source,bash]
+----
+cd proofs/verification/idris/solo-core
+idris2 --check solo-core.ipkg
+----
 
-[cols="1,2"]
-|===
-|https://github.com/hyperpolymath/poly-ssg-mcp[poly-ssg-mcp] |MCP hub for static site generators—My SSG exposes `my_init`, `my_build`, `my_serve`
-|https://github.com/hyperpolymath/poly-container-mcp[poly-container-mcp] |Multi-runtime container management
-|https://github.com/hyperpolymath/poly-iac-mcp[poly-iac-mcp] |Infrastructure-as-code MCP servers
-|===
+== Proof and verification status
 
-My SSG is one satellite in the broader poly-ssg ecosystem alongside Eclipse (Pony), Tyrano (TypeScript→ReScript migration), and others.
+`my-lang` follows a *statements-first, machine-checked later* proof
+methodology (mirroring `affinescript`'s solo-core approach). The
+link:proofs/STATUS.md[Proof Status Registry] is the single
+authoritative source — no proof is described as "proved" there until
+a proof assistant accepts it.
 
-== Newtonian Spectrum
+Current state (2026-06-02):
 
-In Ensemble mode, seven specialized agents—colored by Newton's spectrum—orchestrate compilation and execution:
+* **QTT semiring + laws** — *locally-checked* on both Coq and Idris2
+  tracks. All semiring and ordering laws proved by exhaustive case
+  analysis (`Qed` / `Refl`).
+* **Solo-core syntax, contexts, typing** — *definitions-only* on
+  both tracks.
+* **Progress / Preservation** — *statement-only* obligations;
+  proofs are Phase F1.3 / F1.4 deliverables.
+* **Echo type former** — *locally-checked* in Rust (5 Agda-mirroring
+  unit tests covering `EchoMode` ordering and affine-weakening
+  semantics). Mechanised residue layer in Coq/Idris is Phase F1 work.
+* **Paper proofs** — ~6.3 k lines across `proofs/shared/` and
+  per-dialect subdirectories (solo/duet/ensemble/me): type-system
+  soundness, effect soundness, memory model, operational and
+  denotational semantics, AI semantics.
 
-[cols="1,2,2"]
-|===
-|Color |Role |Solo Foundation
+Proof CI (running `coqc`/`idris2 --check` in CI) is Phase F5.
 
-|Red |Performance (hot paths) |Optimized parser
-|Orange |Concurrency (async) |Async/await runtime
-|Yellow |Contracts (safety) |Affine type tracking
-|Green |Config (schema) |Structured AST
-|Blue |Audit (trace) |Checkpoint system
-|Indigo |Comptime (meta) |Compile-time evaluation
-|Violet |Governance (policy) |Mode declarations
-|===
+== Echo type integration
+
+`my-lang` integrates the link:https://github.com/hyperpolymath/echo-types[`echo-types`]
+Agda library — a formal account of *loss that is not total erasure*.
+
+[source]
+----
+Echo<A => B>   // "a proof-relevant residue of a lossy collapse from A to B"
+----
+
+`EchoMode { Linear, Affine }` mirrors the `EchoLinear.agda` two-point
+poset `linear ⊑ affine`. A `Linear` echo may be weakened to `Affine`
+(one-way, no section). Domain and codomain are invariant under subtyping.
+
+Claim boundary (retraction R-2026-05-18):
+____
+Echo models irreversible weakening as a one-way, proof-relevant residue
+transformation. It is a *loss-graded reindexing modality over a thin
+poset*, not a graded comonad or free construction.
+____
+
+For full design rationale see link:docs/design/echo-types-integration.md[docs/design/echo-types-integration.md].
+
+== Architectural authority
+
+* link:ANCHOR.scope-arrest.2026-01-01.Jewell.scm[`ANCHOR.scope-arrest.*`]
+  — the scope-arrest anchor file enumerating what `my-lang` will and
+  will not be.
+* link:AUTHORITY_STACK.mustfile-nickel.scm[`AUTHORITY_STACK.mustfile-nickel.scm`]
+  — the cross-cutting authority stack for the design.
+
+These two files are the source-of-truth for "is `X` in scope for
+`my-lang`?" — consult them before opening a feature request.
 
 == Status
 
-[cols="2,1"]
-|===
-|Component |Status
+* **Licence**: MPL-2.0. (Migrated from PMPL-1.0-or-later 2026-05-26 per
+  the estate licence-debt audit, hyperpolymath/standards#196.)
+* **Maturity**: design-iteration / early alpha. Working Rust compiler
+  core exists (137 passing tests); surface syntax and semantics still
+  settling.
+* **Proof phase**: F1.0 complete — QTT semiring proved, soundness
+  statements committed on dual Coq + Idris2 tracks.
+* **Governance**: CI green on all shipped checks; proof CI (F5) pending.
 
-|Solo dialect (human-first) |Complete
-|Lexer, Parser, Type Checker |Complete
-|Interpreter & REPL |Complete
-|AI Runtime (mock) |Complete
-|My SSG |Complete
-|Duet dialect |In Development
-|Ensemble dialect |Planned
-|Native compiler |Planned
-|===
+== Contributing
 
-== License
+See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] (or
+link:CONTRIBUTING.md[CONTRIBUTING.md]). GPG-signed commits required.
 
-PMPL-1.0-or-later (Palimpsest License)—see link:LICENSE[LICENSE].
+Language policy, package management, and security requirements are
+enforced by the estate governance workflow
+(`hyperpolymath/standards`). New contributors should read
+link:EXPLAINME.adoc[EXPLAINME.adoc] first.
 
-'''
+== Companion repositories
 
-[quote]
-A language that grows with you—from visual tokens to agentic ensembles.
+* link:https://github.com/hyperpolymath/standards[`hyperpolymath/standards`] — canonical estate-wide standards and governance.
+* link:https://github.com/hyperpolymath/affinescript[`hyperpolymath/affinescript`] — sibling language project; the target AffineScript parity state is defined in link:proofs/ALIGNMENT-PLAN.md[`proofs/ALIGNMENT-PLAN.md`].
+* link:https://github.com/hyperpolymath/echo-types[`hyperpolymath/echo-types`] — upstream Agda echo-types library integrated into the `my-lang` type checker.
+* link:https://github.com/hyperpolymath/EchoTypes.jl[`hyperpolymath/EchoTypes.jl`] — Julia executable companion to `echo-types`; planned differential oracle for Phase 2 echo-type testing.
+* link:https://github.com/hyperpolymath/typed-wasm[`hyperpolymath/typed-wasm`] — the typed-wasm backend `my-lang` shares with `affinescript`.

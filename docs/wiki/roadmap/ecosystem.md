@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Ecosystem Roadmap
 
 This document outlines the development plan for the My Language ecosystem: frameworks, libraries, and community resources.
@@ -34,25 +38,27 @@ This document outlines the development plan for the My Language ecosystem: frame
 
 ## Standard Library
 
-### Core Modules (std)
-**Target: Q2-Q3 2025**
+### Standard library (native builtins)
 
-| Module | Description | Status |
-|--------|-------------|--------|
-| `std::prelude` | Auto-imported essentials | 🔄 Planned |
-| `std::string` | String manipulation | 🔄 Planned |
-| `std::collections` | Vec, Map, Set, etc. | 🔄 Planned |
-| `std::option` | Option<T> type | 🔄 Planned |
-| `std::result` | Result<T, E> type | 🔄 Planned |
-| `std::io` | File and stream I/O | 🔄 Planned |
-| `std::fs` | Filesystem operations | 🔄 Planned |
-| `std::env` | Environment variables | 🔄 Planned |
-| `std::process` | Process management | 🔄 Planned |
-| `std::time` | Date and time | 🔄 Planned |
-| `std::math` | Mathematical functions | 🔄 Planned |
-| `std::random` | Random number generation | 🔄 Planned |
-| `std::fmt` | Formatting and display | 🔄 Planned |
-| `std::iter` | Iterator traits and adapters | 🔄 Planned |
+> The stdlib is delivered as **native Rust builtins** (snake-case, area-prefixed
+> identifiers like `fs_read_file`, `map_get`) registered in
+> `crates/my-lang/src/stdlib.rs` — *not* as dotted `std::*` source modules. The
+> earlier `std::module` table was a never-built sketch and has been removed.
+>
+> **Live status: GitHub Phase-2 stdlib tracker
+> [`#45`](https://github.com/hyperpolymath/my-lang/issues/45) and its
+> sub-issues.** The table below is a coarse summary and may lag the tracker.
+
+| Capability area | Status |
+|---|---|
+| I/O & terminal, strings, math, arrays, type ops | ✅ Shipped |
+| Filesystem (`fs_*`), environment (`env`, `env_args`) | ✅ Shipped |
+| Formatting (`format`) | ✅ Shipped |
+| Random (`random`, `random_int`) | ✅ Shipped |
+| Maps / dict (`map_*`) | ✅ Shipped (#46, PR #49) |
+| JSON (`json_parse`/`json_stringify`) | ✅ Shipped (#47, PR #53) |
+| Date (`date_today`) | ✅ Shipped (#48, PR #54) |
+| Networking, regex, crypto, subprocess, async, iterators | 🔄 Future capability areas |
 
 ### AI Standard Library (std::ai)
 **Target: Q3 2025**

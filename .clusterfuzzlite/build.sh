@@ -1,14 +1,18 @@
 #!/bin/bash -eu
-<<<<<<< HEAD
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# OSS-Fuzz / ClusterFuzzLite build script: compile the cargo-fuzz targets in
+# `fuzz/` and stage each binary into $OUT. Run by `compile` inside the
+# base-builder-rust image (see .clusterfuzzlite/Dockerfile).
+cd "$SRC/my-lang"
+# Build for the sanitizer OSS-Fuzz requests (defaults to address). NOTE: only
+# `address` is configured — Rust/cargo-fuzz cannot emit a valid UBSan binary
+# (it links ASan regardless), which `bad_build_check` rejects; see project.yaml.
+cargo +nightly fuzz build -O --sanitizer "${SANITIZER:-address}"
 
-cd $SRC/project
-cargo +nightly fuzz build --release
-cp fuzz/target/*/release/fuzz_* $OUT/
-=======
-cd $SRC/*/fuzz
-cargo +nightly fuzz build
-for target in fuzz_targets/*; do
-    target_name=$(basename ${target%.rs})
-    cp target/x86_64-unknown-linux-gnu/release/$target_name $OUT/
+release="$SRC/my-lang/fuzz/target/x86_64-unknown-linux-gnu/release"
+for target in fuzz/fuzz_targets/*.rs; do
+    name="$(basename "${target%.rs}")"
+    cp "$release/$name" "$OUT/"
 done
->>>>>>> 7f63c53cc206ad0448f9e17e5b74dde7cf393117

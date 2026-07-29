@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Mid-level Intermediate Representation for My Language
 //!
 //! MIR is the SSA-form IR used for optimization and codegen:
@@ -1001,8 +1002,12 @@ pub mod interpreter {
         #[error("type error: {0}")]
         TypeError(String),
 
-        #[error("stack overflow")]
-        StackOverflow,
+        #[error("stack overflow at depth {depth} while calling `{function}` (call chain: {call_chain})")]
+        StackOverflow {
+            function: String,
+            depth: usize,
+            call_chain: String,
+        },
 
         #[error("division by zero")]
         DivisionByZero,
@@ -1089,7 +1094,21 @@ pub mod interpreter {
         /// Call a function with arguments
         pub fn call(&mut self, name: &str, args: Vec<Value>) -> Result<Value, InterpreterError> {
             if self.stack.len() >= self.max_stack {
-                return Err(InterpreterError::StackOverflow);
+                // The previous variant dropped the caller chain, which is
+                // why `Frame::function` was captured at every `call` and
+                // never read. Building the chain here makes the field
+                // load-bearing for debugging real overflows.
+                let call_chain = self
+                    .stack
+                    .iter()
+                    .map(|f| f.function.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" -> ");
+                return Err(InterpreterError::StackOverflow {
+                    function: name.to_string(),
+                    depth: self.stack.len(),
+                    call_chain,
+                });
             }
 
             let func = self.program.functions.get(name).cloned()

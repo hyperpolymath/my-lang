@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Common Math Operations
 //!
 //! Generic mathematical functions and constants.
@@ -265,7 +267,7 @@ mod tests {
     fn test_abs() {
         assert_eq!(abs_int(-5), 5);
         assert_eq!(abs_int(5), 5);
-        assert!((abs_float(-3.14) - 3.14).abs() < f64::EPSILON);
+        assert!((abs_float(-2.5) - 2.5).abs() < f64::EPSILON);
     }
 
     #[test]

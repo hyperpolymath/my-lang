@@ -1,9 +1,11 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = Ensemble Language Overview
 :toc: macro
 :icons: font
 :source-highlighter: rouge
 
-// SPDX-License-Identifier: PMPL-1.0-or-later
 
 *AI-Native Multi-Agent Application Language*
 

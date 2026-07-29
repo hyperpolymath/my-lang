@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Integration Guide
 
 This mirrors the former `integration_guide.md`. It catalogs how Solo, Duet, and Ensemble components stitch together across the toolchain.

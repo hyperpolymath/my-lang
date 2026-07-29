@@ -1,7 +1,8 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Integration tests for the My Language compilation pipeline
 
-use my_lang::{parse, eval};
+use my_lang::{eval, parse, Value};
 
 #[test]
 fn test_parse_simple_function() {
@@ -198,6 +199,122 @@ fn test_eval_simple() {
     let _ = eval(source);
 }
 
+// Solo Map/dict stdlib builtins (hyperpolymath/my-lang#46): string-keyed maps
+// over Value::Record. Exercises new/set (incl. overwrite)/get/remove/len and the
+// immutability convention (map_remove returns a fresh map, m3 is unchanged).
+// map_has / map_keys return Bool / Array and are covered by examples/map.my.
+#[test]
+fn test_eval_map_builtins() {
+    let source = r#"
+        fn main() -> Int {
+            let m0 = map_new();
+            let m1 = map_set(m0, "a", 1);
+            let m2 = map_set(m1, "b", 2);
+            let m3 = map_set(m2, "a", 99);
+            let m4 = map_remove(m3, "b");
+            let a = map_get(m3, "a");
+            let n0 = map_len(m0);
+            let n3 = map_len(m3);
+            let n4 = map_len(m4);
+            return a + n0 + n3 + n4;
+        }
+    "#;
+
+    // 99 (overwritten "a") + 0 (empty m0) + 2 (len m3) + 1 (len m4, "b" removed)
+    match eval(source) {
+        Ok(Value::Int(n)) => assert_eq!(n, 102),
+        other => panic!("expected Int(102), got {:?}", other),
+    }
+}
+
+// String-literal escape decoding (hyperpolymath/my-lang#47). The lexer stores
+// the raw slice; parse_string_literal must decode \" \\ \n etc. Regression for
+// the latent bug where `"a\"b"` yielded the literal 4 chars a \ " b.
+#[test]
+fn test_eval_string_escapes() {
+    let source = r#"
+        fn main() -> String {
+            return "a\"b\\c\nd\tend";
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => assert_eq!(s, "a\"b\\c\nd\tend"),
+        other => panic!("expected decoded escapes, got {:?}", other),
+    }
+}
+
+// JSON stdlib builtins (hyperpolymath/my-lang#47): json_parse / json_stringify.
+// Round-trips an object literal (requires escape decoding) and asserts the
+// deterministic sorted-key serialization.
+#[test]
+fn test_eval_json_roundtrip() {
+    let source = r#"
+        fn main() -> String {
+            let v = json_parse("{\"b\": 2, \"a\": [1, 2, 3], \"n\": null, \"t\": true}");
+            return json_stringify(v);
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => {
+            assert_eq!(s, r#"{"a":[1,2,3],"b":2,"n":null,"t":true}"#)
+        }
+        other => panic!("expected sorted-key JSON string, got {:?}", other),
+    }
+}
+
+// Solo date_today() stdlib builtin (hyperpolymath/my-lang#48): ISO YYYY-MM-DD
+// (UTC). Asserts the format/shape and a sane range rather than an exact value
+// (the result depends on the wall clock).
+#[test]
+fn test_eval_date_today() {
+    let source = r#"
+        fn main() -> String {
+            return date_today();
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => {
+            assert_eq!(s.len(), 10, "expected YYYY-MM-DD, got {:?}", s);
+            let b = s.as_bytes();
+            assert_eq!(b[4], b'-');
+            assert_eq!(b[7], b'-');
+            for (i, c) in s.char_indices() {
+                if i != 4 && i != 7 {
+                    assert!(c.is_ascii_digit(), "non-digit at {}: {:?}", i, s);
+                }
+            }
+            let year: i32 = s[0..4].parse().unwrap();
+            let month: u32 = s[5..7].parse().unwrap();
+            let day: u32 = s[8..10].parse().unwrap();
+            assert!((2000..=3000).contains(&year), "implausible year: {}", s);
+            assert!((1..=12).contains(&month), "bad month: {}", s);
+            assert!((1..=31).contains(&day), "bad day: {}", s);
+        }
+        other => panic!("expected ISO date string, got {:?}", other),
+    }
+}
+
+// Solo fs_list_dir() stdlib builtin (hyperpolymath/my-lang#55): enumerate a
+// directory, sorted entry names. Self-contained: builds a dir with fs_* builtins
+// then lists it (exercises fs_create_dir_all/fs_write_file/fs_list_dir/str_join).
+#[test]
+fn test_eval_fs_list_dir() {
+    let source = r#"
+        fn main() -> String {
+            let dir = "target/.it_fs_list_dir";
+            fs_create_dir_all(dir);
+            fs_write_file("target/.it_fs_list_dir/b.txt", "x");
+            fs_write_file("target/.it_fs_list_dir/a.txt", "y");
+            let names = fs_list_dir(dir);
+            return str_join(names, ",");
+        }
+    "#;
+    match eval(source) {
+        Ok(Value::String(s)) => assert_eq!(s, "a.txt,b.txt"),
+        other => panic!("expected sorted dir listing, got {:?}", other),
+    }
+}
+
 // AI Runtime tests (require API keys, so just test initialization)
 #[test]
 fn test_ai_runtime_creation() {
@@ -234,4 +351,26 @@ cache = true
     assert_eq!(manifest.package.version, "0.1.0");
     assert!(manifest.dependencies.contains_key("std"));
     assert_eq!(manifest.ai.default_model, Some("claude-3-opus".to_string()));
+}
+
+// Regression: `char_at` must index by character, not byte. "aé" is 2 chars but
+// 3 bytes; the old `idx < s.len()` (byte) guard let an in-byte-range / out-of-
+// char-range index reach `chars().nth(idx) == None` and panic (CWE-754). Now it
+// returns the correct char in range and a clean runtime error out of range.
+#[test]
+fn test_eval_char_at_is_char_indexed_not_byte() {
+    // In range: char index 1 of "aé" is the multi-byte 'é', not a byte split.
+    let in_range = r#"fn main() -> String { return char_at("aé", 1); }"#;
+    match eval(in_range) {
+        Ok(Value::String(s)) => assert_eq!(s, "é"),
+        other => panic!("expected \"é\", got {:?}", other),
+    }
+
+    // Out of char range but within byte length (2 chars, 3 bytes): index 2 must
+    // be a recoverable error, NOT a panic.
+    let oob = r#"fn main() -> String { return char_at("aé", 2); }"#;
+    assert!(
+        eval(oob).is_err(),
+        "char_at past the char count must error, not panic"
+    );
 }

@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Installation Guide
 
 Detailed instructions for installing My Language on various platforms.
@@ -215,13 +219,13 @@ Set your AI API key:
 
 ```bash
 # OpenAI
-export OPENAI_API_KEY="sk-..."
+export OPENAI_API_KEY="<your-openai-key>"
 
 # Anthropic
-export ANTHROPIC_API_KEY="sk-ant-..."
+export ANTHROPIC_API_KEY="<your-anthropic-key>"
 
 # Add to shell profile
-echo 'export OPENAI_API_KEY="sk-..."' >> ~/.bashrc  # or ~/.zshrc
+echo 'export OPENAI_API_KEY="<your-openai-key>"' >> ~/.bashrc  # or ~/.zshrc
 ```
 
 ### 3. Editor Integration

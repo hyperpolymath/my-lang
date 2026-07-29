@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Compiler Roadmap
 
 This document outlines the development plan for the My Language compiler infrastructure.
@@ -167,7 +171,7 @@ Transformations:
 - Normalize AI expressions
 
 ```rust
-// Planned: src/hir/mod.rs
+// Shipped: crates/my-hir/src/lib.rs
 pub enum HirExpr {
     Literal(Literal, Type),
     Variable(DefId, Type),
@@ -190,7 +194,7 @@ Features:
 - AI call boundaries
 
 ```rust
-// Planned: src/mir/mod.rs
+// Shipped: crates/my-mir/src/lib.rs
 pub struct MirBody {
     blocks: IndexVec<BasicBlock, BasicBlockData>,
     locals: IndexVec<Local, LocalDecl>,
@@ -296,7 +300,7 @@ Components:
 **Target: Q3 2025**
 
 ```rust
-// Planned: src/runtime/ai.rs
+// Shipped: crates/my-ai/src/lib.rs
 pub trait AIProvider: Send + Sync {
     fn query(&self, request: QueryRequest) -> BoxFuture<QueryResponse>;
     fn embed(&self, text: &str) -> BoxFuture<Vec<f32>>;

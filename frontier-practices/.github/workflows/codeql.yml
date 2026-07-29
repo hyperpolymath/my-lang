@@ -1,15 +1,12 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # CodeQL disabled - no scannable source code detected
 name: CodeQL Security Analysis
-
 on:
-  workflow_dispatch:  # Manual trigger only
-
-permissions: read-all
-
+  workflow_dispatch: # Manual trigger only
 jobs:
   placeholder:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: false
     steps:
       - run: echo "Enable when source code is added"

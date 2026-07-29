@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+[package]
+name = "my-qtt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "QTT verified-core checker for my-lang: a faithful Rust port of the machine-checked Coq usage-walk synthesiser (SoloCore.v R5 `check` / R5b `aff_type_dec`)."
+
+[dependencies]

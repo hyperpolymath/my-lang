@@ -1,3 +1,7 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # My Language: Technical Implementation Roadmap
 
 ## Overview
@@ -88,61 +92,55 @@ Key codegen components:
 
 ## Phase 2: Standard Library (Months 2-4)
 
-### 2.1 Core Modules
+> **Architecture note (superseded sketch removed).** An earlier draft of this
+> section showed a `stdlib/std/*.my` source-module tree and an `@ffi(...)`
+> binding strategy. **That was never built and was actively misleading.** The
+> Solo standard library is delivered as **native Rust builtins** registered in
+> `crates/my-lang/src/stdlib.rs` (`register_stdlib` / `stdlib_functions()`) and
+> exposed to programs as ordinary callable identifiers — there are no
+> `stdlib/std/*.my` files and no `@ffi` surface. This section now describes the
+> real architecture and the *capability* roadmap only.
+>
+> **Live status is the GitHub Phase-2 stdlib tracker
+> ([`#45`](https://github.com/hyperpolymath/my-lang/issues/45)) and its
+> sub-issues — not this document.** This file states the plan; the tracker
+> states what has landed.
 
-```
-stdlib/
-├── std/
-│   ├── prelude.my       # Auto-imported
-│   ├── io.my            # I/O operations
-│   ├── string.my        # String manipulation
-│   ├── math.my          # Numeric operations
-│   ├── collections/
-│   │   ├── list.my
-│   │   ├── map.my
-│   │   ├── set.my
-│   │   └── queue.my
-│   ├── async/
-│   │   ├── task.my
-│   │   ├── channel.my
-│   │   └── select.my
-│   ├── net/
-│   │   ├── http.my
-│   │   ├── tcp.my
-│   │   └── url.my
-│   ├── fs.my            # Filesystem
-│   ├── json.my          # JSON handling
-│   ├── time.my          # Date/time
-│   ├── regex.my         # Regular expressions
-│   ├── crypto.my        # Cryptography
-│   └── process.my       # Subprocess
-├── ai/
-│   ├── model.my         # AI model types
-│   ├── prompt.my        # Prompt utilities
-│   ├── embed.my         # Embeddings
-│   └── agent.my         # Newtonian agents
-└── test/
-    ├── assert.my        # Assertions
-    ├── mock.my          # Mocking
-    └── bench.my         # Benchmarking
-```
+### 2.1 Architecture
 
-### 2.2 Implementation Strategy
+Builtins are `NativeFunction` values registered into the interpreter
+environment and the checker symbol table. Adding a primitive is a Rust change
+in `crates/my-lang/src/stdlib.rs`:
 
-1. Write in My Language where possible
-2. Use Rust FFI for performance-critical parts
-3. Effect-annotated APIs
+1. Implement the `NativeFunction` in the relevant `register_*` block.
+2. Add its name to `stdlib_functions()` (checker visibility).
+3. The checker uses an `Unknown`-type fallback for these names unless a
+   signature is added in `checker.rs::stdlib_function_type`.
 
-```my
-// stdlib/std/fs.my
-fn read_file(path: String) -> Result<String, IoError> with IO {
-    @ffi("my_fs_read_file", path)
-}
+Naming convention: flat snake-case with an area prefix (`fs_read_file`,
+`map_get`, `json_parse`), not dotted module paths.
 
-fn write_file(path: String, content: String) -> Result<(), IoError> with IO {
-    @ffi("my_fs_write_file", path, content)
-}
-```
+### 2.2 Capability Roadmap
+
+Each capability area is delivered as a group of native builtins. Status
+columns are intentionally omitted here — see tracker `#45`.
+
+| Area | Representative builtins |
+|---|---|
+| I/O & terminal | `print`, `println`, `input`, `input_prompt` |
+| Strings | `str_concat`, `str_split`, `format`, … |
+| Math | `abs`, `sqrt`, `pow`, constants |
+| Arrays | `push`, `slice`, `range`, … |
+| Filesystem | `fs_read_file`, `fs_write_file`, `fs_create_dir_all`, `fs_exists` |
+| Environment | `env`, `env_args` |
+| Maps / dict | `map_new`, `map_set`, `map_get`, `map_has`, `map_keys`, `map_remove`, `map_len` |
+| JSON | `json_parse`, `json_stringify` |
+| Date / time | `time`, `date_today` |
+| Networking, regex, crypto, subprocess, async | future capability areas |
+
+Implementation strategy: native Rust for everything that needs host access or
+performance; effect annotations are a language-level concern, not a stdlib
+delivery mechanism.
 
 ## Phase 3: AI Runtime (Months 2-4)
 

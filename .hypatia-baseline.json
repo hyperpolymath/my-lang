@@ -1,0 +1,65 @@
+[
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "expect_in_hot_path",
+    "file": "crates/my-lang/src/parser.rs",
+    "note": "TRACKED DEBT (hypatia triage 2026-07-27): scanner false positive by name collision — the 157 hits are the parser's own `self.expect(TokenKind)?` Result-returning method, not Option/Result::expect panics. Worth an upstream hypatia rule fix.",
+    "expires_at": "2026-10-27",
+    "tracking_issue": "hyperpolymath/my-lang#145"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "unwrap_without_check",
+    "file": "crates/my-fmt/src/lib.rs",
+    "note": "TRACKED DEBT (hypatia triage 2026-07-27): 26x `write!(self.output, ...).unwrap()` where output is String — fmt::Write to String is infallible, the unwrap can never panic. Candidate mechanical cleanup (w! macro / let _ =).",
+    "expires_at": "2026-10-27",
+    "tracking_issue": "hyperpolymath/my-lang#145"
+  },
+  {
+    "severity": "high",
+    "rule_module": "code_safety",
+    "type": "unwrap_without_check",
+    "file": "crates/my-llvm/src/lib.rs",
+    "note": "TRACKED DEBT (hypatia triage 2026-07-27): 3x unwrap on get_nth_param/node_weight with indices from iterating the same structure — internal MIR invariants. Convert to expect(\"MIR invariant\") when the crate next compiles against system LLVM (cannot build here without LLVM 21).",
+    "expires_at": "2026-10-27",
+    "tracking_issue": "hyperpolymath/my-lang#145"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "expect_in_hot_path",
+    "file": "crates/my-mir/src/lib.rs",
+    "note": "TRACKED DEBT (hypatia triage 2026-07-27): 5x deliberate `expect(\"internal error: ...\")` invariant style on petgraph node lookups — panic-on-internal-bug is the crate's chosen failure mode for graph-index corruption.",
+    "expires_at": "2026-10-27",
+    "tracking_issue": "hyperpolymath/my-lang#145"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "expect_in_hot_path",
+    "file": "crates/my-lang/lib/common/string.rs",
+    "note": "TRACKED DEBT (hypatia triage 2026-07-27): single expect whose message carries the totality proof (`digit = num % radix < radix <= 36, so from_digit is total`) — infallible by construction.",
+    "expires_at": "2026-10-27",
+    "tracking_issue": "hyperpolymath/my-lang#145"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "code_safety",
+    "type": "expect_in_hot_path",
+    "file": "crates/my-lang/examples/measure_depth.rs",
+    "note": "TRACKED DEBT (hypatia triage 2026-07-27): 2x expect in a stack-depth probe example binary — panics are the appropriate failure mode in examples, there is no hot path.",
+    "expires_at": "2026-10-27",
+    "tracking_issue": "hyperpolymath/my-lang#145"
+  },
+  {
+    "severity": "medium",
+    "rule_module": "structural_drift",
+    "type": "SD022",
+    "file": "docs/wiki/language/modules.md",
+    "note": "TRACKED DEBT (hypatia triage 2026-07-27): `src/utils/` here is an ILLUSTRATIVE user-project layout in the module-system documentation (how `mod utils;` resolves in a my-lang project), not a reference to this repo's tree. Rewording would degrade the docs; scoped suppression is correct.",
+    "expires_at": "2026-10-27",
+    "tracking_issue": "hyperpolymath/my-lang#145"
+  }
+]

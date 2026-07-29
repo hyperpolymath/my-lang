@@ -1,118 +1,124 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # My Language Wiki
 
-Welcome to the official wiki for **My Language** (ML) — a modern programming language with first-class AI integration.
+Welcome to the official wiki for **My Language** — a **progressive-disclosure,
+multi-dialect programming language** with a **Quantitative Type Theory (QTT)
+affine core**, built so that **mechanised formal verification is a first-class
+deliverable** alongside the Rust implementation.
 
-## Quick Links
+> **Identity in one sentence:** a language *family* with progressive complexity
+> levels (`Solo ⊂ Duet ⊂ Ensemble`, plus the agent-generated *Me* projection)
+> whose authoritative `f0` layer — **Solo** (affine + arena allocation) — is
+> mechanised in Coq *and* Idris2, and integrates
+> [`echo-types`](https://github.com/hyperpolymath/echo-types) for *structured
+> loss* directly in the type system.
 
-- [Getting Started](guides/getting-started.md)
+## Quick links
+
+- [Dialects](language/dialects.md) — the `Solo ⊂ Duet ⊂ Ensemble` hierarchy (+ Me)
+- [Type System](language/types.md) — QTT/affine core and Echo types
+- [Formal Verification](internals/formal-verification.md) — the mechanised Solo core
 - [Language Tour](language/tour.md)
-- [AI Features](language/ai-features.md)
-- [Full Roadmap](roadmap/overview.md)
+- [Roadmap](roadmap/overview.md)
 
 ## What is My Language?
 
-My Language is a statically-typed, expression-oriented programming language designed from the ground up with AI capabilities as first-class citizens. It combines the safety of Rust, the expressiveness of functional programming, and seamless AI integration for the age of intelligent applications.
+My Language is a statically-typed, multi-dialect language. Its authoritative
+foundation dialect, **Solo**, is an **affine** language (resources used at most
+once) over a **QTT `{0, 1, ω}`** core, compiled by a Rust toolchain. Higher
+dialects (Duet, Ensemble) extend Solo conservatively; **Me** is an on-the-fly,
+agent-generated *projection* over the hierarchy, not a separate compiler. AI
+integration is one capability among many — not the defining feature.
 
-### Key Features
+### Key characteristics
 
-| Feature | Description |
-|---------|-------------|
-| **First-Class AI** | Native `ai!` expressions, AI models, prompts, and effects |
-| **Type Safety** | Strong static typing with inference and AI-aware types |
-| **Effect System** | Track AI calls, I/O, and side effects in the type system |
-| **Pattern Matching** | Exhaustive pattern matching with guards |
-| **Concurrency** | Async/await, channels, and lightweight tasks |
-| **Memory Safety** | Ownership and borrowing without a garbage collector |
-| **Contracts** | Pre/post conditions and invariants |
+| Aspect | Description |
+|--------|-------------|
+| **Affine / QTT core** | Every binder carries a quantity `0` (erased), `1` (linear), or `ω` (unrestricted) |
+| **Formally verified** | Solo-core mechanised in **Coq + Idris2**; *progress* proved, *preservation* in progress |
+| **Echo types** | `echo-types` integrated into the type system — *loss that is not total erasure* (a loss-graded reindexing modality) |
+| **Progressive disclosure** | `Solo ⊂ Duet ⊂ Ensemble`; only Solo is authoritative in `f0` |
+| **Rust implementation** | The compiler/interpreter is implemented in Rust |
+| **Effects & contracts** | Effect tracking and pre/post conditions (design + paper proofs) |
 
-## Documentation Sections
+## Documentation sections
 
-### [Roadmap](roadmap/overview.md)
-Development plans for the language, compiler, tooling, and ecosystem.
+### Language
 
-- [Language Roadmap](roadmap/language.md) - Core language evolution
-- [Compiler Roadmap](roadmap/compiler.md) - Backend and optimization plans
-- [Tooling Roadmap](roadmap/tooling.md) - IDE, debugger, package manager
-- [Ecosystem Roadmap](roadmap/ecosystem.md) - Frameworks and libraries
-
-### [Language Guide](language/tour.md)
-Learn the language from basics to advanced features.
-
-- [Syntax Overview](language/syntax.md)
+- [Dialects](language/dialects.md)
 - [Type System](language/types.md)
+- [Syntax Overview](language/syntax.md)
 - [Functions & Closures](language/functions.md)
-- [AI Features](language/ai-features.md)
-- [Concurrency](language/concurrency.md)
 - [Effects & Capabilities](language/effects.md)
 - [Memory Management](language/memory.md)
 - [Modules & Imports](language/modules.md)
+- [Concurrency](language/concurrency.md)
+- [AI Features](language/ai-features.md)
+- [Language Tour](language/tour.md)
 
-### [Reference](reference/keywords.md)
-Complete language reference documentation.
+### Reference
 
 - [Keywords](reference/keywords.md)
 - [Operators](reference/operators.md)
 - [Grammar (EBNF)](reference/grammar.md)
 - [Standard Library](reference/stdlib.md)
-- [Built-in Types](reference/builtin-types.md)
-- [Attributes](reference/attributes.md)
 
-### [Guides](guides/getting-started.md)
-Practical guides for common tasks.
-
-- [Installation](guides/installation.md)
-- [Your First Program](guides/first-program.md)
-- [AI Integration Guide](guides/ai-integration.md)
-- [Error Handling](guides/error-handling.md)
-- [Testing](guides/testing.md)
-- [Project Structure](guides/project-structure.md)
-
-### [Internals](internals/architecture.md)
-Documentation for compiler developers and contributors.
+### Internals (for compiler developers)
 
 - [Architecture Overview](internals/architecture.md)
+- [Formal Verification](internals/formal-verification.md)
 - [Lexer](internals/lexer.md)
 - [Parser](internals/parser.md)
 - [Type Checker](internals/type-checker.md)
-- [Interpreter](internals/interpreter.md)
-- [Compiler Backend](internals/compiler.md)
-- [REPL](internals/repl.md)
+- [Standard Library Design](internals/stdlib-design.md)
+- [Checker Allocation Investigation](internals/checker-allocation-investigation.md)
+- [Contributing](internals/contributing.md)
 
-### [Tutorials](tutorials/basics.md)
-Step-by-step tutorials for building real applications.
+### Guides
+
+- [Getting Started](guides/getting-started.md)
+- [Installation](guides/installation.md)
+
+### Tutorials
 
 - [Language Basics](tutorials/basics.md)
-- [Working with AI](tutorials/ai-queries.md)
-- [Building a Web App](tutorials/web-app.md)
-- [Building a CLI Tool](tutorials/cli-tool.md)
-- [Building an AI Agent](tutorials/ai-agent.md)
 
-### [Tooling](tooling/overview.md)
-Development tools and IDE support.
+### Tooling
 
-- [CLI Reference](tooling/cli.md)
-- [Package Manager (mlpkg)](tooling/package-manager.md)
-- [IDE Support](tooling/ide.md)
-- [Debugger](tooling/debugger.md)
-- [Formatter](tooling/formatter.md)
-- [Linter](tooling/linter.md)
+- [Tooling Overview](tooling/overview.md)
 
-### [Ecosystem](ecosystem/overview.md)
-Frameworks, libraries, and community resources.
+### Roadmap
 
-- [Web Framework (Spark)](ecosystem/spark-web.md)
-- [AI Framework (Neuron)](ecosystem/neuron-ai.md)
-- [Database Libraries](ecosystem/databases.md)
-- [Community Packages](ecosystem/community.md)
+- [Overview](roadmap/overview.md)
+- [Language](roadmap/language.md)
+- [Compiler](roadmap/compiler.md)
+- [Tooling](roadmap/tooling.md)
+- [Ecosystem](roadmap/ecosystem.md)
 
-## Version
+> **Note:** pages not yet written (e.g. additional tutorials, per-tool guides,
+> the Duet/Ensemble dialect references) are tracked in the
+> [roadmap](roadmap/overview.md) rather than linked as stubs here, so the wiki
+> stays free of dead links.
 
-Current version: **0.2.0** (Interpreter Complete)
+## Project status
+
+- **Version:** `0.1.0` (early-alpha) — see
+  [`.machine_readable/6a2/STATE.a2ml`](../../.machine_readable/6a2/STATE.a2ml)
+  for the authoritative state, and [`proofs/STATUS.md`](../../proofs/STATUS.md)
+  for the proof-status registry.
+- **Scope:** Solo dialect only in `f0` (per the
+  [scope-arrest anchor](../../ANCHOR.scope-arrest.2026-01-01.Jewell.scm)).
 
 ## Contributing
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines on contributing to the language and documentation.
+See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) and
+[internals/contributing.md](internals/contributing.md).
 
 ## License
 
-My Language is open source under the MIT License.
+My Language is open source under the **Mozilla Public License 2.0 (MPL-2.0)** —
+see [`LICENSE`](../../LICENSE). Every source file carries an
+`SPDX-License-Identifier: CC-BY-SA-4.0` header.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Common I/O Operations
 //!
 //! Generic input/output functions for any language runtime.
@@ -36,12 +38,17 @@ pub fn read_line_prompt(prompt: &str) -> String {
     read_line()
 }
 
-/// Read all lines from stdin until EOF
+/// Read all lines from stdin until EOF.
+///
+/// Uses `map_while(Result::ok)` rather than `filter_map(Result::ok)` so a
+/// broken or non-UTF-8 stdin terminates the iterator at the first error
+/// instead of spinning forever -- `io::Lines` keeps yielding the same
+/// `Err` indefinitely once the underlying reader fails.
 pub fn read_all_lines() -> Vec<String> {
     io::stdin()
         .lock()
         .lines()
-        .filter_map(|l| l.ok())
+        .map_while(Result::ok)
         .collect()
 }
 

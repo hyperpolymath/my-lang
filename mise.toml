@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MPL-2.0
+# mise toolchain pins — only what this repo actually uses.
+# The previous file was mint-time boilerplate pinning ~30 tools to "latest"
+# (Node/Go/Zig/Java/… none used here), which contradicts the estate's
+# reproducibility doctrine. my-lang is a Rust workspace + Coq/Idris2 proofs;
+# the provers are installed by CI (proofs.yml), not by mise.
+
+[tools]
+rust = "1.97.0"

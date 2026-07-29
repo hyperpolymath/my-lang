@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Building the Seven Tentacles AffineScript sources
+:toc: macro
+
+The agent definitions and reveal system are written in *AffineScript*
+(`.affine`), ported from the original ReScript (`.res`) sources. AffineScript
+has *no project-manifest build* (there is no `affinescript.json` listing
+sources, the way `rescript.json` did). The compiler is invoked *per file* via
+its subcommands, so this document is the canonical list of entry points and
+commands. (`rescript.json` was removed in the port.)
+
+toc::[]
+
+== Compiler front door
+
+The AffineScript compiler is a native OCaml binary. Two ways to invoke it:
+
+* Installed binary on `PATH`:
++
+[source,sh]
+----
+affinescript <subcommand> <file>
+----
+
+* Deno shim (downloads + execs the pinned native binary; canonical per ADR-019):
++
+[source,sh]
+----
+deno run -A npm:@hyperpolymath/affinescript <subcommand> <file>
+----
+
+Useful subcommands (from the reference repo's `justfile`):
+
+[cols="1,3"]
+|===
+|Subcommand |Purpose
+
+|`lex <file>`         |Tokenise only
+|`parse <file>`       |Parse to AST
+|`check <file>`       |Type-check (use this for verification)
+|`eval <file>`        |Interpret/run
+|`compile <file> -o <out>` |Compile to Wasm
+|===
+
+== Entry points (compile/check order)
+
+`Types.affine` is the foundation and must be resolvable first; every agent
+imports it, and `RevealSystem.affine` imports every agent. Type-check (or
+compile) in this dependency order:
+
+[source,sh]
+----
+# 1. Foundation
+affinescript check agents/Types.affine
+
+# 2. Agents (each `use Types::{...}`)
+affinescript check agents/RedAgent.affine
+affinescript check agents/OrangeAgent.affine
+affinescript check agents/YellowAgent.affine
+affinescript check agents/GreenAgent.affine
+affinescript check agents/BlueAgent.affine
+affinescript check agents/IndigoAgent.affine
+affinescript check agents/VioletAgent.affine
+
+# 3. Reveal system (imports Types + all seven agents)
+affinescript check tools/RevealSystem.affine
+----
+
+The `just build-agents` recipe runs exactly this list (and degrades to a
+hint when no compiler is on `PATH`).
+
+== Module resolution notes
+
+* Each file declares a `module <Name>;` header matching its file name
+  (PascalCase), e.g. `module RedAgent;` in `RedAgent.affine`.
+* Cross-file references use `use <Module>::{ ... };` (explicit name lists) or
+  `use <Module> as <Alias>;` (module alias, used in `RevealSystem.affine`).
+* `Types.affine` additionally does `use Deno;` for the `random_in_range`
+  randomness primitive (see CONVERSION-NOTES.adoc / `.md`). This couples the
+  agent layer to a host that provides `Deno::*` (the `--deno-esm` backend or
+  the `affine-deno` runtime shim). If you target a non-Deno backend, swap the
+  `random_element` helper's RNG call for that backend's equivalent.
+
+See `CONVERSION-NOTES.md` for the full ReScript -> AffineScript mapping and the
+decisions made during the port.

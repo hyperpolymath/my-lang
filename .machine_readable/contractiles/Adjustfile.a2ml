@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: MPL-2.0
+# Adjustfile — Drift-tolerance contract for my-lang
+# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+#
+# Cumulative-drift catchment: tolerance bands + corrective actions.
+# Authority: advisory (Yard) — continue-with-warnings; auto_fix where deterministic.
+# Run with: adjust check
+# Fix with: adjust fix (applies deterministic patches; advisory otherwise)
+
+@abstract:
+Drift tolerances and corrective actions for my-lang. Unlike MUST (hard gate),
+ADJUST tracks cumulative drift against tolerance bands and proposes corrective
+actions. Advisory — it warns and trends, it does not block.
+@end
+
+## Template-Consumer Drift
+
+### placeholder-drift
+- description: No unsubstituted template placeholders remain
+- tolerance: 0 {{PLACEHOLDER}} markers anywhere in .machine_readable/
+- corrective: Search and replace all {{PLACEHOLDER}} markers with my-lang values
+- severity: advisory
+
+### template-identity-drift
+- description: Contractiles and machine-readable files identify as my-lang, not
+    as the upstream RSR template
+- tolerance: 0 'rsr-template-repo' self-identifiers
+- corrective: Re-author copied template prose to be about my-lang
+- severity: advisory
+- notes: my-lang is a consumer of the RSR template
+
+## Documentation Drift
+
+### readme-completeness
+- description: README should document the contractile set and the bust/dust design
+- tolerance: README covers all six verbs and the multi-file bust/dust directories
+- corrective: Update .machine_readable/contractiles/README.adoc
+- severity: advisory
+
+### status-doc-currency
+- description: proofs/STATUS.md + 6a2/STATE.a2ml reflect the actual proof state
+- tolerance: Status registry matches the mechanised cores
+- corrective: Refresh STATUS.md / STATE.a2ml after any proof rung lands
+- severity: advisory
+
+## Structural Drift
+
+### contractile-sync
+- description: Singular contractiles have matching a2ml (+ ncl where runners exist)
+- tolerance: Every singular *.a2ml has a corresponding runner where one is expected
+- corrective: Generate missing runner files from the a2ml
+- severity: advisory
+
+### no-broken-symlinks
+- description: No broken symbolic links in the repo structure
+- tolerance: 0 broken symlinks
+- corrective: Run symlink-check script
+- severity: advisory
+
+## Accessibility Drift
+
+### adoc-not-md
+- description: New prose docs should prefer AsciiDoc (estate convention)
+- tolerance: New prose docs are *.adoc
+- corrective: Convert any new *.md to *.adoc where appropriate
+- severity: advisory
+- notes: Existing *.md (e.g. proofs/STATUS.md) are grandfathered
+
+### spdx-header-consistency
+- description: All source/doc files have correct SPDX headers
+- tolerance: 0 files missing SPDX-License-Identifier
+- corrective: Add SPDX headers to files that need them
+- severity: advisory

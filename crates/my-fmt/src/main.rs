@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! My Language Formatter
 //!
 //! This tool formats My Language code according to style guidelines.
@@ -37,7 +38,7 @@ fn main() {
 
     // Write the output file
     let output_path = args.output.unwrap_or(input_path);
-    match fs::write(output_path, formatted) {
+    match fs::write(&output_path, formatted) {
         Ok(_) => println!("Formatted {}", output_path.display()),
         Err(e) => eprintln!("Error writing file: {}", e),
     }

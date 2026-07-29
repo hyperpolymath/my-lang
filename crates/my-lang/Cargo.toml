@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: PMPL-1.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 [package]
 name = "my-lang"
 version.workspace = true
@@ -16,18 +16,30 @@ name = "my"
 path = "src/main.rs"
 
 [dependencies]
+my-qtt.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
 serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
+# Non-optional: json_parse / json_stringify stdlib builtins are always available
+# to Solo programs (my-lang#47). serde derive stays behind the `serde` feature.
+serde_json = { workspace = true }
 tracing.workspace = true
 clap.workspace = true
 my-ai = { path = "../my-ai" }
 tokio.workspace = true
 
+dhat = { version = "0.3", optional = true }
+
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json"]
+serde = ["dep:serde"]
+# Heap-profiling support for the #14 allocation investigation. Enables the
+# `dhat_checker_profile` example, which runs the checker under the dhat
+# allocator and writes a per-call-site `dhat-heap.json` (view at
+# https://nnethercote.github.io/dh_view/dh_view.html). This is the
+# cross-platform stand-in for the heaptrack/dhat localisation the issue
+# asked for; it runs here on Linux and on the Windows CI job alike.
+dhat-heap = ["dep:dhat"]
 
 [dev-dependencies]
 pretty_assertions.workspace = true
@@ -41,3 +53,7 @@ toml = "0.8"
 [[test]]
 name = "integration_test"
 path = "../../tests/integration_test.rs"
+
+[[example]]
+name = "dhat_checker_profile"
+required-features = ["dhat-heap"]

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Type checker and semantic analyzer for My Language
 //!
 //! Performs name resolution, type checking, and validation of AI constructs.
@@ -6,6 +8,9 @@ use crate::ast::*;
 use crate::scope::*;
 use crate::token::Span;
 use crate::types::*;
+use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
@@ -97,7 +102,63 @@ pub enum CheckError {
         line: usize,
         column: usize,
     },
+
+    #[error("expression nesting depth exceeds limit ({limit}) at line {line}, column {column}; refactor deeply nested calls (e.g. chained str_concat/format) into intermediate `let` bindings")]
+    ExpressionTooDeep {
+        limit: usize,
+        line: usize,
+        column: usize,
+    },
+
+    #[error("`@safe` function `{name}` violates the verified linear resource discipline (a parameter is dropped or used more than once) at line {line}, column {column}")]
+    ResourceViolation {
+        name: String,
+        line: usize,
+        column: usize,
+    },
 }
+
+/// Maximum AST nesting depth the type checker will recurse through before
+/// emitting [`CheckError::ExpressionTooDeep`] and bailing out of the
+/// subexpression.
+///
+/// This bounds **stack recursion**, not heap growth. The #14 investigation
+/// (see `docs/wiki/internals/checker-allocation-investigation.md`) measured
+/// `check_expr` / `is_assignable_from` to be *linear* in AST size on Linux
+/// and on a Windows CI leg — there is no super-linear allocation for the
+/// guard to defend against. What deep nesting *does* threaten is the
+/// recursive descent through `check_expr`. (The recursive `Drop` of a deep
+/// AST is a *separate* overflow; it is now handled structurally and
+/// shape-independently by [`crate::ast::drop_program_iteratively`], so it no
+/// longer constrains this value — hyperpolymath/my-lang#37.)
+///
+/// # Re-derived from a measured stack budget (my-lang#37)
+///
+/// The previous value (256) was an inherited guess, not a budget. Probing one
+/// recursive `check_expr` walk on a fixed-size thread stack
+/// (`examples/measure_depth.rs`) measures **≈4.4 KiB of stack per nesting
+/// level**. The binding constraint is the smallest stack the checker runs on:
+/// the OS main thread (the checker is *not* dispatched onto a large-stack
+/// thread anywhere), i.e. **1 MiB on Windows**. At 256 levels that walk needs
+/// ≈1.14 MiB — it can overflow *before* the guard fires on Windows, so 256 was
+/// not merely unjustified but unsafe there.
+///
+/// `128 × 4.4 KiB ≈ 569 KiB ≈ 54%` of a 1 MiB Windows stack, leaving ~46%
+/// headroom for the rest of the call graph above `check_expr`; vastly safe on
+/// Linux (8 MiB) and Rust's 2 MiB default threads. It is still 2× the parser's
+/// independently-derived [`crate::parser::MAX_PARSE_EXPR_DEPTH`] (64) ceiling,
+/// so — because no *parseable* program nests deeper than 64 — lowering it
+/// rejects zero real programs; it only ever fires on programmatically-built
+/// ASTs, which is its sole remaining purpose.
+///
+/// This budget is reconfirmed automatically rather than by a one-off manual
+/// run: `examples/measure_depth.rs` is self-driving (it re-execs itself as
+/// worker subprocesses to find each overflow cliff and asserts the budget), and
+/// the `Stack Depth (#37)` CI workflow runs it — alongside the
+/// `tests/stack_depth_37.rs` regression — on **both ubuntu-latest and
+/// windows-latest**. So the binding 1 MiB msvc datapoint is produced on every
+/// change and a future bump that breaks the budget fails CI on the affected OS.
+pub const MAX_EXPR_DEPTH: usize = 128;
 
 pub type CheckResult<T> = Result<T, CheckError>;
 
@@ -108,6 +169,27 @@ pub struct Checker {
     errors: Vec<CheckError>,
     /// Current function's return type (for checking return statements)
     current_return_type: Option<Ty>,
+    /// Current expression-recursion depth (bounds stack recursion on
+    /// pathological nesting, see [`MAX_EXPR_DEPTH`]).
+    expr_depth: usize,
+    /// Set once an [`CheckError::ExpressionTooDeep`] has been reported, to
+    /// avoid spamming a duplicate error for every parent expression on the
+    /// way out of the recursion.
+    too_deep_reported: bool,
+    /// Content-addressed result cache for *environment-independent*
+    /// subexpressions (hyperpolymath/my-lang#16).
+    ///
+    /// Keyed by a span-stripped structural hash. Only populated for the
+    /// provably-safe subset built by [`Checker::memo_key`] (string/number/
+    /// bool literals and calls that resolve to the genuine stdlib binding,
+    /// recursively). For that subset the resulting [`Ty`] is a pure function
+    /// of the structural form — it does not depend on the symbol environment,
+    /// introduces no scope bindings, and (because we only insert when the
+    /// check produced no new diagnostics) re-encountering the expression is
+    /// observably identical to re-checking it. This turns the repeated
+    /// `str_concat`/`format` templating sites from #1 from
+    /// O(occurrences × subtree) into O(distinct × subtree).
+    expr_cache: HashMap<u64, Ty>,
 }
 
 impl Default for Checker {
@@ -123,6 +205,9 @@ impl Checker {
             types: TypeEnv::new(),
             errors: Vec::new(),
             current_return_type: None,
+            expr_depth: 0,
+            too_deep_reported: false,
+            expr_cache: HashMap::new(),
         };
         checker.register_stdlib();
         checker
@@ -390,7 +475,7 @@ impl Checker {
                     span: e.span,
                 };
 
-                if let Err(_) = self.types.define_effect(def) {
+                if self.types.define_effect(def).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: e.name.name.clone(),
                         line: e.span.line,
@@ -419,7 +504,7 @@ impl Checker {
                     span: m.span,
                 };
 
-                if let Err(_) = self.types.define_ai_model(def) {
+                if self.types.define_ai_model(def).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: m.name.name.clone(),
                         line: m.span.line,
@@ -443,7 +528,7 @@ impl Checker {
                     span: p.span,
                 };
 
-                if let Err(_) = self.types.define_prompt(def) {
+                if self.types.define_prompt(def).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: p.name.name.clone(),
                         line: p.span.line,
@@ -480,13 +565,13 @@ impl Checker {
                     result: Box::new(return_type),
                 };
 
-                if let Err(_) = self.symbols.define(Symbol {
+                if self.symbols.define(Symbol {
                     name: f.name.name.clone(),
                     kind: SymbolKind::Function,
                     ty: fn_type,
                     span: f.span,
                     mutable: false,
-                }) {
+                }).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: f.name.name.clone(),
                         line: f.span.line,
@@ -515,13 +600,13 @@ impl Checker {
         // Add parameters to scope
         for param in &f.params {
             let ty = ast_type_to_ty(&param.ty);
-            if let Err(_) = self.symbols.define(Symbol {
+            if self.symbols.define(Symbol {
                 name: param.name.name.clone(),
                 kind: SymbolKind::Parameter,
                 ty,
                 span: param.span,
                 mutable: false,
-            }) {
+            }).is_err() {
                 self.errors.push(CheckError::DuplicateDefinition {
                     name: param.name.name.clone(),
                     line: param.span.line,
@@ -536,8 +621,54 @@ impl Checker {
         // Check function body
         self.check_block(&f.body);
 
+        // `@safe`: enforce the machine-checked QTT resource discipline (runs by
+        // default — no flag — for every `@safe`-annotated function).
+        if f.modifiers.contains(&FnModifier::Safe) {
+            self.check_qtt_safe_fn(f);
+        }
+
         self.current_return_type = None;
         self.symbols.exit_scope();
+    }
+
+    /// Resource-check a `@safe` function with the verified QTT core
+    /// (`my_qtt::check`, the faithful R5 port reached via [`crate::qtt_bridge`]).
+    ///
+    /// The function is modelled as a lambda over its parameters — each treated
+    /// **linearly** (`DEFAULT_Q = One`, the strictest reading) — and the
+    /// machine-checked usage-walk runs on it. A parameter dropped or used more
+    /// than once *within the resource-relevant fragment* is reported as a
+    /// [`CheckError::ResourceViolation`]. A body that uses constructs OUTSIDE
+    /// that fragment (arithmetic, records, AI expressions, calls to globals, …)
+    /// cannot be lowered and is **skipped** — unverifiable is not unsafe, and
+    /// name/type resolution of those parts is the main checker's job. So
+    /// `@safe` means "the proof core has checked this function's resource
+    /// discipline wherever it is expressible", enforced by default.
+    fn check_qtt_safe_fn(&mut self, f: &FnDecl) {
+        use crate::qtt_bridge::{check_expr, BridgeCheckError};
+        use my_qtt::surface::CheckError as QttError;
+
+        // model the @safe function as `|params| body`
+        let lam = Expr::Lambda {
+            params: f.params.clone(),
+            body: LambdaBody::Block(f.body.clone()),
+            span: f.span,
+        };
+        match check_expr(&lam) {
+            // resource-safe, or outside the verifiable fragment (skip), or a
+            // free name the main resolver already diagnoses (skip).
+            Ok(_)
+            | Err(BridgeCheckError::Bridge(_))
+            | Err(BridgeCheckError::Check(QttError::Elab(_))) => {}
+            // lowered fully, but the verified walk rejected the usage discipline.
+            Err(BridgeCheckError::Check(QttError::Untypable)) => {
+                self.errors.push(CheckError::ResourceViolation {
+                    name: f.name.name.clone(),
+                    line: f.span.line,
+                    column: f.span.column,
+                });
+            }
+        }
     }
 
     fn check_struct(&mut self, s: &StructDecl) {
@@ -584,13 +715,13 @@ impl Checker {
                     value_ty
                 };
 
-                if let Err(_) = self.symbols.define(Symbol {
+                if self.symbols.define(Symbol {
                     name: name.name.clone(),
                     kind: SymbolKind::Variable,
                     ty: final_ty,
                     span: *span,
                     mutable: *mutable,
-                }) {
+                }).is_err() {
                     self.errors.push(CheckError::DuplicateDefinition {
                         name: name.name.clone(),
                         line: span.line,
@@ -688,7 +819,140 @@ impl Checker {
         }
     }
 
+    /// Type-check an expression, consulting the content-addressed result
+    /// cache for environment-independent subexpressions first
+    /// (hyperpolymath/my-lang#16).
+    ///
+    /// A cache hit returns immediately *without recursing*, which is the
+    /// whole point: structurally-identical `str_concat`/`format` templating
+    /// trees that recur across functions are checked once. A cache hit also
+    /// cannot trip the depth guard or allocate, so a repeated deep-but-legal
+    /// pure chain no longer pays its full recursive cost on every occurrence.
+    /// We only *insert* a result when the underlying check produced no new
+    /// diagnostics and a concrete type, so memoisation never suppresses or
+    /// reorders an error relative to the un-cached behaviour.
     fn check_expr(&mut self, expr: &Expr) -> Ty {
+        let Some(key) = self.memo_key(expr) else {
+            return self.check_expr_guarded(expr);
+        };
+        if let Some(ty) = self.expr_cache.get(&key) {
+            return ty.clone();
+        }
+        let errors_before = self.errors.len();
+        let ty = self.check_expr_guarded(expr);
+        if self.errors.len() == errors_before && !ty.is_error_or_unknown() {
+            self.expr_cache.insert(key, ty.clone());
+        }
+        ty
+    }
+
+    /// Span-stripped structural hash for the subset of expressions whose type
+    /// is a pure function of their form, independent of the symbol
+    /// environment and free of scope side effects. Returns `None` for
+    /// anything outside that subset (in particular: every expression that
+    /// resolves an identifier against local scope, and every scope-
+    /// introducing form — lambdas, blocks, matches, records), so those are
+    /// always re-checked normally and the cache stays sound.
+    ///
+    /// The subset:
+    /// - literals (type fixed by the literal kind), and
+    /// - calls whose callee resolves to the *genuine* stdlib binding (so the
+    ///   result type is the fixed stdlib signature regardless of scope, and a
+    ///   local/user shadow is correctly excluded) and whose arguments are
+    ///   themselves in the subset.
+    ///
+    /// Spans are never fed to the hasher, so structurally-equal expressions
+    /// at different source locations share a key. The key is a 64-bit hash;
+    /// a collision (≈2⁻⁶⁴) could return a wrong cached type, which is the
+    /// standard, accepted trade-off for content-addressed memoisation and is
+    /// acceptable here because this is an optional optimisation layer over an
+    /// already-linear checker (see #14).
+    fn memo_key(&self, expr: &Expr) -> Option<u64> {
+        let mut hasher = DefaultHasher::new();
+        self.hash_pure(expr, &mut hasher)?;
+        Some(hasher.finish())
+    }
+
+    fn hash_pure(&self, expr: &Expr, hasher: &mut DefaultHasher) -> Option<()> {
+        match expr {
+            Expr::Literal(lit) => {
+                match lit {
+                    Literal::Int(v, _) => {
+                        0u8.hash(hasher);
+                        v.hash(hasher);
+                    }
+                    Literal::Float(v, _) => {
+                        1u8.hash(hasher);
+                        v.to_bits().hash(hasher);
+                    }
+                    Literal::String(s, _) => {
+                        2u8.hash(hasher);
+                        s.hash(hasher);
+                    }
+                    Literal::Bool(b, _) => {
+                        3u8.hash(hasher);
+                        b.hash(hasher);
+                    }
+                }
+                Some(())
+            }
+            Expr::Call { callee, args, .. } => {
+                let Expr::Ident(id) = callee.as_ref() else {
+                    return None;
+                };
+                // Only cacheable if the callee resolves to the real stdlib
+                // function symbol. Comparing against the canonical stdlib
+                // signature rejects a local `let str_concat = ...` or a
+                // user-defined function that shadows the name, so the name
+                // alone is a sound proxy for the resolved (scope-invariant)
+                // result type.
+                let sig = Self::stdlib_function_type(&id.name);
+                if !matches!(sig, Ty::Function { .. }) {
+                    return None;
+                }
+                match self.symbols.lookup(&id.name) {
+                    Some(sym) if sym.ty == sig => {}
+                    _ => return None,
+                }
+                4u8.hash(hasher);
+                id.name.hash(hasher);
+                (args.len() as u64).hash(hasher);
+                for arg in args {
+                    self.hash_pure(arg, hasher)?;
+                }
+                Some(())
+            }
+            _ => None,
+        }
+    }
+
+    fn check_expr_guarded(&mut self, expr: &Expr) -> Ty {
+        // Depth guard: stops pathological inputs (e.g. deeply chained
+        // str_concat/format) from driving the checker into a stack overflow
+        // via unbounded recursion (allocation is linear — see #14).
+        // Reports a single ExpressionTooDeep
+        // error for the whole offending subtree and returns Ty::Error so the
+        // surrounding code keeps type-checking in error-recovery mode.
+        if self.expr_depth >= MAX_EXPR_DEPTH {
+            if !self.too_deep_reported {
+                let span = expr_span(expr);
+                self.errors.push(CheckError::ExpressionTooDeep {
+                    limit: MAX_EXPR_DEPTH,
+                    line: span.line,
+                    column: span.column,
+                });
+                self.too_deep_reported = true;
+            }
+            return Ty::Error;
+        }
+
+        self.expr_depth += 1;
+        let ty = self.check_expr_inner(expr);
+        self.expr_depth -= 1;
+        ty
+    }
+
+    fn check_expr_inner(&mut self, expr: &Expr) -> Ty {
         match expr {
             Expr::Literal(lit) => self.check_literal(lit),
 
@@ -719,7 +983,7 @@ impl Checker {
                                 column: span.column,
                             });
                         } else {
-                            for (_i, (param, arg)) in params.iter().zip(arg_types.iter()).enumerate() {
+                            for (param, arg) in params.iter().zip(arg_types.iter()) {
                                 if !param.is_assignable_from(arg) && !arg.is_error_or_unknown() {
                                     self.errors.push(CheckError::TypeMismatch {
                                         expected: param.to_string(),
@@ -795,6 +1059,34 @@ impl Checker {
             Expr::Binary { left, op, right, span } => {
                 let left_ty = self.check_expr(left);
                 let right_ty = self.check_expr(right);
+
+                // Enforce immutability of assignment targets: assigning to a
+                // binding declared without `mut` is a static error. `Symbol.mutable`
+                // is recorded at `let` time but was never consulted here, so
+                // `CheckError::ImmutableAssignment` had no construction site.
+                // NOTE: currently latent — the parser does not yet emit
+                // `BinaryOp::Assign` (KNOWN_PARSE_GAP, conformance/valid/v04_let.my);
+                // this gate activates once assignment parsing lands, and is
+                // reachable today only via a programmatically-built AST.
+                if matches!(op, BinaryOp::Assign) {
+                    if let Expr::Ident(ident) = left.as_ref() {
+                        // Copy out of the immutable lookup borrow before touching
+                        // self.errors. Unknown names are already reported by
+                        // check_expr(left), so default to "not immutable".
+                        let is_immutable = self
+                            .symbols
+                            .lookup(&ident.name)
+                            .map(|s| !s.mutable)
+                            .unwrap_or(false);
+                        if is_immutable {
+                            self.errors.push(CheckError::ImmutableAssignment {
+                                name: ident.name.clone(),
+                                line: ident.span.line,
+                                column: ident.span.column,
+                            });
+                        }
+                    }
+                }
 
                 self.check_binary_op(*op, &left_ty, &right_ty, *span)
             }
@@ -1224,6 +1516,33 @@ impl Checker {
     }
 }
 
+/// Best-effort span lookup for any [`Expr`] variant. Used by error reporting
+/// when we don't have the surrounding context's span available (e.g. from the
+/// expression-depth guard).
+fn expr_span(expr: &Expr) -> Span {
+    match expr {
+        Expr::Literal(lit) => lit.span(),
+        Expr::Ident(i) => i.span,
+        Expr::Call { span, .. }
+        | Expr::Field { span, .. }
+        | Expr::Binary { span, .. }
+        | Expr::Unary { span, .. }
+        | Expr::Try { span, .. }
+        | Expr::Restrict { span, .. }
+        | Expr::Lambda { span, .. }
+        | Expr::Match { span, .. }
+        | Expr::Array { span, .. }
+        | Expr::Record { span, .. } => *span,
+        Expr::Block(b) => b.span,
+        Expr::Ai(ai) => match ai {
+            AiExpr::Block { span, .. }
+            | AiExpr::Call { span, .. }
+            | AiExpr::Quick { span, .. }
+            | AiExpr::PromptInvocation { span, .. } => *span,
+        },
+    }
+}
+
 /// Public function to check a program
 pub fn check(program: &Program) -> Result<(), Vec<CheckError>> {
     let mut checker = Checker::new();
@@ -1239,6 +1558,11 @@ mod tests {
         let program = parse(source).expect("Parse failed");
         check(&program)
     }
+
+    // The former shape-specific `drop_program_iteratively` test helper (it
+    // only flattened 2-arg `Call` chains) is replaced by the general,
+    // shape-independent `crate::ast::drop_program_iteratively`, already in
+    // scope here via `super::*` (hyperpolymath/my-lang#37).
 
     #[test]
     fn test_basic_function() {
@@ -1334,6 +1658,216 @@ mod tests {
     }
 
     #[test]
+    fn test_deeply_nested_str_concat_reports_too_deep_instead_of_oom() {
+        // Regression for hyperpolymath/my-lang#1: deeply nested str_concat /
+        // format chains used to drive the type checker into runaway memory
+        // allocation. Now we should get a clean ExpressionTooDeep error.
+        //
+        // We build the AST programmatically rather than from source: the
+        // recursive-descent parser would itself overflow the stack on inputs
+        // this deep before the checker ever ran.
+        use crate::token::Span;
+
+        let span = Span::default();
+        let leaf = Expr::Literal(Literal::String("end".to_string(), span));
+        let mut expr = leaf;
+        for _ in 0..(MAX_EXPR_DEPTH + 16) {
+            expr = Expr::Call {
+                callee: Box::new(Expr::Ident(Ident::new("str_concat", span))),
+                args: vec![Expr::Literal(Literal::String("a".to_string(), span)), expr],
+                span,
+            };
+        }
+
+        let program = Program {
+            items: vec![TopLevel::Function(FnDecl {
+                modifiers: vec![],
+                name: Ident::new("main", span),
+                params: vec![],
+                return_type: None,
+                contract: None,
+                body: Block {
+                    stmts: vec![Stmt::Let {
+                        mutable: false,
+                        name: Ident::new("s", span),
+                        ty: None,
+                        value: expr,
+                        span,
+                    }],
+                    span,
+                },
+                span,
+            })],
+        };
+
+        let errors = check(&program).expect_err("expected ExpressionTooDeep error");
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, CheckError::ExpressionTooDeep { .. })),
+            "expected ExpressionTooDeep, got: {:?}",
+            errors
+        );
+        // And only one — we don't spam the user with N copies of the same
+        // diagnostic on the way back out of the recursion.
+        let count = errors
+            .iter()
+            .filter(|e| matches!(e, CheckError::ExpressionTooDeep { .. }))
+            .count();
+        assert_eq!(count, 1, "expected exactly one ExpressionTooDeep error");
+
+        // Drop the deep AST iteratively: the auto-generated recursive Drop on
+        // the chain of Box<Expr> would itself overflow the test thread's
+        // stack. (That's a separate, drop-side instance of the same nesting
+        // problem; not what this test is about.)
+        drop_program_iteratively(program);
+    }
+
+    #[test]
+    fn test_deep_non_call_ast_teardown_does_not_overflow() {
+        // Regression for hyperpolymath/my-lang#37, subtlety 1: the recursive
+        // `Drop` overflow is *shape-independent*. The former test helper only
+        // flattened 2-arg `Call` chains; a differently-shaped deep AST (here a
+        // `Unary::Not` chain, with no `Call` anywhere) would still overflow.
+        // The general `ast::drop_program_iteratively` must tear it down with
+        // O(1) stack regardless of shape.
+        //
+        // Depth is far beyond the measured recursive-Drop cliff (≈4–6k at a
+        // 512 KiB stack) so a recursion-based teardown would abort the test
+        // process; survival proves the teardown is non-recursive.
+        use crate::token::Span;
+
+        let span = Span::default();
+        let mut expr = Expr::Literal(Literal::Bool(true, span));
+        for _ in 0..50_000 {
+            expr = Expr::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(expr),
+                span,
+            };
+        }
+
+        let program = Program {
+            items: vec![TopLevel::Function(FnDecl {
+                modifiers: vec![],
+                name: Ident::new("main", span),
+                params: vec![],
+                return_type: None,
+                contract: None,
+                body: Block {
+                    stmts: vec![Stmt::Let {
+                        mutable: false,
+                        name: Ident::new("s", span),
+                        ty: None,
+                        value: expr,
+                        span,
+                    }],
+                    span,
+                },
+                span,
+            })],
+        };
+
+        // The sole assertion is that this returns at all: a recursive teardown
+        // would `STATUS_STACK_OVERFLOW` / SIGABRT the test runner first.
+        drop_program_iteratively(program);
+    }
+
+    #[test]
+    fn test_moderately_nested_str_concat_still_checks() {
+        // Sanity: well below the limit, deeply chained str_concat must still
+        // type-check successfully via the normal source path.
+        let depth = 32;
+        let mut src = String::from("fn main() { let s = ");
+        for _ in 0..depth {
+            src.push_str("str_concat(\"a\", ");
+        }
+        src.push_str("\"end\"");
+        for _ in 0..depth {
+            src.push(')');
+        }
+        src.push_str("; }");
+
+        assert!(check_source(&src).is_ok());
+    }
+
+    #[test]
+    fn test_memoised_pure_chain_is_cached() {
+        // #16: a structurally-identical pure str_concat chain repeated across
+        // many functions must be checked once and reused. We can observe the
+        // cache directly via the Checker API.
+        let src = r#"
+            fn a() { let x = str_concat("p", str_concat("q", "r")); }
+            fn b() { let y = str_concat("p", str_concat("q", "r")); }
+            fn c() { let z = str_concat("p", str_concat("q", "r")); }
+        "#;
+        let program = parse(src).expect("parse");
+        let mut checker = Checker::new();
+        checker.check_program(&program).expect("should type-check");
+        // The repeated `str_concat(...)` tree (and its inner subtree) collapse
+        // to a small number of distinct keys, not one per occurrence.
+        assert!(
+            !checker.expr_cache.is_empty(),
+            "expected pure str_concat chain to be memoised"
+        );
+        // Three identical chains => the distinct-key count stays at the small
+        // fixed set of subexpressions ("p", "q", "r", inner + outer call),
+        // not 3x that. The exact figure is an implementation detail; the
+        // invariant is that it does not grow with the number of occurrences.
+        assert!(
+            checker.expr_cache.len() <= 6,
+            "identical chains should share keys regardless of occurrence count, got {} entries",
+            checker.expr_cache.len()
+        );
+    }
+
+    #[test]
+    fn test_memoisation_does_not_change_results() {
+        // Correctness: every existing positive/negative case must behave
+        // identically with the cache in place (the cache is consulted on
+        // every expression via check_expr).
+        assert!(check_source(r#"fn main() { let s = str_concat("a", "b"); }"#).is_ok());
+        assert!(check_source(
+            r#"fn main() { let s = format(str_concat("<", str_concat("x", ">"))); }"#
+        )
+        .is_ok());
+        // A pure stdlib call with a genuine type error must still report it
+        // (never cached, since the result is an error type).
+        let err = check_source(r#"fn main() { let s = str_concat("a"); }"#).unwrap_err();
+        assert!(err.iter().any(|e| matches!(e, CheckError::WrongArgCount { .. })));
+    }
+
+    #[test]
+    fn test_memoisation_is_scope_sound() {
+        // The soundness hazard #16 calls out: two structurally-identical
+        // expressions can have different types because identifiers resolve
+        // against scope. `add(p, 1)` is `Int` in one function and `Float` in
+        // the other. Because identifier arguments are outside the cacheable
+        // subset, each call site is checked against its own scope and the
+        // return-type checks must both pass.
+        let src = r#"
+            fn add(a: Int, b: Int) -> Int { return a + b; }
+            fn addf(a: Float, b: Float) -> Float { return a + b; }
+            fn use_int(p: Int) -> Int { return add(p, p); }
+            fn use_float(p: Float) -> Float { return addf(p, p); }
+        "#;
+        assert!(
+            check_source(src).is_ok(),
+            "scope-sensitive look-alikes must each be checked in their own scope"
+        );
+
+        // And the negative: a genuine mismatch is still caught, not masked by
+        // a cache entry from the structurally-similar good call.
+        let bad = r#"
+            fn add(a: Int, b: Int) -> Int { return a + b; }
+            fn ok() -> Int { return add(1, 2); }
+            fn bad() -> Int { return add(1, "two"); }
+        "#;
+        let err = check_source(bad).unwrap_err();
+        assert!(err.iter().any(|e| matches!(e, CheckError::TypeMismatch { .. })));
+    }
+
+    #[test]
     fn test_non_bool_condition() {
         let result = check_source(r#"
             fn main() {
@@ -1345,5 +1879,46 @@ mod tests {
         assert!(result.is_err());
         let errors = result.unwrap_err();
         assert!(errors.iter().any(|e| matches!(e, CheckError::NonBoolCondition { .. })));
+    }
+
+    // ---- `@safe` functions are resource-checked by the verified QTT core ----
+
+    /// A `#[safe]` function whose parameter is used exactly once passes the
+    /// machine-checked linear discipline.
+    #[test]
+    fn qtt_safe_linear_param_ok() {
+        let result = check_source("#[safe]\nfn id(x: Int) { x; }");
+        assert!(result.is_ok(), "expected ok, got {:?}", result);
+    }
+
+    /// A `#[safe]` function that DROPS its linear parameter is rejected by the
+    /// verified usage-walk — the resource axis is now enforced in the compiler.
+    #[test]
+    fn qtt_safe_dropped_param_rejected() {
+        let result = check_source("#[safe]\nfn drp(x: Int) { 0; }");
+        assert!(result.is_err(), "expected ResourceViolation, got Ok");
+        let errors = result.unwrap_err();
+        assert!(
+            errors.iter().any(|e| matches!(e, CheckError::ResourceViolation { .. })),
+            "expected ResourceViolation, got {:?}",
+            errors
+        );
+    }
+
+    /// The SAME body without `#[safe]` is accepted — the discipline is opt-in
+    /// per function (gated on the modifier), so nothing else changes.
+    #[test]
+    fn non_safe_dropped_param_ok() {
+        let result = check_source("fn drp(x: Int) { 0; }");
+        assert!(result.is_ok(), "non-@safe fn must not be resource-checked, got {:?}", result);
+    }
+
+    /// A `#[safe]` body that uses constructs OUTSIDE the resource fragment
+    /// (here, arithmetic) cannot be lowered and is skipped — unverifiable is
+    /// not unsafe, so no false rejection.
+    #[test]
+    fn qtt_safe_out_of_fragment_skipped() {
+        let result = check_source("#[safe]\nfn add1(x: Int) { x + 1; }");
+        assert!(result.is_ok(), "out-of-fragment @safe body should be skipped, got {:?}", result);
     }
 }

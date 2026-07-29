@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Common Utility Functions
 //!
 //! Miscellaneous utility functions for runtime operations.
@@ -95,7 +97,7 @@ impl SimpleRng {
 
     /// Generate random bool
     pub fn next_bool(&mut self) -> bool {
-        self.next_u64() % 2 == 0
+        self.next_u64().is_multiple_of(2)
     }
 
     /// Generate random bool with probability p of being true
@@ -294,15 +296,15 @@ mod tests {
         let r1 = random();
         let r2 = random();
         // Random numbers should be in [0, 1)
-        assert!(r1 >= 0.0 && r1 < 1.0);
-        assert!(r2 >= 0.0 && r2 < 1.0);
+        assert!((0.0..1.0).contains(&r1));
+        assert!((0.0..1.0).contains(&r2));
     }
 
     #[test]
     fn test_random_int() {
         for _ in 0..100 {
             let r = random_int(5, 10);
-            assert!(r >= 5 && r <= 10);
+            assert!((5..=10).contains(&r));
         }
     }
 

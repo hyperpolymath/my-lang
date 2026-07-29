@@ -1,0 +1,179 @@
+// SPDX-License-Identifier: MPL-2.0
+// BlueAgent.affine - The Auditor
+// Teaches: Verification, auditing, tracing, debugging, proof systems
+//
+// Ported from BlueAgent.res. Public fns prefixed `blue_*` to avoid
+// cross-module name collisions in RevealSystem (see CONVERSION-NOTES.md).
+
+module BlueAgent;
+
+use Types::{
+  Stage, Cuttle, Squidlet, Duet, Octopus,
+  AgentColor, Blue,
+  Difficulty, Introductory,
+  Lesson, Activity, ActivityType, Game, Puzzle, Creative, Challenge,
+  GameConfig, PuzzleConfig, CreativeConfig, ChallengeConfig,
+  Personality, AgentNames, Agent,
+  random_element,
+};
+use prelude::{ Option, Some, None };
+
+pub fn names() -> AgentNames {
+  #{
+    cuttle: "Detective Blue",
+    squidlet: "Tracker Blue",
+    duet: "Verification Agent Blue",
+    octopus: "Verification Oracle Blue",
+  }
+}
+
+pub fn personality() -> Personality {
+  #{
+    voice: "Curious and analytical, always asking questions and looking for clues",
+    catchphrase: "The evidence never lies!",
+    encouragement: [
+      "Excellent deduction!",
+      "You found a crucial clue!",
+      "Your logic is impeccable!",
+      "The mystery is unraveling!",
+    ],
+    corrections: [
+      "Hmm, let's re-examine the evidence...",
+      "That clue might mean something else.",
+      "Good theory, but let's verify it.",
+      "The facts don't quite add up yet.",
+    ],
+    celebrations: [
+      "Case solved! Brilliant detective work!",
+      "You've cracked the code!",
+      "Irrefutable proof! Amazing!",
+      "The mystery is completely solved!",
+    ],
+  }
+}
+
+pub fn teaches() -> [String] {
+  [
+    "Logical deduction",
+    "Evidence gathering",
+    "Proof construction",
+    "Debugging techniques",
+    "Execution tracing",
+    "Hoare logic",
+    "Formal verification",
+    "Theorem proving",
+  ]
+}
+
+// Get the agent's name for a given stage
+pub fn blue_get_name(stage: Stage) -> String {
+  match stage {
+    Cuttle => names().cuttle,
+    Squidlet => names().squidlet,
+    Duet => names().duet,
+    Octopus => names().octopus,
+  }
+}
+
+// Get what the agent is "secretly" teaching at each stage
+pub fn blue_get_hidden_concept(stage: Stage) -> String {
+  match stage {
+    Cuttle => "Logical deduction and proof",
+    Squidlet => "Logging and execution tracing",
+    Duet => "Formal verification and Hoare logic",
+    Octopus => "Theorem proving and certified systems",
+  }
+}
+
+// Get a random encouragement message
+pub fn blue_encourage() -> String {
+  random_element(personality().encouragement, personality().catchphrase)
+}
+
+// Get a random correction message
+pub fn blue_correct() -> String {
+  random_element(personality().corrections, "Let's try again!")
+}
+
+// Get a random celebration message
+pub fn blue_celebrate() -> String {
+  random_element(personality().celebrations, personality().catchphrase)
+}
+
+// Lesson definitions from curriculum/cuttle/blue/
+pub fn lessons() -> [Lesson] {
+  [
+    #{
+      id: "cuttle-blue-01",
+      title: "Mystery Intro",
+      agent: Blue,
+      stage: Cuttle,
+      difficulty: Introductory,
+      description: "Solve your first mystery using clues and logical deduction",
+      objectives: [
+        "How to gather clues",
+        "How to use clues to figure things out",
+        "How evidence points to answers",
+      ],
+      activities: [
+        #{
+          activityId: "blue-01-gather-clues",
+          activityType: Game(#{
+            gameName: "Clue Finding",
+            rules: ["Examine the scene carefully", "Click on suspicious items", "Record each clue you find"],
+            winCondition: "Find all 3 clues",
+          }),
+          instructions: "The cookie jar is EMPTY! Examine the scene for clues. Look for crumbs, lid position, and chocolate stains.",
+          hints: ["Look at the floor", "Check the dog bed", "Look at Buddy's nose"],
+        },
+        #{
+          activityId: "blue-01-interpret-clues",
+          activityType: Puzzle(#{
+            puzzleType: "deduction",
+            pieces: 3,
+            solution: "Crumbs lead to dog bed = dog carried cookie",
+          }),
+          instructions: "The crumbs lead to the dog bed. What does this mean?",
+          hints: ["Think about who would go to the dog bed", "Crumbs show where someone walked"],
+        },
+        #{
+          activityId: "blue-01-solve-mystery",
+          activityType: Puzzle(#{
+            puzzleType: "conclusion",
+            pieces: 3,
+            solution: "Buddy the Dog",
+          }),
+          instructions: "Based on ALL the clues (crumbs to dog bed, chocolate on nose), who ate the last cookie?",
+          hints: ["Combine all the evidence", "Who do all clues point to?"],
+        },
+      ],
+      hiddenConcept: "Logical deduction basics",
+      revealedConcept: None,
+    },
+  ]
+}
+
+// Create the complete agent definition
+pub fn agent() -> Agent {
+  #{
+    color: Blue,
+    names: names(),
+    compilerRole: "Auditor - Verifies correctness and provides formal proofs",
+    teaches: teaches(),
+    personality: personality(),
+    lessons: lessons(),
+  }
+}
+
+// Reveal text shown when transitioning stages
+pub fn blue_reveal_text(fromStage: Stage, toStage: Stage) -> Option<String> {
+  match (fromStage, toStage) {
+    (Cuttle, Squidlet) =>
+      Some("All those mysteries you solved? Blue was teaching you about VERIFICATION! Every clue you found was like evidence that proves code is correct."),
+    (Squidlet, Duet) =>
+      Some("Blue has been teaching you FORMAL VERIFICATION! When you proved who did it, you were learning how mathematicians prove that code can never fail."),
+    (Duet, Octopus) =>
+      Some("You understand verification systems now! You know how Blue can mathematically PROVE that code is correct, not just test it."),
+    _ => None,
+  }
+}

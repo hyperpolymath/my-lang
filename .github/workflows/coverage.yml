@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: MPL-2.0
+# Line/region coverage for the Rust workspace via cargo-llvm-cov.
+#
+# Why: the workspace had fuzzing and a stack-depth guard but no coverage
+# measurement, so coverage regressions went unnoticed (see TESTING.md). This
+# workflow measures coverage on every change, publishes an LCOV report + an
+# HTML report as artifacts, writes a summary to the job page, and enforces a
+# conservative line-coverage FLOOR so coverage can only ratchet upward.
+#
+# Raising the floor: bump COVERAGE_FLOOR (and the matching --fail-under-lines
+# value below) as coverage improves. It is intentionally a floor, not a target.
+name: Coverage
+
+on:
+  push:
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/coverage.yml'
+  pull_request:
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/coverage.yml'
+
+permissions: read-all
+
+env:
+  # Minimum acceptable line coverage (percent). Ratchet upward over time.
+  # Baseline at introduction was ~46.7% line coverage (workspace, excl. my-llvm);
+  # the floor sits just below that so it gates regressions without being flaky.
+  COVERAGE_FLOOR: "40"
+
+jobs:
+  coverage:
+    name: llvm-cov
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # stable
+        with:
+          toolchain: stable
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      # Collect coverage once, then render multiple reports from the same data.
+      # The LLVM back end (my-llvm) needs a system LLVM toolchain, so it is
+      # excluded here to keep the job hermetic; everything else is measured.
+      # NOTE: --workspace/--exclude are only valid on the test-running form, not
+      # on the `report` subcommand, which renders the already-collected data.
+      - name: Collect coverage
+        run: cargo llvm-cov --no-report --workspace --exclude my-llvm
+
+      # Coverage gate. --fail-under-lines must mirror COVERAGE_FLOOR.
+      - name: Enforce coverage floor
+        run: cargo llvm-cov report --fail-under-lines "${COVERAGE_FLOOR}"
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          {
+            echo '## Coverage summary'
+            echo '```'
+            cargo llvm-cov report --summary-only
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate LCOV report
+        if: always()
+        run: cargo llvm-cov report --lcov --output-path lcov.info
+
+      - name: Generate HTML report
+        if: always()
+        run: cargo llvm-cov report --html --output-dir coverage-html
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: |
+            lcov.info
+            coverage-html
+          if-no-files-found: warn

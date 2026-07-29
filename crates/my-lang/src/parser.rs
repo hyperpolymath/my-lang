@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! Parser for My Language with AI integration
 //!
 //! Implements a recursive descent parser for the complete grammar.
@@ -19,14 +21,45 @@ pub enum ParseError {
     UnexpectedEof,
     #[error("invalid literal: {0}")]
     InvalidLiteral(String),
+    #[error("expression nesting depth exceeds limit ({limit}) at line {line}, column {column}; refactor deeply nested expressions (e.g. parenthesized or chained calls) into intermediate `let` bindings")]
+    ExpressionTooDeep {
+        limit: usize,
+        line: usize,
+        column: usize,
+    },
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
+
+/// Maximum expression nesting depth the recursive-descent parser will descend
+/// through before emitting [`ParseError::ExpressionTooDeep`] and unwinding the
+/// in-flight expression.
+///
+/// Independently derived from the parser's own stack budget (not a fixed
+/// ratio of `checker::MAX_EXPR_DEPTH`): each step of expression nesting
+/// re-enters `parse_expr` and walks the full precedence chain
+/// (`parse_or_expr` → … → `parse_postfix_expr` → `parse_primary_expr`),
+/// adding roughly a dozen native stack frames per nesting level. In debug
+/// builds with a 1 MiB default test-thread stack (Windows), that puts the
+/// hard `STATUS_STACK_OVERFLOW` boundary at roughly ~140 depth — so the
+/// guard has to fire well before that. 64 leaves a comfortable margin on
+/// every platform/build-mode the test suite runs on, while still accepting
+/// any human-authored expression (real code rarely nests past depth 5–10).
+///
+/// This is the *operational* ceiling: because the parser errors here, no
+/// parsed program ever reaches `checker::MAX_EXPR_DEPTH` (re-derived to 128
+/// from a measured ≈4.4 KiB/level checker-stack budget in my-lang#37); the
+/// checker guard only bounds programmatically-constructed ASTs.
+/// See hyperpolymath/my-lang#15 / #1 / #37.
+pub const MAX_PARSE_EXPR_DEPTH: usize = 64;
 
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
     errors: Vec<ParseError>,
+    /// Current expression-recursion depth, tracked at every entry to
+    /// [`Parser::parse_expr`]. Bounded by [`MAX_PARSE_EXPR_DEPTH`].
+    expr_depth: usize,
 }
 
 impl Parser {
@@ -35,25 +68,45 @@ impl Parser {
             tokens,
             pos: 0,
             errors: Vec::new(),
+            expr_depth: 0,
         }
     }
 
+    /// Parse the token stream into a `Program`.
+    ///
+    /// This always returns `Ok(Program { items })` containing whichever
+    /// top-level items were successfully parsed; any errors encountered
+    /// during recovery are collected in `self.errors` and exposed via
+    /// [`Parser::errors`]. Callers that want a single-error contract
+    /// (e.g. the crate-level `parse` wrapper) should inspect
+    /// `parser.errors()` after this call and surface the first one.
+    ///
+    /// Why `Ok` even with errors: tests like
+    /// `test_error_recovery_sync_at_semicolon` exercise the recovery
+    /// path and expect to see the partial AST alongside the error list;
+    /// returning `Err` here would throw away every successfully-parsed
+    /// item on the first stray token.
     pub fn parse_program(&mut self) -> ParseResult<Program> {
         let mut items = Vec::new();
         while !self.is_at_end() {
+            let saved_pos = self.pos;
             match self.parse_top_level() {
                 Ok(item) => items.push(item),
                 Err(err) => {
                     self.errors.push(err);
                     self.synchronize();
+                    // Forward-progress guarantee: if neither parse_top_level
+                    // nor synchronize consumed a token (e.g. we Err'd at a
+                    // sync-point token like `}` and synchronize returned at
+                    // the same `}` without advancing), force one step so the
+                    // outer loop terminates. Without this, deeply-nested or
+                    // unbalanced inputs that trip the depth guard can spin
+                    // forever pushing the same error until OOM.
+                    if self.pos == saved_pos {
+                        self.advance();
+                    }
                 }
             }
-        }
-
-        // If we collected any errors, return the first one
-        // (in the future, we could return all errors in a different error type)
-        if !self.errors.is_empty() {
-            return Err(self.errors[0].clone());
         }
 
         Ok(Program { items })
@@ -223,25 +276,32 @@ impl Parser {
         let attr_name = self.parse_ident()?;
         self.expect(TokenKind::Colon)?;
 
-        match attr_name.name.as_str() {
+        let attr = match attr_name.name.as_str() {
             "provider" => {
                 let value = self.parse_string_lit()?;
-                Ok(AiModelAttr::Provider(value))
+                AiModelAttr::Provider(value)
             }
             "model" => {
                 let value = self.parse_string_lit()?;
-                Ok(AiModelAttr::Model(value))
+                AiModelAttr::Model(value)
             }
             "temperature" => {
                 let value = self.parse_float_lit()?;
-                Ok(AiModelAttr::Temperature(value))
+                AiModelAttr::Temperature(value)
             }
             "cache" => {
                 let value = self.parse_bool_lit()?;
-                Ok(AiModelAttr::Cache(value))
+                AiModelAttr::Cache(value)
             }
-            _ => Err(self.error("valid ai_model attribute")),
+            _ => return Err(self.error("valid ai_model attribute")),
+        };
+
+        // Optional separator/trailing comma, matching struct-field syntax.
+        if self.check(TokenKind::Comma) {
+            self.advance();
         }
+
+        Ok(attr)
     }
 
     fn parse_prompt_decl(&mut self) -> ParseResult<PromptDecl> {
@@ -774,18 +834,6 @@ impl Parser {
     }
 
     // ============================================
-    // Comptime Declaration
-    // ============================================
-
-    fn parse_comptime_decl(&mut self) -> ParseResult<ComptimeDecl> {
-        let start = self.current_span();
-        self.expect(TokenKind::Comptime)?;
-        let block = self.parse_block()?;
-        let span = self.span_from(start);
-        Ok(ComptimeDecl { block, span })
-    }
-
-    // ============================================
     // Contract
     // ============================================
 
@@ -1061,7 +1109,24 @@ impl Parser {
     // ============================================
 
     fn parse_expr(&mut self) -> ParseResult<Expr> {
-        self.parse_or_expr()
+        // Depth guard: stops pathological inputs (e.g. deeply nested
+        // parentheses, right-recursive `str_concat("a", str_concat(...))`
+        // chains) from overflowing the thread stack before the type-checker
+        // ever sees the AST. This is the operational ceiling that keeps any
+        // parsed AST below `checker::MAX_EXPR_DEPTH`; see
+        // hyperpolymath/my-lang#15 / #37.
+        if self.expr_depth >= MAX_PARSE_EXPR_DEPTH {
+            let span = self.current_span();
+            return Err(ParseError::ExpressionTooDeep {
+                limit: MAX_PARSE_EXPR_DEPTH,
+                line: span.line,
+                column: span.column,
+            });
+        }
+        self.expr_depth += 1;
+        let result = self.parse_or_expr();
+        self.expr_depth -= 1;
+        result
     }
 
     fn parse_or_expr(&mut self) -> ParseResult<Expr> {
@@ -1369,7 +1434,8 @@ impl Parser {
 
     fn parse_string_literal(&mut self) -> ParseResult<Expr> {
         let token = self.advance().ok_or(ParseError::UnexpectedEof)?;
-        Ok(Expr::Literal(Literal::String(token.literal.clone(), token.span)))
+        let value = unescape_string_literal(&token.literal);
+        Ok(Expr::Literal(Literal::String(value, token.span)))
     }
 
     fn parse_bool_literal(&mut self) -> ParseResult<Expr> {
@@ -2053,6 +2119,72 @@ enum Attribute {
     Custom(String),
 }
 
+/// Decode the standard escape sequences in a string-literal body.
+///
+/// The lexer stores the *raw* slice between the quotes (it only consumes `\x`
+/// pairs so it can find the closing quote). Without this, `"a\"b"` would yield
+/// the four characters `a \ " b` and JSON literals such as
+/// `json_parse("{\"k\":1}")` would be unparseable. See hyperpolymath/my-lang#47.
+///
+/// Supported: `\" \\ \/ \n \t \r \0` and `\uXXXX` (BMP) / `\u{...}`. An unknown
+/// escape is passed through literally (lenient: the backslash is dropped and the
+/// following character kept), which never makes a previously-valid program fail.
+fn unescape_string_literal(raw: &str) -> String {
+    if !raw.contains('\\') {
+        return raw.to_string();
+    }
+    let mut out = String::with_capacity(raw.len());
+    let mut chars = raw.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some('"') => out.push('"'),
+            Some('\\') => out.push('\\'),
+            Some('/') => out.push('/'),
+            Some('n') => out.push('\n'),
+            Some('t') => out.push('\t'),
+            Some('r') => out.push('\r'),
+            Some('0') => out.push('\0'),
+            Some('u') => {
+                // \u{...} (Rust-style) or \uXXXX (JSON-style, 4 hex digits).
+                let mut hex = String::new();
+                let rest: String = chars.clone().collect();
+                if rest.starts_with('{') {
+                    chars.next(); // consume '{'
+                    for d in chars.by_ref() {
+                        if d == '}' {
+                            break;
+                        }
+                        hex.push(d);
+                    }
+                } else {
+                    for _ in 0..4 {
+                        match chars.next() {
+                            Some(d) => hex.push(d),
+                            None => break,
+                        }
+                    }
+                }
+                match u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32) {
+                    Some(ch) => out.push(ch),
+                    None => {
+                        // Malformed: keep it visible rather than silently drop.
+                        out.push('\\');
+                        out.push('u');
+                        out.push_str(&hex);
+                    }
+                }
+            }
+            Some(other) => out.push(other),
+            None => out.push('\\'),
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2100,6 +2232,27 @@ mod tests {
         let program = parse(input).unwrap();
         if let TopLevel::AiModel(m) = &program.items[0] {
             assert_eq!(m.name.name, "gpt4");
+            assert_eq!(m.attributes.len(), 4);
+        } else {
+            panic!("Expected ai_model");
+        }
+    }
+
+    #[test]
+    fn test_ai_model_decl_comma_separated() {
+        // Comma-separated attributes with a trailing comma, matching struct-field
+        // syntax. Regression for the conformance fixture v03_ai_model.my.
+        let input = r#"
+            ai_model Classifier {
+                provider: "openai",
+                model: "gpt-4",
+                temperature: 0.7,
+                cache: true,
+            }
+        "#;
+        let program = parse(input).unwrap();
+        if let TopLevel::AiModel(m) = &program.items[0] {
+            assert_eq!(m.name.name, "Classifier");
             assert_eq!(m.attributes.len(), 4);
         } else {
             panic!("Expected ai_model");
@@ -2623,5 +2776,122 @@ mod tests {
 
         // Should still parse top-level structure
         assert!(program.is_some(), "Expected program despite errors");
+    }
+
+    // ============================================
+    // Expression-Depth Guard Tests (hyperpolymath/my-lang#15)
+    // ============================================
+
+    #[test]
+    fn test_deeply_nested_parens_report_too_deep_instead_of_sigabrt() {
+        // Regression for hyperpolymath/my-lang#15: deeply nested expressions
+        // used to overflow the recursive-descent parser's thread stack and
+        // SIGABRT the process. With the MAX_PARSE_EXPR_DEPTH guard, we get a
+        // clean ExpressionTooDeep error instead.
+        //
+        // Each `(` re-enters parse_expr via parse_paren_expr, so the depth
+        // increments on every layer. We feed in just over the limit so the
+        // guard fires; staying close to the limit also keeps us well under
+        // the empirical SIGABRT threshold (~230 on Windows debug builds).
+        let depth = MAX_PARSE_EXPR_DEPTH + 16;
+        let mut src = String::from("fn main() { let x = ");
+        for _ in 0..depth {
+            src.push('(');
+        }
+        src.push('1');
+        for _ in 0..depth {
+            src.push(')');
+        }
+        src.push_str("; }");
+
+        let (_program, errors) = parse_with_errors(&src);
+
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ExpressionTooDeep { limit, .. } if *limit == MAX_PARSE_EXPR_DEPTH)),
+            "expected ExpressionTooDeep, got: {:?}",
+            errors
+        );
+    }
+
+    #[test]
+    fn test_deeply_nested_call_chain_reports_too_deep_instead_of_sigabrt() {
+        // Right-recursive `str_concat("a", str_concat("a", ... "end"))` is the
+        // exact shape that originally surfaced this bug while writing the
+        // type-checker regression test (#12). Confirm the parser bails out
+        // cleanly here as well.
+        let depth = MAX_PARSE_EXPR_DEPTH + 16;
+        let mut src = String::from("fn main() { let s = ");
+        for _ in 0..depth {
+            src.push_str("str_concat(\"a\", ");
+        }
+        src.push_str("\"end\"");
+        for _ in 0..depth {
+            src.push(')');
+        }
+        src.push_str("; }");
+
+        let (_program, errors) = parse_with_errors(&src);
+
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ExpressionTooDeep { .. })),
+            "expected ExpressionTooDeep, got: {:?}",
+            errors
+        );
+    }
+
+    #[test]
+    fn test_moderately_nested_parens_still_parse() {
+        // Sanity: well below the limit must still parse successfully via the
+        // normal source path. Catches a too-tight off-by-one in the guard.
+        let depth = 32;
+        let mut src = String::from("fn main() { let x = ");
+        for _ in 0..depth {
+            src.push('(');
+        }
+        src.push('1');
+        for _ in 0..depth {
+            src.push(')');
+        }
+        src.push_str("; }");
+
+        let program = parse(&src).expect("moderately-nested parens must parse");
+        assert_eq!(program.items.len(), 1);
+    }
+
+    #[test]
+    fn test_depth_guard_resets_between_top_level_items() {
+        // After error-recovery synchronizes past a too-deep expression, the
+        // depth counter must be back at 0 so subsequent top-level items parse
+        // normally. Catches a regression where the depth `-=` was skipped on
+        // the error path (e.g. if we'd used `?` inside parse_expr).
+        let depth = MAX_PARSE_EXPR_DEPTH + 8;
+        let mut src = String::from("fn broken() { let x = ");
+        for _ in 0..depth {
+            src.push('(');
+        }
+        src.push('1');
+        for _ in 0..depth {
+            src.push(')');
+        }
+        src.push_str("; }\nfn ok() { let y = 42; }");
+
+        let (program, errors) = parse_with_errors(&src);
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, ParseError::ExpressionTooDeep { .. })),
+            "expected ExpressionTooDeep in errors: {:?}",
+            errors
+        );
+        if let Some(prog) = program {
+            assert!(
+                prog.items.iter().any(|it| matches!(it, TopLevel::Function(f) if f.name.name == "ok")),
+                "expected `ok` function to parse after recovery"
+            );
+        }
     }
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 # Seven Tentacles CI/CD Pipeline
 # RSR Compliant Configuration
 
@@ -6,10 +8,8 @@ stages:
   - build
   - test
   - deploy
-
 variables:
   NODE_VERSION: "20"
-
 # Validate documentation and structure
 validate:
   stage: validate
@@ -26,7 +26,6 @@ validate:
     - test -d agents
     - test -d tools
     - echo "Structure validation passed!"
-
 # Build documentation
 build:docs:
   stage: build
@@ -39,7 +38,6 @@ build:docs:
     paths:
       - dist/docs/
     expire_in: 1 week
-
 # Build ReScript (when dependencies are available)
 build:rescript:
   stage: build
@@ -48,7 +46,6 @@ build:rescript:
     - npm ci
     - npm run build || echo "ReScript build skipped (optional)"
   allow_failure: true
-
 # Count curriculum lessons
 test:curriculum:
   stage: test
@@ -62,7 +59,6 @@ test:curriculum:
     - find curriculum/squidlet -name "*.adoc" 2>/dev/null | wc -l || echo "0"
     - find curriculum/duet -name "*.adoc" 2>/dev/null | wc -l || echo "0"
     - find curriculum/octopus -name "*.adoc" 2>/dev/null | wc -l || echo "0"
-
 # Deploy to GitLab Pages (optional)
 pages:
   stage: deploy
@@ -77,3 +73,8 @@ pages:
   only:
     - main
   when: manual
+trufflehog:
+  stage: security
+  image: trufflesecurity/trufflehog:latest
+  script:
+    - trufflehog git file://. --only-verified --fail

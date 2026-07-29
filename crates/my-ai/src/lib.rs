@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 //! AI Runtime for My Language
 //!
 //! Provides AI model abstraction and execution:
@@ -417,6 +418,7 @@ impl AIProvider for OllamaProvider {
 /// TODO: Replace with rocketcache integration
 pub struct AICache {
     cache: Arc<RwLock<HashMap<String, CachedResponse>>>,
+    ttl: std::time::Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -425,20 +427,53 @@ struct CachedResponse {
     timestamp: std::time::Instant,
 }
 
+/// Default time-to-live for cached AI responses. Picked as five minutes
+/// because: (a) AI responses are model-call expensive enough that short
+/// repeats deserve to hit the cache, (b) five minutes is short enough
+/// that long-lived processes don't serve stale answers indefinitely or
+/// retain memory for keys nobody asks about anymore.
+const DEFAULT_TTL: std::time::Duration = std::time::Duration::from_secs(300);
+
 impl AICache {
+    /// Build a cache with the [`DEFAULT_TTL`] (five minutes).
     pub fn new() -> Self {
+        Self::with_ttl(DEFAULT_TTL)
+    }
+
+    /// Build a cache with a custom time-to-live.
+    ///
+    /// Entries older than `ttl` are treated as absent by [`Self::get`]
+    /// and are opportunistically evicted on the next [`Self::set`].
+    pub fn with_ttl(ttl: std::time::Duration) -> Self {
         AICache {
             cache: Arc::new(RwLock::new(HashMap::new())),
+            ttl,
         }
     }
 
+    /// Look up `key`. Returns `None` if the entry is absent or its
+    /// timestamp has exceeded `ttl` -- an expired entry is reported as
+    /// absent but not removed under the read lock; eviction happens on
+    /// the next write so we don't pay for an upgrade here.
     pub async fn get(&self, key: &str) -> Option<CompletionResponse> {
         let cache = self.cache.read().await;
-        cache.get(key).map(|c| c.response.clone())
+        cache.get(key).and_then(|c| {
+            if c.timestamp.elapsed() <= self.ttl {
+                Some(c.response.clone())
+            } else {
+                None
+            }
+        })
     }
 
+    /// Insert `response` for `key`. As a side effect, every entry whose
+    /// timestamp has exceeded `ttl` is dropped -- we already hold the
+    /// write lock, so this lazy sweep keeps memory bounded without a
+    /// background task.
     pub async fn set(&self, key: String, response: CompletionResponse) {
         let mut cache = self.cache.write().await;
+        let ttl = self.ttl;
+        cache.retain(|_, entry| entry.timestamp.elapsed() <= ttl);
         cache.insert(
             key,
             CachedResponse {
@@ -693,5 +728,52 @@ mod tests {
         };
         let key = AICache::cache_key(&request);
         assert!(!key.is_empty());
+    }
+
+    fn dummy_response(content: &str) -> CompletionResponse {
+        CompletionResponse {
+            content: content.to_string(),
+            model: "test".to_string(),
+            usage: Usage { input_tokens: 0, output_tokens: 0 },
+            tool_calls: Vec::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_cache_round_trip() {
+        let cache = AICache::new();
+        assert!(cache.get("k").await.is_none());
+        cache.set("k".to_string(), dummy_response("hello")).await;
+        assert_eq!(cache.get("k").await.map(|r| r.content), Some("hello".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_cache_ttl_expires_entries() {
+        // 50 ms TTL: insert, sleep past it, expect the entry to be reported
+        // as absent. Regression for the field that used to be captured at
+        // `set` time and never consulted on `get`.
+        let cache = AICache::with_ttl(std::time::Duration::from_millis(50));
+        cache.set("k".to_string(), dummy_response("hello")).await;
+        assert!(cache.get("k").await.is_some(), "entry should be fresh");
+        tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+        assert!(
+            cache.get("k").await.is_none(),
+            "entry should be reported absent once past TTL"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_cache_set_evicts_expired_entries() {
+        // After TTL elapses, a subsequent `set` should sweep stale entries
+        // out so the cache cannot grow unboundedly even if old keys are
+        // never read again.
+        let cache = AICache::with_ttl(std::time::Duration::from_millis(50));
+        cache.set("old1".to_string(), dummy_response("a")).await;
+        cache.set("old2".to_string(), dummy_response("b")).await;
+        tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+        cache.set("fresh".to_string(), dummy_response("c")).await;
+        let inner = cache.cache.read().await;
+        assert_eq!(inner.len(), 1, "expired entries should be swept on set");
+        assert!(inner.contains_key("fresh"));
     }
 }
