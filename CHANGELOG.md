@@ -17,6 +17,46 @@ this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- fix(hypatia): triage all 15 findings — 8 fixed at source, 7 baselined (#146).
+  The **critical** was self-referential: `.hypatia-ignore`'s own comment
+  explaining the API-key false positive itself matched the secret detector's
+  `KEY="..."` assignment shape. Also fixed two genuine empty-name panics in
+  `my-lint`, a guarded `unwrap` in `my-hir`, and five stale directory
+  references in docs/config. Remaining debt is baselined to 2026-10-27 under
+  #145, validated against standards' own `apply-baseline.sh` before merge.
+- fix(hypatia): scoped exemption for the unsatisfiable `unsafe_block` rule
+  (#147). The rule is a bare `unsafe\s*\{` regex — its "requires SAFETY
+  comment" is never checked — so it belongs in `.hypatia-ignore` as a
+  permanent fact, not in the baseline as expiring debt.
+- fix(ci): repoint `github/codeql-action` off a **nonexistent SHA** (#143).
+  The pin `29b1f65c` does not exist upstream; an unresolvable `uses:` pin
+  produces a startup failure with *no check run at all*, so it is invisible
+  to `gh pr checks`. Now pinned to `4187e74d` (v3.37.3), API-verified.
+
+### Fixed
+
+- fix(just): the `Justfile` was **parse-dead**. A `//` C-style comment on line
+  2 made `just` reject the entire file (`error: unknown start of token '.'`),
+  so every recipe was unavailable — while `README.md` documented `just build`
+  / `just test` as the golden path. Recipes were also `@echo` stubs. They are
+  now real `cargo` commands, and `just verify` checks paths that actually
+  exist instead of swallowing every failure with `||`.
+
+### Changed
+
+- docs: `ARCHITECTURE.md` replaced mint-time boilerplate (which described
+  `src/`, `config/` and `scripts/` directories that do not exist) with the
+  real 15-crate workspace layout, the `solo ⊂ duet ⊂ ensemble` containment
+  hierarchy (with `me` as a projector outside it), and the CI gate map.
+- docs: `README.md` and `.machine_readable/6a2/STATE.a2ml` now record the
+  dialects as nested subsets rather than four co-equal surfaces, and carry a
+  security-posture section distinguishing expiring baseline debt from
+  permanent scoped exemptions.
+- chore: `mise.toml` replaced ~30 tools pinned to `latest` (Node, Go, Zig,
+  Java… none used here) with a single pinned `rust = "1.97.0"`.
+
 ### Added
 
 - test(conformance): run conformance/valid|invalid + examples/*.my fixtures under `cargo test`, with a fail-closed KNOWN_PARSE_GAPS allowlist (#84)
