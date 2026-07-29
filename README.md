@@ -18,13 +18,14 @@ For a gentler entry point see [EXPLAINME.adoc](EXPLAINME.adoc).
 | Path | Contents |
 |------|----------|
 | `crates/` | Rust compiler crates. `crates/my-lang/src/types.rs` is the type checker, including `EchoMode`, `Ty::Echo`, and full affine-weakening semantics. |
-| `dialects/` | Per-dialect surface-syntax definitions: *solo* (affine, single-agent), *duet* (session-typed), *ensemble* (multi-agent), *me* (visual/pedagogic). |
+| `dialects/` | Per-dialect surface-syntax definitions. The dialects are **nested subsets, not four co-equal languages**: `solo` (affine, single-agent) ⊂ `duet` (session-typed, two-party) ⊂ `ensemble` (multi-agent) — the full language. `me` (visual/pedagogic) is **not** a fourth dialect but an on-the-fly *projector* that cuts the hierarchy at a chosen point; its Rust scaffolding is sidelined in `_exploratory/me-scaffolding/`. Audit the layered stack, not three standalone compilers — a broken `solo` breaks the other two by transitivity. See [ARCHITECTURE.md](ARCHITECTURE.md). |
 | `proofs/` | Formal verification assets — paper proofs, mechanised Coq + Idris2 solo-core. See [`proofs/STATUS.md`](proofs/STATUS.md) for the authoritative proof-status registry. |
 | `conformance/` | Conformance tests — programs any compliant implementation must accept or reject identically. |
 | `examples/` | Worked examples for each dialect. |
 | `docs/` | Design notes, ADRs. Includes the [echo-types integration design note](docs/design/echo-types-integration.md). |
 | `frontier-practices/` | Forward-looking research experiments (not shipped). |
-| `contractiles/` | Project-level Mustfile / Dustfile invariant and recovery contracts. |
+| `.machine_readable/` | Machine-facing state. `6a2/STATE.a2ml` is the authoritative project-state file for agents; `contractiles/` holds the Mustfile / Dustfile invariant and recovery contracts. |
+| `_exploratory/` | Sidelined scaffolding, **not** in the Cargo workspace (currently `me-scaffolding/`). |
 
 ## Quickstart
 
@@ -32,9 +33,17 @@ For a gentler entry point see [EXPLAINME.adoc](EXPLAINME.adoc).
 git clone git@github.com:hyperpolymath/my-lang.git
 cd my-lang
 
-just build    # builds the workspace (Rust)
+just          # list every recipe
+just build    # builds the workspace (Rust), excluding my-llvm
 just test     # runs unit + conformance tests
+just check    # fmt-check + lint + test
 ```
+
+`build` and `test` exclude the `my-llvm` crate, which needs a system LLVM 21
+(`LLVM_SYS_211_PREFIX`); without it `cargo build --workspace` fails with an
+`llvm-sys` `compile_error!` that is **not** a regression. Use `just build-all`
+/ `just test-all` when you have the toolchain — CI makes the same split
+(`coverage.yml` excludes `my-llvm` to stay hermetic).
 
 To check the Coq solo-core:
 
@@ -108,9 +117,26 @@ Consult these before opening a feature request.
 ## Status
 
 - **Licence**: MPL-2.0
-- **Maturity**: design-iteration / early alpha. Working Rust compiler core exists (137+ passing tests); surface syntax and semantics still settling.
+- **Maturity**: design-iteration / early alpha. Working Rust compiler core
+  exists — **221 tests pass, 0 failures** (`just test`, measured 2026-07-27,
+  excluding `my-llvm`); surface syntax and semantics still settling.
 - **Proof phase**: F1.4 done on the Coq track — QTT semiring + `progress` + `preservation` machine-checked (axiom-free, CI-guarded); Idris twin pending (Phase F5 parity). **R2 done**: the Coq solo core is now one functor `SoloCoreF (M : SEMIRING)` parametric over a resource-algebra interface — `Include SoloCoreF Linear3` recovers the axiom-free result, and tropical/affine instances fall out (**R4 done**: `SoloCoreF Tropical` is verified axiom-free at an *infinite* min-plus carrier). **R3 done**: `affine_pres` is now a *distinct* theorem — affine budget-preservation over `ule` (pointwise `qle`), not an alias of `preservation` — with the functor parameter widened to `ORDERED_SEMIRING`. **R5 done (F1.4 tail)**: the declarative static context-splitting judgement is proved equivalent to an *executable* one-pass usage-walk checker `check` — `check_correct : has_type G D t a ↔ check G t = Some (a, D)` is axiom-free `Qed.`, the spec for the Rust `dialects/solo` checker; it inherits to the infinite tropical carrier for free and **overtakes AffineScript** (which leaves this equivalence as prose "future work"). **M1.0/M1.1/M1.1b done (2026-06-14)**: the visual `me` surface now elaborates into the solo core (`elab`, a core-landing analogue of the paper `translate`) with a machine-checked, axiom-free Visual-Soundness theorem (`elab_data_check`) for the **no-linear-use data fragment** — and **M1.1b** a me typing judgement (`me_wt`/`me_wt_sound`) making the linear-use constructs (token-consume, `MeLet`, pair-split, the faithful `MeIf → Case`) universal over the whole `me_tm` (incl. `MeSeq`) — M1 complete. For that fragment it is the first mechanised surface→core elaboration correctness in either sibling, as surveyed against AS@main 2026-06-02 (axis-4 SURFACE rung M1). **S1 + S2 done (2026-06-14)**: the *structure climb* (axis-2) is mechanised in the standalone Coq development `SessionPi.v` — a synchronous binary session-typed π-calculus core (session types + computed duality, polarised endpoints, a linear channel-typing judgement, small-step reduction) with **subject reduction** (`sr_comm`, `config_subject_reduction`), **session fidelity** (`session_fidelity`) and **progress / deadlock-freedom** (`config_progress`) for the binary fragment (**S1.0–S1.2**), and the **duet-by-projection** layer (**S2.0/S2.1**) — multiparty-shaped global types, the three-case projection, `projection_duality`, and corollaries that transport the whole S1 guarantee across projection so a projected choreography is deadlock-free by construction — all axiom-free and CI-guarded. **S1.3 done (2026-06-14)**: n-ary labelled **choice** (S1.3a, the three fused theorems extended), structural **congruence** preserves typing (S1.3c, `wt_congr`), and the equi-recursive **μ type-layer** (S1.3b-core: `unfold_mu`/`dual_unfold`/`guarded`). **S2.2 done (2026-06-14)**: global-type labelled **choice** (`GBra`) + equi-recursive (`GMu`/`GVar`) projection — projection is now **partial** (`option sty`) with a plain **`merge`** (keystone `merge_idem`) for uninvolved roles and `projection_duality` reproved in option-map form over choice + μ; fenced as plain (not union) merge, unpruned μ, no global-level metatheory. **S3a done (2026-06-14)**: the first n≥3 theorem — `projection_total` (every role of a `projectable_wf` global type projects), breaking the "no theorem quantifies over a genuine n-party system" fence. **S3b done (2026-06-14)**: the first n-party *configuration* form — `role_assignment` + the In-based `wf_assignment`, the binary `Conf` recovered as the **n=2 slice** (`conf_is_role_assignment2`, reusing `projected_config_wf`), an n=3 non-`Conf` witness over `g_ring`, and honesty witnesses (duplicate keys; projectable-but-uncoverable); static only — `wf_assignment` = typed-at-projection NOT n-party safety. **S3c.0 done (2026-06-14)**: the full label-union merge `umerge` (keystone `umerge_idem`) added alongside the plain merge — type-algebra only, unlocks different-label `&` choices (not the different-payload class). **S3c.1 done (2026-06-14)**: a SEPARATE union-projection `proj_u` (the only token changed from `proj` is `merge`→`umerge` in the uninvolved fold) + `projectable_u_wf` + the keystone existence theorem `projection_total_u` + the one-directional monotonicity bridge `projectable_wf_implies_u` (on the keystone `merge_forces_eq`: plain merge is the identity-meet); canonical `proj` byte-identical, projection-EXISTENCE only, non-vacuity `g_union3` genuinely in *union-projectable minus plain-projectable*. **S3c.2 done (2026-06-14)**: the first operational metatheory over an n-party config — a located reduction `nstep` (located mirror of the fused `cstep`) + `ra_set` + a global `gstep` + `nstar`/`gstar` + the functional `wf_assignment_f` (`wf_assignment_to_f` keeps S3b green); the 3-party ring run witnessed both sides (`ring_runs_to_end`, `g_ring_gsteps`); adequacy ONLY — `nstep_breaks_wf_at_fixed_G` proves no fixed-`G` subject reduction. **S3c.3-msg done (2026-06-14)**: the first EARNED n-party safety half — `nstep_sr_msg_head` (head-coupled message subject reduction, 3-way located role split), coupled corollary `nstep_gstep_sr_msg_head`, the earned-safety headline `sr_earns_safety_across_step` (the same `ra_ring1` S3c.2 refuted at the fixed g is wf at the stepped g), and the self-witnessed run-ahead fence `runahead_breaks_head_coupling`; adversary-verified sound-and-honest. Remaining: μ typing/SR up-to-unfolding (**S1.3b-meta**, deferred), select SR (**S3c.3-choice**), run-ahead SR (**S3c.3-perm**), n-party progress (**S3c.4**). A greenfield overtake — AS has no concurrency/session/π/multiparty metatheory in any form (surveyed AS@main 2026-06-02).
-- **Governance**: CI green on all shipped checks; proof CI **live** (`proofs.yml` machine-checks the solo-cores).
+- **Governance** *(measured 2026-07-27, commit `8636e15`)*: **main is fully
+  green** — every workflow succeeds or is deliberately skipped. Proof CI is
+  **live** (`proofs.yml` machine-checks both solo-cores and asserts the
+  theorems axiom-free via `Print Assumptions`). Docs deploy to
+  [GitHub Pages](https://hyperpolymath.github.io/my-lang/).
+- **Security posture**: scanner findings are dispositioned in two places, and
+  the distinction matters — `.hypatia-baseline.json` holds **expiring debt**
+  (7 entries, expire 2026-10-27, tracked in
+  [#145](https://github.com/hyperpolymath/my-lang/issues/145)), while
+  `.hypatia-ignore` holds **permanent scoped exemptions** for rules that
+  cannot be satisfied (a keyword-matching `coq_axiom`, a keyword-matching
+  `transmute`, and `unsafe_block` — a bare `unsafe\s*\{` regex whose
+  "requires SAFETY comment" is never actually checked). See
+  `[security-posture]` in
+  [`.machine_readable/6a2/STATE.a2ml`](.machine_readable/6a2/STATE.a2ml) for
+  the machine-readable version.
 
 ## Contributing
 

@@ -4,20 +4,34 @@
 # STATE.a2ml — My Lang project state
 [metadata]
 project = "my-lang"
-version = "0.1.0"
-last-updated = "2026-06-14"
+version = "0.2.0"                                # matches Cargo.toml [workspace.package]
+last-updated = "2026-07-27"
 status = "active"
-session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.3-msg (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection, n-ary located operational semantics, head-coupled message subject reduction = first earned n-party safety half) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
+session = "CI/CD + supply-chain close-out (PRs #143/#146/#147): codeql-action repointed off a NONEXISTENT SHA; all 15 Hypatia findings triaged (8 fixed at source incl. a self-referential critical, 7 baselined to 2026-10-27 under issue #145); unsafe_block ruled unsatisfiable and scoped-exempted; GitHub Pages un-stuck (workflow was disabled_manually) and LIVE; ARCHITECTURE.md + Justfile de-boilerplated. main FULLY GREEN — 2026-07-27"
+prior-session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.3-msg (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection, n-ary located operational semantics, head-coupled message subject reduction = first earned n-party safety half) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
 
 [project-context]
 name = "My Lang"
 purpose = """
 Multi-dialect programming language with QTT (Quantitative Type Theory) semantic
-core. Four dialects: solo (affine, single-agent), duet (session-typed, two-party),
-ensemble (multi-agent), me (block/visual/pedagogic). Formal verification —
-mechanised Coq + Idris2 solo-core — is a first-class deliverable alongside the
-Rust compiler implementation.
+core. Formal verification — mechanised Coq + Idris2 solo-core — is a first-class
+deliverable alongside the Rust compiler implementation.
 """
+# CORRECTION (2026-07-27): the dialects are NOT four co-equal surfaces. They are
+# three NESTED SUBSETS plus a projector that sits outside the hierarchy:
+#     solo  ⊂  duet  ⊂  ensemble
+# solo    = innermost kernel (affine, single-agent)
+# duet    = solo + session-typed two-party (mechanised as ensemble|2-party by projection)
+# ensemble= duet + multi-agent (session-typed π-calculus core) = the full language
+# me      = NOT a fourth dialect; an on-the-fly projector that cuts the hierarchy
+#           at a chosen point. Its Rust scaffolding is SIDELINED in
+#           _exploratory/me-scaffolding/ and is not in the Cargo workspace.
+# Consequence for audits: grade the layered stack, not three standalone compilers.
+# A broken solo breaks duet and ensemble by transitivity.
+dialect-model = "nested-subsets"
+dialects-ordered = ["solo", "duet", "ensemble"]
+dialect-projector = "me"
+architecture-doc = "ARCHITECTURE.md"
 completion-percentage = 50
 
 [position]
@@ -88,8 +102,10 @@ issues = [
   { id = "product-elim", description = "RESOLVED (F1.4): additive & (projections) + multiplicative ⊗ (let-pair elim) both coherent; preservation proved sound over the open-term substitution lemma ht_subst.", severity = "resolved" },
   { id = "typeck", description = "Solo dialect affine type-checker is TODO(#typeck) — mechanised solo-core (check / check_correct, R5) leads the implementation and is its spec; a hand-written Rust checker is tested against, not Coq-proved equal to, check", severity = "high" },
   { id = "proof-ci", description = "RESOLVED (F5): .github/workflows/proofs.yml compiles the Coq solo-core + idris2 --build and asserts Print Assumptions closed per rung", severity = "resolved" },
-  { id = "hypatia-reusable-timeout", description = "UPSTREAM/STANDARDS: Hypatia workflow_audit/missing_timeout_minutes fires on reusable-workflow CALLER jobs (governance/hypatia-scan/mirror/scorecard/secret-scanner/spark-theatre-gate all `uses:` hyperpolymath/standards). timeout-minutes is invalid on `uses:` jobs — real fix belongs in the standards reusable workflows + Hypatia should exempt caller jobs. Not fixable in my-lang.", severity = "medium" },
-  { id = "expect-hot-path", description = "Hypatia code_safety/expect_in_hot_path: parser.rs (157), lib/common/string.rs (1), examples/measure_depth.rs (2). CWE-754 — replace expect() with recoverable errors in shipped hot paths.", severity = "medium" },
+  { id = "hypatia-reusable-timeout", description = "UPSTREAM/STANDARDS (issue #95): Hypatia workflow_audit/missing_timeout_minutes fired on reusable-workflow CALLER jobs. MEASURED 2026-07-27: no longer reproduces — the current governance scan returns zero workflow_audit findings (PR #134 dropped the invalid timeout-minutes keys that were making those files parse-dead; wrappers are SHA-pinned). Kept open as the upstream tracker only.", severity = "low" },
+  { id = "expect-hot-path", description = "SUPERSEDED by panic-surface (below). The parser.rs x157 count was a SCANNER FALSE POSITIVE — a name collision with the parser's own `self.expect(TokenKind) -> Result` method, not Option/Result::expect panics. Issue #94 closed as consolidated into #145.", severity = "resolved" },
+  { id = "panic-surface", description = "Hypatia code_safety unwrap/expect debt, BASELINED not fixed (7 entries in .hypatia-baseline.json, expire 2026-10-27, tracked in issue #145): my-fmt x26 unwrap (infallible fmt::Write-to-String), my-llvm x3 unwrap (internal MIR invariants), my-mir x5 + string.rs x1 + measure_depth.rs x2 expect (deliberate invariant style), parser.rs x157 (scanner FP), modules.md SD022 (illustrative user-project layout). Revisit before the expiry or the gate re-reds.", severity = "medium", tracking = "hyperpolymath/my-lang#145" },
+  { id = "justfile-parse-dead", description = "RESOLVED 2026-07-27: the Justfile carried a `// Owner:` C-style comment on line 2, so `just` refused the WHOLE file (`error: unknown start of token '.'`) and every recipe was unavailable — while README documented `just build` / `just test` as the golden path. Recipes were also `@echo` stubs. Now real cargo commands, parse-verified. ESTATE-WIDE: 143 of 751 Justfiles measured parse-dead (76x unindented shell `-`, 35x `//` comment, 32x Justfile/justfile case collision).", severity = "resolved" },
 ]
 
 [critical-next-actions]
@@ -100,11 +116,47 @@ actions = [
   { priority = 4, description = "Echo parser syntax stage 2: Echo<A => B> surface syntax in solo dialect", estimate = "4-6 hours" },
 ]
 
+[security-posture]
+# Added 2026-07-27. How this repo's scanner findings are dispositioned, so an
+# agent can tell "clean" from "suppressed" without re-deriving it.
+hypatia-baseline = ".hypatia-baseline.json"
+hypatia-baseline-entries = 7
+hypatia-baseline-expires = "2026-10-27"
+hypatia-baseline-tracking = "hyperpolymath/my-lang#145"
+hypatia-baseline-schema = "array of {severity, rule_module, type, file|file_pattern, note?, expires_at?, tracking_issue?}; validated by hyperpolymath/standards scripts/apply-baseline.sh"
+hypatia-ignore = ".hypatia-ignore"
+# Scoped exemptions live in .hypatia-ignore (PERMANENT facts) rather than the
+# baseline (EXPIRING debt). Three are active, each a rule-precision problem:
+exemptions = [
+  { rule = "code_safety/coq_axiom", file = "proofs/verification/coq/solo-core/ResourceAlgebra.v", reason = "keyword-matches `Axiom` without distinguishing a Module Type field from a top-level Axiom; the development is axiom-free in the kernel sense (Print Assumptions closed)" },
+  { rule = "code_safety/transmute", file = "crates/my-llvm/src/lib.rs", reason = "keyword-matches the WORD transmute, which appears only inside a SAFETY comment; no mem::transmute call exists" },
+  { rule = "code_safety/unsafe_block", file = "crates/my-llvm/src/lib.rs", reason = "UNSATISFIABLE RULE: a bare `unsafe\\s*\\{` regex (hypatia lib/rules/code_safety.ex) — the 'requires SAFETY comment' in its description is never checked, so no documentation can clear it. The single unsafe block is mandated by inkwell's unsafe build_gep and carries a 17-line invariant argument." },
+]
+# Upstream rule-fix candidates surfaced by the 2026-07-27 triage:
+upstream-rule-fixes = [
+  "code_safety/expect_in_hot_path: disambiguate a user-defined `self.expect(..) -> Result` method from the panicking Option/Result::expect (157 false hits here)",
+  "code_safety/unsafe_block: actually check for an adjacent SAFETY comment, per the rule's own description",
+  "security_errors/secret_detected: an exemption file's own explanatory comment should not re-trigger the assignment-shape matcher (this produced the only critical)",
+]
+secret-scanning = "gitleaks (Secret Scanner workflow) + trufflehog (just secret-scan-trufflehog); no live credentials known in tree or history"
+
+[toolchain]
+rust = "1.97.0"                       # mise.toml + .tool-versions
+llvm = "21"                           # my-llvm only, via LLVM_SYS_211_PREFIX; excluded from default build/test and from coverage CI
+coq = "distro (apt) — see proofs.yml"
+idris2 = "built from source in CI — see proofs.yml"
+task-runner = "just (Justfile); parse-verified 2026-07-27"
+
 [maintenance-status]
-last-run-utc = "2026-06-05T14:01:00Z"
+last-run-utc = "2026-07-27T18:15:00Z"
 last-result = "pass"
-ci-governance = "pass"
-ci-security-scan = "pass"
-ci-rust-tests = "pass"
-ci-pr = "PR #92 — all 18 checks green (governance, scans, SPARK, Hypatia success, CodeQL neutral)"
+main-commit = "8636e15"
+main-board = "FULLY GREEN — every workflow on main succeeds or is deliberately skipped"
+ci-governance = "pass"                 # incl. Validate Hypatia Baseline, green for the first time since >=2026-07-22
+ci-security-scan = "pass"              # Hypatia Security Scan + Secret Scanner + CodeQL + Scorecard
+ci-rust-tests = "pass"                 # Coverage (llvm-cov, floor 40%)
+ci-pages = "pass"                      # https://hyperpolymath.github.io/my-lang/ returns HTTP 200
+ci-pr = "PRs #143/#146/#147 merged 2026-07-27; no open PRs"
 proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3c.3-msg, E4)"
+known-local-limitation = "my-llvm cannot be built in the maintainer's WSL environment (no system LLVM 21). `cargo build --workspace` FAILS there; `--exclude my-llvm` succeeds. Do not read a bare workspace build failure as a regression without checking for the llvm-sys compile_error."
+superseded-branch = "origin/feat/stdlib-fs-env-format — SUPERSEDED, safe to delete: main carries every builtin it adds PLUS fs_list_dir, its stdlib.rs is 355 lines behind, it conflicts on stdlib.rs + CONTRIBUTING.md, and it is 188 commits behind main"
