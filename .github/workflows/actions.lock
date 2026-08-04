@@ -46,6 +46,11 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c'
 dependencies:
+    'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9':
+        ref: 'v6.1.0'
+        commit: 'sha1-55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
+        owner_id: 44036562
+        repo_id: 215566462
     'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1':
         ref: 'v7.0.1'
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -78,11 +83,26 @@ dependencies:
         commit: 'sha1-2e600f3776677e493bf0da7aaec39a586d19a5ed'
         owner_id: 9713907
         repo_id: 222439721
+    'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed':
+        ref: 'v2.0.5'
+        commit: 'sha1-22d081ff2d3a40755e97629de92e3bcbfa7cf2ed'
+        owner_id: 42048915
+        repo_id: 356423100
     'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c':
         ref: 'master'
         commit: 'sha1-2c7215f132e9ebf062739d9130488b56d53c060c'
         owner_id: 1940490
         repo_id: 260749683
+    'editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c':
+        ref: 'v2.2.0'
+        commit: 'sha1-840e866d93b8e032123c23bac69dece044d4d84c'
+        owner_id: 26415196
+        repo_id: 297874902
+    'erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124':
+        ref: 'v1.24.1'
+        commit: 'sha1-54075bcc5e249e4758d363f27d099f55d843f124'
+        owner_id: 47606891
+        repo_id: 331103973
     'github/codeql-action@f205ea1c3313d32999d8d6a48b4f6530d4437b38':
         ref: 'v4.37.4'
         commit: 'sha1-f205ea1c3313d32999d8d6a48b4f6530d4437b38'
@@ -98,3 +118,24 @@ dependencies:
         commit: 'sha1-fcb8669169b4e9f5d9848608df880ae5fae812b4'
         owner_id: 6759885
         repo_id: 1116521501
+        uses:
+            - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
+            - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+            - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+            - 'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed'
+            - 'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c'
+            - 'editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c'
+            - 'erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124'
+            - 'github/codeql-action@f205ea1c3313d32999d8d6a48b4f6530d4437b38'
+            - 'ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc'
+            - 'webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555'
+    'ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc':
+        ref: 'v2.4.4'
+        commit: 'sha1-2d1146689b8cda280b9bc96326124645441f03bc'
+        owner_id: 67707773
+        repo_id: 421101922
+    'webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555':
+        ref: 'v0.10.0'
+        commit: 'sha1-e83874834305fe9a4a2997156cb26c5de65a8555'
+        owner_id: 135788
+        repo_id: 208510314
