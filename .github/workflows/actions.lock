@@ -22,6 +22,12 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
         - 'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c'
+    '.github/workflows/governance.yml':
+        - 'hyperpolymath/standards@fcb8669169b4e9f5d9848608df880ae5fae812b4'
+    '.github/workflows/hypatia-scan.yml':
+        - 'hyperpolymath/standards@fcb8669169b4e9f5d9848608df880ae5fae812b4'
+    '.github/workflows/mirror.yml':
+        - 'hyperpolymath/standards@fcb8669169b4e9f5d9848608df880ae5fae812b4'
     '.github/workflows/pages.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128'
@@ -30,6 +36,12 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/push-email-notify.yml':
         - 'dawidd6/action-send-mail@2e600f3776677e493bf0da7aaec39a586d19a5ed'
+    '.github/workflows/scorecard.yml':
+        - 'hyperpolymath/standards@fcb8669169b4e9f5d9848608df880ae5fae812b4'
+    '.github/workflows/secret-scanner.yml':
+        - 'hyperpolymath/standards@fcb8669169b4e9f5d9848608df880ae5fae812b4'
+    '.github/workflows/spark-theatre-gate.yml':
+        - 'hyperpolymath/standards@fcb8669169b4e9f5d9848608df880ae5fae812b4'
     '.github/workflows/stack-depth.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c'
@@ -81,3 +93,8 @@ dependencies:
         commit: 'sha1-884713a6c30a92e5e8544c39945cd7cb630abcd1'
         owner_id: 1342004
         repo_id: 400046858
+    'hyperpolymath/standards@fcb8669169b4e9f5d9848608df880ae5fae812b4':
+        ref: 'main'
+        commit: 'sha1-fcb8669169b4e9f5d9848608df880ae5fae812b4'
+        owner_id: 6759885
+        repo_id: 1116521501
