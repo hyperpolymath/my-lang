@@ -4,6 +4,14 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # AI Features
 
+> [!WARNING]
+> **The AI runtime performs mock operations.**
+> 
+> The `ai!` macro and model queries described here are not wired to any real provider. AI integration is *one capability among many*, not the defining feature of the language.
+> 
+> Tracked as debt **D-3** in [`DEBT.md`](https://github.com/hyperpolymath/my-lang/blob/main/DEBT.md).
+
+
 My Language provides first-class AI integration, making AI operations as natural as any other language feature.
 
 ## Overview

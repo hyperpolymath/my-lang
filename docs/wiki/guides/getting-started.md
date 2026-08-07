@@ -4,6 +4,12 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # Getting Started
 
+> [!WARNING]
+> **Parts of this page assume an installed toolchain that does not exist yet.**
+> 
+> Ignore any `ml` command or package-manager install step — the binary is **`my`** and the only supported path is a source build (`just init && just check`). Tracked as debt **D-1** in [`DEBT.md`](https://github.com/hyperpolymath/my-lang/blob/main/DEBT.md).
+
+
 Welcome to My Language! This guide will help you install the toolchain and write your first program.
 
 ## Installation

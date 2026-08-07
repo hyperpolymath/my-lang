@@ -4,6 +4,23 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # Installation Guide
 
+> [!WARNING]
+> **Most of this page describes an installation surface that does not exist.**
+> 
+> There is no `mylang.org` installer, no Homebrew/apt/dnf package, no `mlup`, and no crates.io publication. The binary is **`my`**, not `ml`.
+> 
+> The only supported install today is from source:
+> 
+> ```sh
+> git clone https://github.com/hyperpolymath/my-lang.git
+> cd my-lang
+> just init
+> just check
+> ```
+> 
+> Tracked as debt **D-1** in [`DEBT.md`](https://github.com/hyperpolymath/my-lang/blob/main/DEBT.md).
+
+
 Detailed instructions for installing My Language on various platforms.
 
 ## System Requirements
