@@ -4,6 +4,10 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # Compiler Roadmap
 
+> [!WARNING]
+> **Status markers on this page are stale** (last updated 2025-12-17). Several items marked *Planned* have shipped (LLVM backend, formatter, linter, LSP), and the Type Checker marked *Complete* is in fact the open `#typeck` obligation. [`ROADMAP.adoc`](https://github.com/hyperpolymath/my-lang/blob/main/ROADMAP.adoc) and `.machine_readable/6a2/STATE.a2ml` are authoritative.
+
+
 This document outlines the development plan for the My Language compiler infrastructure.
 
 ## Architecture Overview

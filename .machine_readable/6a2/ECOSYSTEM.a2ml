@@ -4,15 +4,17 @@
 # ECOSYSTEM.a2ml — My Lang ecosystem position
 [metadata]
 version = "1.1"
-last-updated = "2026-06-02"
+last-updated = "2026-08-07"
 
 [project]
 name = "My Lang"
 purpose = """
 Multi-dialect programming language with Quantitative Type Theory (QTT) semantic
 core. Combines affine/linear type discipline, echo-type loss modelling, formal
-mechanised proofs, and AI-adjacent effect tracking. Four dialects: solo, duet,
-ensemble, me.
+mechanised proofs, and AI-adjacent effect tracking. Dialects are NESTED
+conservative extensions — solo ⊂ duet ⊂ ensemble — plus `me`, an agent-generated
+PROJECTION over that hierarchy rather than a fourth dialect. Only solo is
+authoritative in f0.
 """
 role = "flagship-language-experiment"
 licence = "MPL-2.0"
@@ -72,11 +74,11 @@ projects = [
 reference = "proofs/ALIGNMENT-PLAN.md"
 gaps-closed = [
   "G1-partial: mechanised QTT solo-core scaffold on dual Coq + Idris2 tracks (F1.0 done)",
+  "G1-remainder: F1.1 small-step semantics, F1.3 progress, F1.4 preservation + ht_subst + affine_pres — all machine-checked and axiom-free on the Coq track (closed 2026-06-14)",
+  "G2: mechanised operational semantics constructors present on both tracks (F1.1)",
+  "G3: proof CI leg live — .github/workflows/proofs.yml with per-rung Print-Assumptions gates (F5, closed 2026-06-14)",
+  "G5: coqc + idris2 --build both run in CI (same workflow)",
 ]
 gaps-open = [
-  "G1-remainder: F1.1–F1.4 (small-step semantics, progress/preservation proofs)",
-  "G2: no mechanised operational semantics constructors yet",
-  "G3: proof CI leg absent (Phase F5)",
   "G4: paper-proof topic parity (quantitative-types doc, row-polymorphism, Hoare semantics, categorical semantics, complexity analysis)",
-  "G5: no coqc/idris2 CI leg",
 ]

@@ -4,6 +4,12 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # Tooling Overview
 
+> [!WARNING]
+> **Tool names and registry URLs on this page are aspirational.**
+> 
+> The real crates are `my-fmt`, `my-lint`, `my-pkg`, `my-lsp` (not `mlfmt`/`mllint`/`mlpkg`), and several have unimplemented handlers. There is no package registry at `packages.mylang.org`. See debt **C-4** and **D-3** in [`DEBT.md`](https://github.com/hyperpolymath/my-lang/blob/main/DEBT.md).
+
+
 Development tools for My Language.
 
 ## Core Tools

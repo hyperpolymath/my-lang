@@ -44,7 +44,7 @@ resource may go unused.
 | F1.0 | QTT semiring + laws (both tracks) | ✅ **proved** (exhaustive case analysis) |
 | F1.1 | CBV small-step operational semantics (`Step`/`step`) | ✅ **committed** (both tracks) |
 | F1.3 | **Progress** | ✅ **proved** — Coq `Theorem … Qed.` (axiom-free); Idris total, hole-free |
-| F1.4 | **Preservation** + QTT substitution lemma | ⏳ statement-only — **gated** on the product/elimination decision ([#93](https://github.com/hyperpolymath/my-lang/issues/93)) |
+| F1.4 | **Preservation** + QTT substitution lemma (`ht_subst`) + `affine_pres` | ✅ **proved** (2026-06-14) — Coq `Qed.`, **axiom-free**, CI-gated. The product/elimination question ([#93](https://github.com/hyperpolymath/my-lang/issues/93)) is **resolved**: additive `&` and multiplicative `⊗` are both coherent |
 | F1.2 | Four-point affine semiring (`0 ⊏ ? ⊏ 1 ⊏ ω`) | ⏳ planned |
 | F5 | **Proof CI** | ✅ **live** — `.github/workflows/proofs.yml` |
 

@@ -38,7 +38,7 @@ integration is one capability among many — not the defining feature.
 | Aspect | Description |
 |--------|-------------|
 | **Affine / QTT core** | Every binder carries a quantity `0` (erased), `1` (linear), or `ω` (unrestricted) |
-| **Formally verified** | Solo-core mechanised in **Coq + Idris2**; *progress* proved, *preservation* in progress |
+| **Formally verified** | Solo-core mechanised in **Coq + Idris2**. On the Coq track *progress*, *preservation* and `affine_pres` are machine-checked, **axiom-free** and CI-gated per rung |
 | **Echo types** | `echo-types` integrated into the type system — *loss that is not total erasure* (a loss-graded reindexing modality) |
 | **Progressive disclosure** | `Solo ⊂ Duet ⊂ Ensemble`; only Solo is authoritative in `f0` |
 | **Rust implementation** | The compiler/interpreter is implemented in Rust |
@@ -105,7 +105,7 @@ integration is one capability among many — not the defining feature.
 
 ## Project status
 
-- **Version:** `0.1.0` (early-alpha) — see
+- **Version:** `0.2.0` (early-alpha, experimental; no tagged release) — see
   [`.machine_readable/6a2/STATE.a2ml`](../../.machine_readable/6a2/STATE.a2ml)
   for the authoritative state, and [`proofs/STATUS.md`](../../proofs/STATUS.md)
   for the proof-status registry.
@@ -120,5 +120,8 @@ See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) and
 ## License
 
 My Language is open source under the **Mozilla Public License 2.0 (MPL-2.0)** —
-see [`LICENSE`](../../LICENSE). Every source file carries an
-`SPDX-License-Identifier: CC-BY-SA-4.0` header.
+see [`LICENSE`](../../LICENSE).
+
+Code files carry `SPDX-License-Identifier: MPL-2.0`; prose and documentation
+carry `CC-BY-SA-4.0`. Known licensing inconsistencies are tracked as **L-1**
+through **L-6** in [`DEBT.md`](../../DEBT.md).

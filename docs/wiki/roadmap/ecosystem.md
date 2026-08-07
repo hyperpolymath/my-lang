@@ -4,6 +4,12 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # Ecosystem Roadmap
 
+> [!WARNING]
+> **This page describes an ecosystem that does not exist.**
+> 
+> No package registry, forum, or playground is deployed, and the package counts quoted are illustrative. See [`ROADMAP.adoc`](https://github.com/hyperpolymath/my-lang/blob/main/ROADMAP.adoc) for what is actually planned, including an explicit *Not planned* section.
+
+
 This document outlines the development plan for the My Language ecosystem: frameworks, libraries, and community resources.
 
 ## Ecosystem Vision
