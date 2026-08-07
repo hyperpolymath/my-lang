@@ -1,9 +1,12 @@
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 [package]
 name = "solo"
 version = "0.1.0"
 edition = "2021"
 authors = ["My-newsroom Contributors"]
-license = "MIT OR Palimpsest-0.8"
+license = "MPL-2.0"
 description = "Solo dialect compiler - Systems programming with affine types"
 repository = "https://gitlab.com/Hyperpolymath/My-newsroom"
 

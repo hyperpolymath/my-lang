@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 // Prose documentation → CC-BY-SA-4.0 per the hyperpolymath licence policy
 // (sole-owner repos: code = MPL-2.0, prose docs = CC-BY-SA-4.0; owner ruling
 // 2026-06-04). The MPL-2.0 / CC-BY-SA-4.0 split this brief describes is a

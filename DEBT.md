@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-<!-- Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
-<!-- Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # my-lang — Debt Register
 
 **Measured 2026-08-07** against commit `e68bb3d`. One index of known debt across
@@ -24,20 +24,55 @@ Items marked **DIAGNOSIS (unconfirmed)** are hypotheses, not established facts.
 
 ## Summary
 
-| Domain | Items | High | Medium | Low |
+| Domain | Open | High | Medium | Low |
 |---|---|---|---|---|
-| Licence | 6 | 3 | 2 | 1 |
+| Licence | **0** *(6 resolved 2026-08-07)* | 0 | 0 | 0 |
 | Documentation | 8 | 2 | 5 | 1 |
-| Code | 6 | 1 | 4 | 1 |
+| Code | 7 | 1 | 5 | 1 |
 | Proof | 3 | 1 | 2 | 0 |
 | Test | 3 | 0 | 2 | 1 |
 | CI/CD | 3 | 1 | 2 | 0 |
 | Metadata | 5 | 0 | 4 | 1 |
-| **Total** | **34** | **8** | **21** | **5** |
+| **Total** | **29 open** *(35 raised)* | **5** | **20** | **4** |
 
 ---
 
-## Licence (L)
+## Licence (L) — ✅ ALL RESOLVED 2026-08-07
+
+Owner ruling: **code is MPL-2.0, documentation is CC-BY-SA-4.0, two-line SPDX,
+repository licence MPL-2.0.** Everything below was discharged under it.
+
+| Id | Was | Resolution |
+|---|---|---|
+| **L-1** | `dialects/solo/compiler` declared `license = "MIT OR Palimpsest-0.8"` — **not a valid SPDX identifier** | → `MPL-2.0` |
+| **L-2** | `my-ssg` and `playground/hives/me` declared `MIT` with no `LICENSES/MIT.txt` | → `MPL-2.0` |
+| **L-3** | `frontier-practices/LICENSE` and `playground/LICENSE` tagged `SPDX: MPL-2.0` over a **Palimpsest body copyrighted to a different party**; `playground/hives/me/LICENSE.txt` declared a MIT/MPL dual licence | all replaced with the verbatim MPL-2.0 text (`LICENSE.txt` → `LICENSE`) |
+| **L-4** | `LICENSES/AGPL-3.0-or-later.txt` committed while policy bans AGPL | removed |
+| **L-5** | 24 manifests carried no `license` key | `license = "MPL-2.0"` added to all |
+| **L-6** | 55 files had no SPDX header; 127 more had one off line 1 (which `head -1` linters read as *missing*); 421 used `Owner:`/`Copyright (c)` instead of `SPDX-FileCopyrightText:` | **507 files normalised** to the two-line form |
+
+The canonical header is now, with per-language comment syntax:
+
+```
+SPDX-License-Identifier: MPL-2.0        # or CC-BY-SA-4.0 for .md/.adoc
+SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+```
+
+On line 1 — except where line 1 is load-bearing (a `#!` shebang, or the Nickel
+`K9!` magic), where it follows immediately.
+
+Exactly **one** identifier changed meaning: `FOUNDATIONS_BRIDGE.md` carried a
+malformed `CC-BY-SA-4.0 AND CC-BY-SA-4.0`. Every other file kept the licence it
+already declared — the sweep normalised *form and position*, never relicensed.
+
+Verified after the sweep: 221 tests pass · Coq solo-core compiles (`EXIT=0`,
+including `SessionPi.v`) · `idris2 --build` succeeds · all workflows parse ·
+`cargo metadata` resolves · the sweep is idempotent.
+
+<details>
+<summary>Original L-1 … L-6 detail (retained for the record)</summary>
+
+
 
 ### L-1 — Undefined SPDX identifier `Palimpsest-0.8` · HIGH
 `dialects/solo/compiler/Cargo.toml:6` declares `license = "MIT OR Palimpsest-0.8"`.
@@ -88,6 +123,10 @@ Includes `fuzz/Cargo.toml`, `dialects/duet/compiler/Cargo.toml`, and all
 (`proofs/verification/coq/{Syntax,Typing}.v`), 1 `.md` (`GOVERNANCE.md`).
 **Next:** sweep. Note the estate trap — the header must be **line 1**; a header
 on line 3 reads as missing to `head -1` linters.
+
+---
+
+</details>
 
 ---
 
@@ -209,6 +248,21 @@ gate re-reds at expiry. Counts have drifted from the recorded baseline (`my-fmt`
 (the parser's own `self.expect(TokenKind)` method), but `my-qtt` (12 unwrap +
 5 expect) and `my-fmt` (27 unwrap) are not covered by that explanation.
 **Next:** discharge before expiry. ~11 weeks.
+
+### C-7 — Out-of-workspace crates are neither members nor excluded · MEDIUM
+`my-ssg`, `dialects/solo/compiler` and `dialects/duet/compiler` sit inside the
+repository but are absent from both `workspace.members` and `workspace.exclude`,
+so cargo refuses to operate on them at all:
+
+```sh
+cd my-ssg && cargo metadata --no-deps
+# error: ... add it to workspace.members, or workspace.exclude, or add an
+#        empty [workspace] table to the package's manifest
+```
+**Confirmed pre-existing** (reproduces with all local changes stashed). It means
+these crates are unbuildable and untestable as they stand.
+**Next:** add each to `workspace.exclude`, or give each an empty `[workspace]`
+table.
 
 ### C-6 — Untracked in-tree worktree · LOW
 `.claude/worktrees/` is a full second checkout of the repo, **untracked and

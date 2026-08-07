@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 --
 -- The QTT substitution lemmas for the my-lang Solo core (Idris2 twin of the
 -- F1.4 section of SoloCore.v). Phase F1.4, Idris track.

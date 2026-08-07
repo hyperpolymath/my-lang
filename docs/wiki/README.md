@@ -1,7 +1,6 @@
-<!--
-SPDX-License-Identifier: CC-BY-SA-4.0
-Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
--->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # My Language Wiki
 
 Welcome to the official wiki for **My Language** — a **progressive-disclosure,
@@ -123,5 +122,12 @@ My Language is open source under the **Mozilla Public License 2.0 (MPL-2.0)** �
 see [`LICENSE`](../../LICENSE).
 
 Code files carry `SPDX-License-Identifier: MPL-2.0`; prose and documentation
-carry `CC-BY-SA-4.0`. Known licensing inconsistencies are tracked as **L-1**
-through **L-6** in [`DEBT.md`](../../DEBT.md).
+carry `CC-BY-SA-4.0`, in the two-line SPDX form:
+
+```
+SPDX-License-Identifier: MPL-2.0
+SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+```
+
+Licensing was normalised across the whole tree on 2026-08-07 — debt items
+**L-1**–**L-6** in [`DEBT.md`](../../DEBT.md) are all resolved.

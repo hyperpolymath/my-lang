@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 # Checker allocation-scaling harness for hyperpolymath/my-lang#14.
 #
 # The original 16-32 GiB OOM was reported on stable-x86_64-pc-windows-msvc and

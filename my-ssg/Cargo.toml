@@ -1,9 +1,12 @@
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 [package]
 name = "my-ssg"
 version = "0.1.0"
 edition = "2021"
 description = "Static Site Generator powered by My Language"
-license = "MIT"
+license = "MPL-2.0"
 
 [[bin]]
 name = "my-ssg"
