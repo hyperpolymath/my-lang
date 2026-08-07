@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-<!-- Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
-<!-- Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # Contributing to my-lang
 
 Thanks for your interest. my-lang is an early-alpha research language: an

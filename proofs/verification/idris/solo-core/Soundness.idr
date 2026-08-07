@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 --
 -- Operational semantics + soundness for the my-lang Solo core, over
 -- the SEPARATED QTT context (ADR-006) and the TWO products (ADR-007).

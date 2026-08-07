@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 # bust/proof-ci-gate-absent.a2ml — Failure mode: proof CI not running
 # Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 #
