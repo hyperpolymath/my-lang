@@ -18,6 +18,11 @@ jobs:
   scorecard:
     uses: hyperpolymath/standards/.github/workflows/scorecard-reusable.yml@08586a12bb64b98268fe9ebf552998aa2433a3c2
     permissions:
+      # A job-level permissions: block REPLACES the workflow-level one — it does
+      # not merge. Omitting actions: read here (granted above) made the called
+      # reusable request more than the job was allowed, which GitHub rejects as
+      # a 0-job startup_failure. See DEBT.md I-1 / the estate perm-escalation note.
+      actions: read
       contents: read
       security-events: write
       id-token: write
