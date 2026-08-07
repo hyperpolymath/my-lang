@@ -5,11 +5,11 @@ version: 'v0.0.2'
 workflows:
     '.github/workflows/cflite_batch.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@d1ba80a13dd99fba24a470575428917156a28b43'
+        - 'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3'
         - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
     '.github/workflows/cflite_pr.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@d1ba80a13dd99fba24a470575428917156a28b43'
+        - 'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3'
         - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
     '.github/workflows/checker-scaling.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -17,7 +17,7 @@ workflows:
         - 'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
     '.github/workflows/codeql.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@d1ba80a13dd99fba24a470575428917156a28b43'
+        - 'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3'
     '.github/workflows/coverage.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
@@ -35,7 +35,7 @@ workflows:
     '.github/workflows/proofs.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/push-email-notify.yml':
-        - 'dawidd6/action-send-mail@5cdad7c44dc8037605651ac816add36f83fc7cc8'
+        - 'dawidd6/action-send-mail@8de3c312702ac7a63fc4035d45a2a51811eb669a'
     '.github/workflows/scorecard.yml':
         - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/secret-scanner.yml':
@@ -78,9 +78,9 @@ dependencies:
         repo_id: 496012378
         uses:
             - 'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
-    'dawidd6/action-send-mail@5cdad7c44dc8037605651ac816add36f83fc7cc8':
+    'dawidd6/action-send-mail@8de3c312702ac7a63fc4035d45a2a51811eb669a':
         ref: 'v3.12.0'
-        commit: 'sha1-5cdad7c44dc8037605651ac816add36f83fc7cc8'
+        commit: 'sha1-8de3c312702ac7a63fc4035d45a2a51811eb669a'
         owner_id: 9713907
         repo_id: 222439721
     'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed':
@@ -108,9 +108,9 @@ dependencies:
         commit: 'sha1-54075bcc5e249e4758d363f27d099f55d843f124'
         owner_id: 47606891
         repo_id: 331103973
-    'github/codeql-action@d1ba80a13dd99fba24a470575428917156a28b43':
-        ref: 'v4.37.5'
-        commit: 'sha1-d1ba80a13dd99fba24a470575428917156a28b43'
+    'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3':
+        ref: 'v4.37.6'
+        commit: 'sha1-5595ccaf912efad79be6eef63a5619ff05969be3'
         owner_id: 9919
         repo_id: 259445878
     'github/codeql-action@f205ea1c3313d32999d8d6a48b4f6530d4437b38':
