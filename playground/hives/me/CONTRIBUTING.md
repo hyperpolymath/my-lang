@@ -50,4 +50,6 @@ cargo test --all-features
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under
+**MPL-2.0** (code) or **CC-BY-SA-4.0** (documentation), matching the file you
+are editing.

@@ -112,7 +112,8 @@ This mirrors the Cuttle curriculum progression!
 == License
 
 These games are part of the Seven Tentacles Educational Framework.
-Licensed under MIT + Palimpsest v0.8.
+Licensed under MPL-2.0 (code) and CC-BY-SA-4.0 (documentation), matching the
+repository root.
 
 Feel free to:
 * Print for personal/classroom use
