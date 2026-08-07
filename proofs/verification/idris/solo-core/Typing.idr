@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 --
 -- QTT typing judgement for the Solo core of my-lang, over the
 -- SEPARATED context (ADR-006). Coq twin: `has_var` / `has_type` in

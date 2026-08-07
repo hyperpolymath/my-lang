@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 = My-Lang Frontier Practices — Applied Learner & Teacher Materials
 
-image:https://img.shields.io/badge/License-MPL--2.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+image:https://img.shields.io/badge/License-MPL--2.0-blue.svg[License: MPL-2.0,link="https://www.mozilla.org/en-US/MPL/2.0/"]
 :toc: left
 :toclevels: 3
 :icons: font
@@ -169,7 +169,8 @@ We welcome contributions! Please see our link:CONTRIBUTING.adoc[contribution gui
 
 == License
 
-This project is licensed under the Palimpsest-MPL License v3.0 (PMPL-1.0).
+This project is licensed under the Mozilla Public License 2.0 (MPL-2.0) —
+see the repository-root `LICENSE`. Documentation is CC-BY-SA-4.0.
 
 == Acknowledgments
 

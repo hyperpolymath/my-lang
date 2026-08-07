@@ -1,24 +1,129 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= My Lang Roadmap
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
-== Current Status
+= my-lang Roadmap
+:toc:
+:toc-placement!:
+:revdate: 2026-08-07
 
-Initial development phase.
+toc::[]
 
-== Milestones
+[NOTE]
+====
+This roadmap is *derived*, not authoritative. The machine-readable source of
+truth is `.machine_readable/6a2/STATE.a2ml`; for proofs specifically it is
+`proofs/STATUS.md`. Where they disagree with this file, they win.
+====
 
-=== v0.1.0 - Foundation
-* [ ] Core functionality
-* [ ] Basic documentation
-* [ ] CI/CD pipeline
+== Current status
 
-=== v1.0.0 - Stable Release
-* [ ] Full feature set
-* [ ] Comprehensive tests
-* [ ] Production ready
+*Version 0.2.0 — early alpha, experimental.* No tagged release yet.
 
-== Future Directions
+What actually works today:
 
-_To be determined based on community feedback._
+* 15-crate Cargo workspace; **221 tests pass, 0 failures** (`just test`,
+  excluding `my-llvm`), ~46.7% line-coverage baseline.
+* Working compiler pipeline: parse → HIR → MIR → LLVM → native, on x86_64
+  and aarch64.
+* **Solo** is the only live dialect. Duet and Ensemble exist as proof
+  developments plus scaffolding, not as usable compilers.
+* Mechanised metatheory on two tracks (Coq/Rocq authoritative, Idris2 twin),
+  gated in CI by `proofs.yml` with per-rung `Print Assumptions` checks.
+
+Scope is deliberately arrested at Solo for `f0` — see
+`ANCHOR.scope-arrest.2026-01-01.Jewell.scm`.
+
+== Done
+
+=== Foundations (F)
+
+[cols="1,4",options="header"]
+|===
+| Rung | Result
+| F1.0 | Dual-track QTT solo-core scaffold; semiring laws proved
+| F1.1 | Small-step CBV operational semantics, both tracks
+| F1.3 | *Progress* proved on both tracks
+| F1.4 | *Preservation* + QTT substitution lemma (`ht_subst`) + `affine_pres`; product/elimination resolved (additive `&` and multiplicative `⊗` both coherent)
+| F5   | Proof CI live (`coqc` + `idris2 --build`, Print-Assumptions gated per rung)
+|===
+
+=== Resource-algebra parametricity (R)
+
+[cols="1,4",options="header"]
+|===
+| Rung | Result
+| R2 | Solo core functorised over `Module Type SEMIRING`; `Include Linear3` recovers progress/preservation/`affine_pres` *axiom-free*
+| R3 | `ORDERED_SEMIRING` + subusage; `affine_pres` becomes a genuinely distinct theorem
+| R4 | Tropical (min-plus, *infinite* carrier) instance — soundness survives with no new proof
+| R5 | Executable usage-walk checker `check` + `check_correct` (sound **and** complete); `aff_type_dec`
+|===
+
+=== Elaboration and structure (M, S)
+
+* *M1* — `me → solo` elaboration with `me_wt_sound` over the whole `me_tm`, axiom-free.
+* *S1–S2* — session-π subject reduction, session fidelity, progress/deadlock-freedom; duet-by-projection (S2.0–S2.2) with `projection_duality`.
+* *S3a/S3b* — n-party projection totality; static n-party configuration.
+* *S3c.0/.1/.2* — full label-union merge; union-projection; n-ary located operational semantics.
+* *S3c.3-msg* — head-coupled message subject reduction: the **first earned n-party safety half**.
+
+== Next
+
+Ordered as recorded in `STATE.a2ml [critical-next-actions]`:
+
+. **S3c completion** — remaining n-party safety: select/branch subject
+  reduction (S3c.3-choice), run-ahead/permutation SR (S3c.3-perm), then
+  n-party progress (S3c.4). _Large._ S3c.4 is research-hard and explicitly
+  fenced: `wf_assignment ra → deadlock-free` is **false**, so progress needs a
+  coherence⇒safety argument, not an extension of the current lemmas.
+. **S1.3b-meta** — μ typing and subject reduction up-to-unfolding
+  (`PT_Unfold` + soundness + up-to-unfolding inversions). _Large._
+. **F1.2** — extend to the four-point affine semiring (`0 ⊏ ? ⊏ 1 ⊏ ω`),
+  adding the *at-most-once* quantity. _6–8 hours._
+. **Echo stage 2** — `Echo<A => B>` surface syntax in the Solo parser
+  (`echo-2`). _4–6 hours._ The type former and its proof layer (`echo-1`,
+  `echo-3`) already landed.
+
+== Open gaps
+
+[cols="1,3,1",options="header"]
+|===
+| Id | Gap | Severity
+
+| `#typeck`
+| The Solo affine type-checker is still a **hand-written Rust checker tested
+  against** the mechanised `check` (R5) — *not proved equal to it*. The
+  verified core leads the implementation and is its specification; closing
+  this is the project's headline correctness goal.
+| high
+
+| `panic-surface`
+| Hypatia unwrap/expect debt **baselined, not fixed** — 7 entries expiring
+  *2026-10-27* (issue #145). Must be revisited before expiry or the gate
+  re-reds.
+| medium
+
+| F3 | Memory model not mechanised. | pending
+| F4 | Paper-proof topic parity with AffineScript. | pending
+|===
+
+Documentation, licence, CI and code debt is catalogued separately in
+`DEBT.md`.
+
+== Not planned
+
+To set expectations, these appear in older drafts and are **not** committed
+work:
+
+* A published package registry, installer script, or Homebrew/apt/dnf
+  distribution. The binary is `my`; it is not published to crates.io.
+* `async`/`await`, futures, or a channel runtime in the surface language.
+  Concurrency currently exists as *metatheory*, not as an implemented feature.
+* A shipped `std::` source-module tree. The standard library is a flat set of
+  Rust builtins.
+* Real AI model integration. The AI surface performs **mock** operations.
+
+== Release criteria
+
+There is no `1.0`. The next meaningful milestone is a tagged **0.3.0**, which
+requires at minimum: `#typeck` closed or honestly re-scoped, the `#145`
+baseline discharged, and the documentation debt in `DEBT.md` cleared.

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Copyright (c) 2026 Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
 = EXPLAINME — what is my-lang, and why does it exist?
 :author: Jonathan D.A. Jewell <6759885+hyperpolymath@users.noreply.github.com>
@@ -20,11 +19,13 @@ safety-critical and AI-adjacent applications. Its central concern is
 tracked at compile time using *Quantitative Type Theory* (QTT) — a
 semiring-based discipline that can express "this value is used exactly
 once (linear), at most once (affine), or arbitrarily (unrestricted)."
-The `my-lang` umbrella covers four dialects (*solo*, *duet*, *ensemble*,
-*me*) that share a QTT semantic core but differ in concurrency model and
-surface syntax. Formal verification — paper proofs plus a mechanised
-Coq + Idris2 solo-core — is a first-class deliverable, not an
-afterthought.
+The `my-lang` umbrella covers *nested* dialects — `solo ⊂ duet ⊂
+ensemble` — that share a QTT semantic core but differ in concurrency
+model and surface syntax, plus *me*, an on-the-fly agent-generated
+**projection** over that hierarchy rather than a fourth compiler. Only
+**solo** is authoritative in `f0`. Formal verification — paper proofs
+plus a mechanised Coq + Idris2 solo-core — is a first-class deliverable,
+not an afterthought.
 
 == Why does this exist alongside `affinescript`?
 
@@ -87,7 +88,8 @@ link:docs/design/echo-types-integration.md[docs/design/echo-types-integration.md
 
 | `crates/`
 | Rust compiler crates. `crates/my-lang/src/types.rs` is the type
-  checker; it includes `EchoMode`, `Ty::Echo`, and 137+ unit tests.
+  checker; it includes `EchoMode` and `Ty::Echo`. The workspace runs
+  **221 tests, 0 failures** (measured 2026-08-07, excluding `my-llvm`).
 
 | `dialects/`
 | Per-dialect surface syntax. `solo/` (affine, single-agent) is the
@@ -119,7 +121,7 @@ link:docs/design/echo-types-integration.md[docs/design/echo-types-integration.md
 | Exploratory forward-looking research code (outside the Cargo
   workspace; not shipped).
 
-| `contractiles/`
+| `.machine_readable/contractiles/`
 | Mustfile / Dustfile invariant and recovery contracts for `my-lang`.
 
 | `.machine_readable/`
@@ -167,10 +169,17 @@ Hypatia is the estate's neurosymbolic governance scanner
 * Trusted-base pollution (`Admitted`/`Axiom` in Coq files)
 * Licence consistency (SPDX headers on all files)
 
-Exemptions live in link:.hypatia-ignore[`.hypatia-ignore`] with inline
-rationale. The link:.hypatia-baseline.json[`.hypatia-baseline.json`]
-file is an intentionally empty array (`[]`) — all scanner findings have
-been resolved at source or exempted with documented rationale.
+Two mechanisms, deliberately distinguished:
+
+* link:.hypatia-ignore[`.hypatia-ignore`] holds **permanent** scoped
+  exemptions with inline rationale — facts about rule imprecision, not
+  debt.
+* link:.hypatia-baseline.json[`.hypatia-baseline.json`] holds
+  **expiring** acknowledged debt. It currently carries **7 entries,
+  expiring 2026-10-27**, tracked in
+  https://github.com/hyperpolymath/my-lang/issues/145[issue #145] — the
+  unwrap/expect panic surface. These are *baselined, not fixed*; the
+  gate re-reds at expiry. See `DEBT.md`.
 
 == Language policy summary
 
@@ -178,9 +187,9 @@ The estate enforces strict language restrictions (see
 link:.claude/CLAUDE.md[`.claude/CLAUDE.md`]):
 
 * **Allowed**: Rust, Idris2, OCaml (AffineScript compiler), Coq,
-  Agda, ReScript, Deno, Gleam, Nickel, Guile Scheme, Julia, Ada.
-* **Banned**: TypeScript (use ReScript), Node/npm/bun (use Deno),
-  Go (use Rust), Python (use Julia/Rust/ReScript),
+  Agda, AffineScript, Deno, Gleam, Nickel, Guile Scheme, Julia, Ada.
+* **Banned**: TypeScript (use AffineScript), Node/npm/bun (use Deno),
+  Go (use Rust), Python (use Julia/Rust/AffineScript),
   Kotlin/Swift/Flutter (use Tauri 2.0+/Dioxus).
 
 All new source files require an SPDX licence header.

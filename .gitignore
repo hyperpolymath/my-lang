@@ -80,3 +80,6 @@ CoqMakefile.conf
 *.pem
 *.key
 .venv/
+
+# Claude Code session worktrees (untracked second checkouts of this repo)
+.claude/worktrees/

@@ -5,29 +5,29 @@ version: 'v0.0.2'
 workflows:
     '.github/workflows/cflite_batch.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@f205ea1c3313d32999d8d6a48b4f6530d4437b38'
+        - 'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3'
         - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
     '.github/workflows/cflite_pr.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@f205ea1c3313d32999d8d6a48b4f6530d4437b38'
+        - 'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3'
         - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
     '.github/workflows/checker-scaling.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
-        - 'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c'
+        - 'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
     '.github/workflows/codeql.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@f205ea1c3313d32999d8d6a48b4f6530d4437b38'
+        - 'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3'
     '.github/workflows/coverage.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
-        - 'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c'
+        - 'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
     '.github/workflows/governance.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/hypatia-scan.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/mirror.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/pages.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128'
@@ -35,16 +35,16 @@ workflows:
     '.github/workflows/proofs.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/push-email-notify.yml':
-        - 'dawidd6/action-send-mail@2e600f3776677e493bf0da7aaec39a586d19a5ed'
+        - 'dawidd6/action-send-mail@8de3c312702ac7a63fc4035d45a2a51811eb669a'
     '.github/workflows/scorecard.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/secret-scanner.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/spark-theatre-gate.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/stack-depth.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c'
+        - 'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
 dependencies:
     'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9':
         ref: 'v6.1.0'
@@ -52,7 +52,7 @@ dependencies:
         owner_id: 44036562
         repo_id: 215566462
     'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1':
-        ref: 'v7.0.1'
+        ref: '3d3c42e5aac5ba805825da76410c181273ba90b1'
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
         owner_id: 44036562
         repo_id: 197814629
@@ -61,14 +61,14 @@ dependencies:
         commit: 'sha1-cd2ce8fcbc39b97be8ca5fce6e763baed58fa128'
         owner_id: 44036562
         repo_id: 438112499
+    'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a':
+        ref: '043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        commit: 'sha1-043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        owner_id: 44036562
+        repo_id: 192625955
     'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f':
         ref: 'v7.0.0'
         commit: 'sha1-bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
-        owner_id: 44036562
-        repo_id: 192625955
-    'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a':
-        ref: 'v7.0.1'
-        commit: 'sha1-043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
         owner_id: 44036562
         repo_id: 192625955
     'actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9':
@@ -78,9 +78,9 @@ dependencies:
         repo_id: 496012378
         uses:
             - 'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
-    'dawidd6/action-send-mail@2e600f3776677e493bf0da7aaec39a586d19a5ed':
+    'dawidd6/action-send-mail@8de3c312702ac7a63fc4035d45a2a51811eb669a':
         ref: 'v3.12.0'
-        commit: 'sha1-2e600f3776677e493bf0da7aaec39a586d19a5ed'
+        commit: 'sha1-8de3c312702ac7a63fc4035d45a2a51811eb669a'
         owner_id: 9713907
         repo_id: 222439721
     'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed':
@@ -93,6 +93,11 @@ dependencies:
         commit: 'sha1-2c7215f132e9ebf062739d9130488b56d53c060c'
         owner_id: 1940490
         repo_id: 260749683
+    'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772':
+        ref: 'master'
+        commit: 'sha1-6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
+        owner_id: 1940490
+        repo_id: 260749683
     'editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c':
         ref: 'v2.2.0'
         commit: 'sha1-840e866d93b8e032123c23bac69dece044d4d84c'
@@ -103,19 +108,24 @@ dependencies:
         commit: 'sha1-54075bcc5e249e4758d363f27d099f55d843f124'
         owner_id: 47606891
         repo_id: 331103973
+    'github/codeql-action@5595ccaf912efad79be6eef63a5619ff05969be3':
+        ref: 'v4.37.6'
+        commit: 'sha1-5595ccaf912efad79be6eef63a5619ff05969be3'
+        owner_id: 9919
+        repo_id: 259445878
     'github/codeql-action@f205ea1c3313d32999d8d6a48b4f6530d4437b38':
         ref: 'v4.37.4'
         commit: 'sha1-f205ea1c3313d32999d8d6a48b4f6530d4437b38'
         owner_id: 9919
         repo_id: 259445878
     'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1':
-        ref: 'v1'
+        ref: '884713a6c30a92e5e8544c39945cd7cb630abcd1'
         commit: 'sha1-884713a6c30a92e5e8544c39945cd7cb630abcd1'
         owner_id: 1342004
         repo_id: 400046858
-    'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4':
+    'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2':
         ref: 'main'
-        commit: 'sha1-bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        commit: 'sha1-08586a12bb64b98268fe9ebf552998aa2433a3c2'
         owner_id: 6759885
         repo_id: 1116521501
         uses:

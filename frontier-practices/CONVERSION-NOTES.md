@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-<!-- Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # ReScript → AffineScript conversion notes
 
 This documents the port of the Seven Tentacles agent system from ReScript

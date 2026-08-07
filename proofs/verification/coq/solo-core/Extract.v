@@ -1,5 +1,6 @@
 (* SPDX-License-Identifier: MPL-2.0 *)
 (* SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> *)
+
 (*
  * Extraction of the VERIFIED usage-walk checker `check` (R5) to OCaml, so the
  * Rust port in `crates/my-qtt` can be DIFFERENTIALLY CONFORMANCE-TESTED against

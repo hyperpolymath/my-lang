@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 # Dormant push-email notification. ARMED by setting the repo variable
 # PUSH_EMAIL_ENABLED=true (the single on/off switch). Addresses are pre-filled;
 # sending needs the org SMTP secrets (SMTP_HOST/PORT/USER/PASS). Inherited by
@@ -16,7 +18,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Send push notification email
-        uses: dawidd6/action-send-mail@2e600f3776677e493bf0da7aaec39a586d19a5ed # pinned
+        uses: dawidd6/action-send-mail@8de3c312702ac7a63fc4035d45a2a51811eb669a # pinned
         with:
           server_address: ${{ secrets.SMTP_HOST }}
           server_port: ${{ secrets.SMTP_PORT }}

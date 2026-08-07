@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: MPL-2.0
-# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 #
 # STATE.a2ml — My Lang project state
 [metadata]
 project = "my-lang"
 version = "0.2.0"                                # matches Cargo.toml [workspace.package]
-last-updated = "2026-07-27"
+last-updated = "2026-08-07"
 status = "active"
 session = "CI/CD + supply-chain close-out (PRs #143/#146/#147): codeql-action repointed off a NONEXISTENT SHA; all 15 Hypatia findings triaged (8 fixed at source incl. a self-referential critical, 7 baselined to 2026-10-27 under issue #145); unsafe_block ruled unsatisfiable and scoped-exempted; GitHub Pages un-stuck (workflow was disabled_manually) and LIVE; ARCHITECTURE.md + Justfile de-boilerplated. main FULLY GREEN — 2026-07-27"
 prior-session = "Coq solo-core: R2–R5b (SEMIRING functor / affine_pres / Tropical / usage-walk checker / aff_type_dec) + M1 me→solo elaboration + structure climb S1.0–S3c.3-msg (session-π: subject reduction, fidelity, progress, duet-by-projection, n-party projection totality, static n-party config, label-union merge, union-projection, n-ary located operational semantics, head-coupled message subject reduction = first earned n-party safety half) + E4 residue-measure SEAM (Coq mirror) — all axiom-free, CI-gated — 2026-06-14"
@@ -44,7 +45,7 @@ qtt-semiring-idris2 = "locally-checked"
 solo-syntax-contexts-typing = "machine-checked"
 operational-semantics = "machine-checked"      # F1.1 — CBV step/Step committed both tracks
 progress = "machine-checked"                    # F1.3 — Coq Qed (axiom-free), CI Print Assumptions closed; Idris total/hole-free
-preservation = "machine-checked"                # F1.4 — Coq Qed (axiom-free, ht_subst), CI-gated; Idris ?todo_preservation deliberately open (D1 option A)
+preservation = "machine-checked"                # F1.4 — Coq Qed (axiom-free, ht_subst), CI-gated. CORRECTION 2026-08-07: the Idris ?todo_preservation hole was DISCHARGED 2026-06-21 (#108) — zero ?todo holes remain in proofs/verification/idris/. proofs/STATUS.md still grades the Idris track locally-checked (its CI job runs idris2 --build with NO hole assertion — DEBT.md P-2).
 resource-algebra-functor = "machine-checked"   # R2 — SoloCoreF over Module Type SEMIRING; Include Linear3 = R0 axiom-free
 affine-pres = "machine-checked"                 # R3 — distinct affine budget-preservation over ORDERED_SEMIRING qle
 tropical-instance = "machine-checked"           # R4 — SoloCoreF Tropical, infinite min-plus carrier, axiom-free
@@ -89,7 +90,8 @@ milestones = [
   { id = "S3c.1", description = "Union-projection proj_u/projectable_u_wf + keystone existence theorem projection_total_u + one-directional monotonicity bridge projectable_wf_implies_u (on keystone merge_forces_eq: plain merge is the identity-meet); SEPARATE proj_u added ALONGSIDE proj (canonical proj byte-identical, NOT re-pointed); projection-EXISTENCE only, non-vacuity g_union3 in union-projectable minus plain-projectable; axiom-free", status = "done", date = "2026-06-14" },
   { id = "S3c.2", description = "n-ary LOCATED operational semantics: nstep (located mirror of fused cstep; one comm ra_set-updates exactly the two roles) + ra_set + global gstep + nstar/gstar closures + functional wf_assignment_f (wf_assignment_to_f keeps S3b green); 3-party ring run 0->1->2->0 witnessed both sides (ring_runs_to_end, g_ring_gsteps); ADEQUACY-only, nstep_breaks_wf_at_fixed_G PROVES no fixed-G subject reduction; axiom-free", status = "done", date = "2026-06-14" },
   { id = "S3c.3-msg", description = "Head-coupled message subject reduction nstep_sr_msg_head (the FIRST EARNED n-party safety half): the head communication sanctioned by GMsg p q t G' carries wf_assignment_f from G to its continuation G' (3-way located role split; same v:t sender ships = receiver substitutes via pty_subst0); coupled corollary nstep_gstep_sr_msg_head; earned-safety headline sr_earns_safety_across_step (same ra_ring1 S3c.2 refuted at fixed g is wf at stepped g); run-ahead fence SELF-WITNESSED (runahead_breaks_head_coupling). Design-panel-validated + independently adversary-verified (sound-and-honest). HEAD message fragment, preservation only; axiom-free", status = "done", date = "2026-06-14" },
-  { id = "S3c.3-choice/perm + S3c.4", description = "remaining n-party safety: select/branch SR (S3c.3-choice, couple NStep_Sel with a choice-gstep), run-ahead/permutation SR (S3c.3-perm, needs gstep-with-swap relation), n-party progress (S3c.4 = coherence ⇒ safety, research-hard — fence; wf_assignment ra -> deadlock-free is FALSE)", status = "pending", note = "S3c.0/.1/.2/.3-msg landed; the message-HEAD safety half is earned; choice/permutation/progress remain, solo" },
+  { id = "S3c.3-choice", description = "head-coupled select/branch subject reduction — the CHOICE analogue of nstep_sr_choice_head; couples NStep_Sel with a choice-gstep to the selected continuation Gl = gbget l bs", status = "done", date = "2026-08-07", note = "CORRECTION 2026-08-07: recorded as pending here while .github/workflows/proofs.yml:319-343 already gates nstep_sr_choice_head / nstep_gstep_sr_choice_head / proj_br_selected / proj_uninv_selected / wf_ra_choice3 / choice3_head_fires_end_to_end as axiom-free. The CI was ahead of this file; re-verify the landing date against git history." },
+  { id = "S3c.3-perm + S3c.4", description = "remaining n-party safety: run-ahead/permutation SR (S3c.3-perm, needs gstep-with-swap relation), n-party progress (S3c.4 = coherence ⇒ safety, research-hard — fence; wf_assignment ra -> deadlock-free is FALSE)", status = "pending", note = "S3c.0/.1/.2/.3-msg/.3-choice landed; permutation SR and n-party progress remain, solo" },
   { id = "E4", description = "Echo residue-measure SEAM (Coq mirror): RESIDUE_MEASURE + EchoTraceTropical + echo_measure_not_injective; full measure-independence upstream-cited", status = "done", date = "2026-06-14" },
   { id = "F2", description = "Effects metatheory mechanised", status = "pending" },
   { id = "F3", description = "Memory model mechanised", status = "pending" },
@@ -148,10 +150,10 @@ idris2 = "built from source in CI — see proofs.yml"
 task-runner = "just (Justfile); parse-verified 2026-07-27"
 
 [maintenance-status]
-last-run-utc = "2026-07-27T18:15:00Z"
-last-result = "pass"
-main-commit = "8636e15"
-main-board = "FULLY GREEN — every workflow on main succeeds or is deliberately skipped"
+last-run-utc = "2026-08-07T07:56:37Z"
+last-result = "mixed — see main-board"
+main-commit = "e68bb3d"
+main-board = "MIXED — the six standards-reusable wrappers parse again after the lockfile work (#152/#153), but dependabot bumps #155/#157 restaked 7 of 15 workflows: CodeQL + OSSF Scorecard startup_failure, Governance red on its own actions-lock --verify-local step. Repaired in PR #158. Lockfile regeneration is a RECURRING obligation on every action bump — see DEBT.md I-1."
 ci-governance = "pass"                 # incl. Validate Hypatia Baseline, green for the first time since >=2026-07-22
 ci-security-scan = "pass"              # Hypatia Security Scan + Secret Scanner + CodeQL + Scorecard
 ci-rust-tests = "pass"                 # Coverage (llvm-cov, floor 40%)
