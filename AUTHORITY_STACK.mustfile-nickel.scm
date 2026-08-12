@@ -1,4 +1,6 @@
 ;; SPDX-License-Identifier: MPL-2.0
+;; SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 ;; AUTHORITY_STACK.mustfile-nickel.scm
 ;; Shared drop for hyperpolymath repos: defines task routing + config authority.
 

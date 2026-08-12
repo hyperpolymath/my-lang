@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 --
 -- Separated QTT context for the Solo core of my-lang (Coq twin: the
 -- Usage layer of SoloCore.v).

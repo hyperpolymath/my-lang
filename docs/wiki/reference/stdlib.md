@@ -1,8 +1,15 @@
-<!--
-SPDX-License-Identifier: CC-BY-SA-4.0
-Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
--->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # Standard Library Reference
+
+> [!WARNING]
+> **This page documents a `std::` module tree that was never built.**
+> 
+> `IMPLEMENTATION.md` explicitly retracts this design: *"That was never built and was actively misleading."* The real standard library is a flat set of ~60 Rust builtins in `crates/my-lang/src/stdlib.rs` (`fs_read_file`, `map_new`, `json_parse`, …).
+> 
+> Read this as a **design sketch**, not a reference. Tracked as debt **D-2** in [`DEBT.md`](https://github.com/hyperpolymath/my-lang/blob/main/DEBT.md).
+
 
 Complete reference for the My Language standard library.
 

@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-<!-- Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # Dialects
 
 My Language is a **progressive-disclosure language family**: complexity is
@@ -31,7 +32,8 @@ not ship partial semantics** — their design lives in paper proofs
 not in shipping code. This containment is deliberate: make one dialect real and
 correct before widening.
 
-The Solo kernel's metatheory (progress proved; preservation in progress) is
+The Solo kernel's metatheory (progress, preservation and `affine_pres` all
+machine-checked and axiom-free on the Coq track) is
 documented under [Formal Verification](../internals/formal-verification.md).
 
 ## Me is *not* a fourth dialect

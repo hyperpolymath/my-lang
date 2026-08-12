@@ -1,8 +1,15 @@
-<!--
-SPDX-License-Identifier: CC-BY-SA-4.0
-Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
--->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # Concurrency
+
+> [!WARNING]
+> **None of the concurrency described here is implemented.**
+> 
+> There is no `async`/`await`, no futures runtime and no channel implementation in the surface language. Concurrency currently exists as **metatheory** — a mechanised session-typed π-calculus in `proofs/` (subject reduction, session fidelity, deadlock-freedom) — not as a language feature.
+> 
+> Tracked as debt **D-3** in [`DEBT.md`](https://github.com/hyperpolymath/my-lang/blob/main/DEBT.md).
+
 
 My Language provides modern concurrency primitives for safe, efficient parallel and asynchronous programming.
 

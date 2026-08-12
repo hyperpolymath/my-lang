@@ -1,7 +1,6 @@
-<!--
-SPDX-License-Identifier: CC-BY-SA-4.0
-Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
--->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # Contributing to My Language
 
 Thank you for your interest in contributing to the My Language project!
@@ -51,4 +50,6 @@ cargo test --all-features
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under
+**MPL-2.0** (code) or **CC-BY-SA-4.0** (documentation), matching the file you
+are editing.

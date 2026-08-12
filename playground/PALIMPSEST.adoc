@@ -1,45 +1,36 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Palimpsest License
-:toc:
-:toc-placement!:
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
-image:https://img.shields.io/badge/License-MPL--2.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
-image:https://img.shields.io/badge/Philosophy-Palimpsest-indigo.svg[Palimpsest,link="https://github.com/hyperpolymath/palimpsest-license"]
+= Palimpsest Licence — Historical Note (superseded)
 
-toc::[]
+[IMPORTANT]
+====
+**This document is historical. my-lang — including this `playground/` subtree —
+is licensed under MPL-2.0.**
 
-== Legal Status
+The authoritative licence is the `LICENSE` file at the repository root
+(Mozilla Public License 2.0). This file does **not** state current terms.
+====
 
-This project is licensed under the **Palimpsest-MPL License 1.0 (PMPL-1.0)**.
-For SPDX and tooling, use **MPL-2.0**.
+== Current legal status
 
-PMPL-1.0 incorporates the Mozilla Public License 2.0 by reference and adds
-ethical-use, provenance, and lineage requirements.
+* **Code**: MPL-2.0 (`SPDX-License-Identifier: MPL-2.0`)
+* **Documentation**: CC-BY-SA-4.0 (`SPDX-License-Identifier: CC-BY-SA-4.0`)
+* Licence texts: `LICENSES/` at the repository root
 
-== What PMPL Adds
+== Migration record
 
-* **Emotional Lineage** - preserve narrative intent and cultural context
-* **Provenance Integrity** - retain attribution and lineage metadata
-* **Ethical Use Constraints** - explicit consent for non-interpretive AI training
-* **Quantum-Safe Provenance (optional)** - post-quantum signature support
+my-lang previously carried the **Palimpsest-MPL Licence 1.0
+(PMPL-1.0-or-later)**, an MPL-2.0 superset adding ethical-use, provenance and
+lineage requirements.
 
-== How to Adopt
+It was **migrated to plain MPL-2.0 on 2026-05-26** as part of the estate
+licence-debt audit (`hyperpolymath/standards#196`), for SPDX/tooling
+interoperability and to remove ambiguity about which terms bind a downstream
+consumer. The whole tree was normalised on 2026-08-07.
 
-1. Include the PMPL-1.0 license text in `LICENSE`.
-2. Add SPDX headers to source files:
-   `SPDX-License-Identifier: CC-BY-SA-4.0`
-// Owner: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-3. Add a Palimpsest badge to your README (see `assets/badges/` and `embed/license-blocks/`).
+Nothing in this repository is offered under PMPL-1.0.
 
-== Versioning
-
-See `VERSIONING.adoc` for the release process and the "-or-later" model.
-The current legal text is PMPL-1.0.
-
-== References
-
-* `legal/README.adoc`
-* `assets/badges/README.md`
-* `embed/license-blocks/README.md`
+See the repository-root `PALIMPSEST.adoc` for the full note, and
+https://github.com/hyperpolymath/palimpsest-license[hyperpolymath/palimpsest-license]
+for the licence project itself.

@@ -1,7 +1,6 @@
-<!--
-SPDX-License-Identifier: CC-BY-SA-4.0
-Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
--->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> -->
+
 # Duet & Ensemble Grammar (inferred)
 
 This document reconstructs the ``duet`` dialect layer (AI collaboration) and the ``ensemble`` layer (agent orchestration) using the Solo core grammar plus the My-Newsroom specifications. The Duet dialect is the middle grammar between Solo and the Ensemble apparatus; Suite musicals are inferred from the `docs/dialects/duet.md` and `docs/dialects/ensemble.md` specs alongside the `comptime orchestrate` example.

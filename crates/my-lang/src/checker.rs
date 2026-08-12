@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 //! Type checker and semantic analyzer for My Language
 //!
 //! Performs name resolution, type checking, and validation of AI constructs.

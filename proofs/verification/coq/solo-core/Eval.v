@@ -1,5 +1,6 @@
 (* SPDX-License-Identifier: MPL-2.0 *)
 (* SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk> *)
+
 (*
  * A FUNCTIONAL one-step evaluator `step1 : tm -> option tm` for the solo core,
  * proved SOUND (and COMPLETE) with respect to the reference `step` RELATION of

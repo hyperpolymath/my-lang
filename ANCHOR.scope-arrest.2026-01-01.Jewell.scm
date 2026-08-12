@@ -1,4 +1,6 @@
 ;; SPDX-License-Identifier: MPL-2.0
+;; SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
 ;; ANCHOR.scope-arrest.2026-01-01.Jewell.scm  (my-lang)
 (define anchor
   '((schema . "hyperpolymath.anchor/1")

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
+title: My Lang
+url: https://my-lang.net
+author: Jonathan D.A. Jewell
+input: site
+output: _site
+language: en
