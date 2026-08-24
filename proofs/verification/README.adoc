@@ -1,0 +1,81 @@
+== Formal Verification Framework
+
+This directory contains formal verification artifacts for My Language,
+including mechanized proofs in Coq and Idris2, and property
+specifications for testing.
+
+____
+*Authoritative status:* link:../STATUS.md[`+../STATUS.md+`] is the
+single source of truth for what is actually proved. The roadmap to
+AffineScript parity is
+link:../ALIGNMENT-PLAN.md[`+../ALIGNMENT-PLAN.md+`]. The status table
+further down this file is a convenience summary and defers to
+`+STATUS.md+` on any disagreement.
+____
+
+=== Contents
+
+[arabic]
+. link:coq/[`+coq/+`] — General Coq core (`+Syntax.v+`, `+Typing.v+`:
+non-quantitative, substitution lemma proved).
+. link:coq/solo-core/[`+coq/solo-core/+`] — *Mechanised QTT affine
+solo-core* (Coq track): semiring laws proved; progress/preservation
+stated.
+. link:idris/solo-core/[`+idris/solo-core/+`] — *Mechanised QTT affine
+solo-core* (Idris2 track), mirroring AffineScript’s solo-core.
+. `+properties/+` — Property-based test specifications.
+
+=== Verification Goals
+
+==== Type System
+
+* [ ] *Type Preservation*: `+∀ e e' τ. Γ ⊢ e : τ ∧ e ⟶ e' ⟹ Γ ⊢ e' : τ+`
+* [ ] *Progress*: `+∀ e τ. ∅ ⊢ e : τ ⟹ value(e) ∨ ∃e'. e ⟶ e'+`
+* [ ] *Principal Types*: Inference produces most general types
+
+==== Effect System
+
+* [ ] *Effect Soundness*: Declared effects bound actual effects
+* [ ] *Handler Correctness*: Handlers correctly discharge effects
+* [ ] *Effect Inference*: Inferred effects are sound and minimal
+
+==== Memory Safety
+
+* [ ] *Ownership Uniqueness*: Each value has one owner
+* [ ] *Borrow Safety*: No aliasing of mutable references
+* [ ] *Lifetime Soundness*: References don’t outlive referents
+
+==== Session Types (Duet)
+
+* [ ] *Session Fidelity*: Communication follows protocol
+* [ ] *Deadlock Freedom*: Well-typed sessions don’t deadlock
+
+==== Agent Calculus (Ensemble)
+
+* [ ] *Agent Safety*: Agents respect type interfaces
+* [ ] *Orchestration Termination*: Goals are achieved
+
+=== Verification Status
+
+[cols=",,,,",options="header",]
+|===
+|Property |Paper Proof |Coq |Lean |Tests
+|Type Preservation |✅ |🔲 |🔲 |✅
+|Progress |✅ |🔲 |🔲 |✅
+|Effect Soundness |✅ |🔲 |🔲 |🔲
+|Ownership Safety |✅ |🔲 |🔲 |✅
+|Session Fidelity |✅ |🔲 |🔲 |🔲
+|Agent Safety |✅ |🔲 |🔲 |🔲
+|===
+
+Legend: ✅ Complete, 🔲 TODO
+
+=== Contribution Guide
+
+To contribute mechanized proofs:
+
+[arabic]
+. Choose a theorem from the paper proofs
+. Implement in Coq or Lean
+. Ensure compilation with CI
+. Submit PR with proof walkthrough

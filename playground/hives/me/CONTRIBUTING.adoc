@@ -1,22 +1,56 @@
-// SPDX-License-Identifier: CC-BY-SA-4.0
-// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+== Contributing to My Language
 
-= Contributing Guide
+Thank you for your interest in contributing to the My Language project!
 
-== Getting Started
+=== Getting Started
 
-1. Fork the repository
-2. Create a feature branch from `main`
-3. Sign off commits (`git commit -s`)
-4. Submit a pull request
+[arabic]
+. Fork the repository
+. Clone your fork
+. Create a branch for your feature
+. Make your changes
+. Run tests
+. Submit a Pull Request
 
-== Commit Guidelines
+=== Development Setup
 
-* Conventional commits: `type(scope): description`
-* Sign all commits (DCO required)
-* Atomic, focused commits
+==== Prerequisites
 
-== License
+* Rust 1.70 or later
+* Cargo
+* Git
 
-Contributions licensed under project license.
+==== Building
 
+[source,bash]
+----
+cargo build
+----
+
+==== Running Tests
+
+[source,bash]
+----
+cargo test --all-features
+----
+
+=== Code Style
+
+* Follow Rust standard formatting: `+cargo fmt+`
+* Use clippy for linting: `+cargo clippy+`
+* Write tests for new features
+* Document public APIs
+
+=== Pull Request Process
+
+[arabic]
+. Ensure all tests pass
+. Update documentation if needed
+. Add tests for new features
+. Request review from maintainers
+
+=== License
+
+By contributing, you agree that your contributions will be licensed
+under *MPL-2.0* (code) or *CC-BY-SA-4.0* (documentation), matching the
+file you are editing.
