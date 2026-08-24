@@ -1,0 +1,64 @@
+== Memory Model and Ownership System
+
+This directory formalizes My Language’s memory safety system based on
+ownership, borrowing, and lifetimes, drawing from affine type theory and
+region-based memory management.
+
+=== Contents
+
+[arabic]
+. link:ownership.md[Ownership Semantics] - Formal ownership rules
+. link:borrowing.md[Borrowing Rules] - Reference creation and validity
+. link:lifetimes.md[Lifetime Calculus] - Lifetime inference and checking
+. link:safety-proofs.md[Memory Safety Proofs] - Freedom from
+use-after-free
+. link:affine.md[Affine Types] - Linear/affine resource management
+
+=== Overview
+
+My Language guarantees memory safety without garbage collection through:
+
+[arabic]
+. *Ownership*: Each value has exactly one owner
+. *Move Semantics*: Ownership transfers on assignment
+. *Borrowing*: Temporary access via references
+. *Lifetimes*: Static tracking of reference validity
+
+=== Core Principles
+
+==== Single Ownership
+
+....
+let x = value;      // x owns value
+let y = x;          // ownership moves to y
+// x is no longer valid
+....
+
+==== Borrowing Rules
+
+At any given time, you can have either: - Any number of immutable
+references (&T), OR - Exactly one mutable reference (&mut T)
+
+Never both simultaneously.
+
+==== Lifetime Invariant
+
+References never outlive their referents.
+
+=== Key Theorems
+
+* *Theorem 1 (Memory Safety)*: Well-typed programs never access freed
+memory
+* *Theorem 2 (Data Race Freedom)*: No data races under the borrowing
+discipline
+* *Theorem 3 (Ownership Uniqueness)*: Each value has at most one owner
+at any time
+* *Theorem 4 (Lifetime Soundness)*: References are valid for their
+declared lifetime
+
+=== Relationship to Other Work
+
+* *Rust*: Similar ownership model
+* *Linear Types*: Foundation in linear logic
+* *Region-Based Memory*: Tofte-Talpin regions
+* *Alias Types*: Walker-Morrisett calculus

@@ -1,0 +1,72 @@
+== Operational Semantics
+
+This directory contains the formal operational semantics for My
+Language.
+
+=== Contents
+
+[arabic]
+. link:small-step.md[Small-Step Semantics] - Reduction semantics
+. link:big-step.md[Big-Step Semantics] - Natural semantics
+. link:abstract-machine.md[Abstract Machine] - CEK machine specification
+. link:concurrent.md[Concurrent Semantics] - Concurrency primitives
+. link:ai-runtime.md[AI Runtime Semantics] - AI operation semantics
+
+=== Overview
+
+My Language’s operational semantics is defined using multiple
+complementary styles:
+
+* *Small-step (structural)*: For reasoning about evaluation order and
+stuck states
+* *Big-step (natural)*: For reasoning about termination and results
+* *Abstract machine*: For implementation guidance
+
+=== Semantic Domains
+
+....
+Values:
+v ::= n | f | s | true | false | ()
+    | λx:τ.e
+    | {l₁ = v₁, ..., lₙ = vₙ}
+    | [v₁, ..., vₙ]
+    | ref(v)
+    | loc
+
+Environments:
+ρ ::= ∅ | ρ[x ↦ v]
+
+Stores:
+σ ::= ∅ | σ[loc ↦ v]
+
+Continuations:
+κ ::= halt
+    | arg(e, ρ, κ)
+    | fun(v, κ)
+    | let(x, e, ρ, κ)
+    | if(e₁, e₂, ρ, κ)
+    | field(l, κ)
+    | ...
+
+Configurations:
+C ::= ⟨e, ρ, σ, κ⟩
+....
+
+=== Key Properties
+
+[arabic]
+. *Determinism*: Pure expressions evaluate deterministically
+. *Type Safety*: Well-typed programs don’t get stuck
+. *Effect Tracking*: Effects are precisely characterized
+. *Termination*: Pure total functions terminate
+
+=== Evaluation Strategies
+
+My Language uses *call-by-value* evaluation: - Arguments are evaluated
+before function application - Left-to-right evaluation order for
+subexpressions - Effects occur in program order
+
+=== Relation to Implementation
+
+The abstract machine semantics directly corresponds to the tree-walking
+interpreter in `+src/interpreter.rs+`.
