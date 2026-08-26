@@ -141,7 +141,7 @@ fi
 check_file "SECURITY.md"
 check_file "CONTRIBUTING.md"
 check_file "CODE_OF_CONDUCT.md"
-check_file "MAINTAINERS.md"
+check_file "MAINTAINERS.adoc"
 check_file "CHANGELOG.md"
 echo ""
 
@@ -223,16 +223,16 @@ echo ""
 echo "8. TPCF (Tri-Perimeter Contribution Framework)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [ -f "MAINTAINERS.md" ]; then
-    if grep -q "Perimeter 1" MAINTAINERS.md && \
-       grep -q "Perimeter 2" MAINTAINERS.md && \
-       grep -q "Perimeter 3" MAINTAINERS.md; then
+if [ -f "MAINTAINERS.adoc" ]; then
+    if grep -q "Perimeter 1" MAINTAINERS.adoc && \
+       grep -q "Perimeter 2" MAINTAINERS.adoc && \
+       grep -q "Perimeter 3" MAINTAINERS.adoc; then
         pass "TPCF structure defined"
     else
         fail "TPCF structure incomplete"
     fi
 
-    if grep -q "Community Sandbox" MAINTAINERS.md; then
+    if grep -q "Community Sandbox" MAINTAINERS.adoc; then
         pass "Community Sandbox (Perimeter 3) active"
     else
         warn "Community Sandbox not explicitly mentioned"
