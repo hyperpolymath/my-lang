@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
+# This workflow is managed by gh actions-lock.
 # SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
 # Estate SPARK Theatre Gate — thin caller of the reusable workflow in
@@ -15,7 +16,7 @@ permissions:
   contents: read
 jobs:
   spark-theatre-gate:
-    uses: hyperpolymath/standards/.github/workflows/spark-theatre-gate.yml@7fdc2705df74b4e352d2a1cde3e87a5923fdf329
+    uses: hyperpolymath/standards/.github/workflows/spark-theatre-gate.yml@84355587cb2a1f86e6882de83514a32db2646e7a
     with:
       paths: "."
       enforce_zero_contract: false
