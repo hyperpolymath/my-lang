@@ -26,6 +26,8 @@ workflows:
         - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/hypatia-scan.yml':
         - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
+    '.github/workflows/label-triage.yml': []
+    '.github/workflows/labels.yml': []
     '.github/workflows/mirror.yml':
         - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/pages.yml':
