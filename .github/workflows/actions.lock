@@ -37,7 +37,7 @@ workflows:
     '.github/workflows/proofs.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/push-email-notify.yml':
-        - 'dawidd6/action-send-mail@v3.12.0'
+        - 'hyperpolymath/smtp-notify-action@v0.2.0'
     '.github/workflows/scorecard.yml':
         - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/secret-scanner.yml':
@@ -80,11 +80,6 @@ dependencies:
         repo_id: 496012378
         uses:
             - 'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
-    'dawidd6/action-send-mail@v3.12.0':
-        ref: 'v3.12.0'
-        commit: 'sha1-0bbdab096651ee93f37ec02383e088183d41ff0b'
-        owner_id: 9713907
-        repo_id: 222439721
     'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed':
         ref: 'v2.0.5'
         commit: 'sha1-22d081ff2d3a40755e97629de92e3bcbfa7cf2ed'
@@ -125,6 +120,11 @@ dependencies:
         commit: 'sha1-884713a6c30a92e5e8544c39945cd7cb630abcd1'
         owner_id: 1342004
         repo_id: 400046858
+    'hyperpolymath/smtp-notify-action@v0.2.0':
+        ref: 'v0.2.0'
+        commit: 'sha1-ede1191ef6ff3ac02c4f4d9efdf837ee517e11d7'
+        owner_id: 6759885
+        repo_id: 1352485172
     'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2':
         ref: 'main'
         commit: 'sha1-08586a12bb64b98268fe9ebf552998aa2433a3c2'
