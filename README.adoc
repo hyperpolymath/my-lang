@@ -430,7 +430,7 @@ cannot be satisfied (a keyword-matching `+coq_axiom+`, a
 keyword-matching `+transmute+`, and `+unsafe_block+` — a bare
 `+unsafe\s*\{+` regex whose "`requires SAFETY comment`" is never
 actually checked). See `+[security-posture]+` in
-link:.machine_readable/6a2/STATE.a2ml[`+.machine_readable/6a2/STATE.a2ml+`]
+link:.machine_readable/descriptiles/STATE.a2ml[`+.machine_readable/descriptiles/STATE.a2ml+`]
 for the machine-readable version.
 
 === Contributing

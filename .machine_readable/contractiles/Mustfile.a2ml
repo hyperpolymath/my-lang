@@ -34,7 +34,7 @@ pre-commit hooks fail if any check fails. my-lang is a CONSUMER of the RSR
 
 ### ai-manifest
 - description: 0-AI-MANIFEST.a2ml must exist (under 6a2/)
-- run: test -f .machine_readable/6a2/0-AI-MANIFEST.a2ml
+- run: test -f .machine_readable/descriptiles/0-AI-MANIFEST.a2ml
 - severity: critical
 
 ### governance-docs
@@ -69,7 +69,7 @@ pre-commit hooks fail if any check fails. my-lang is a CONSUMER of the RSR
 
 ### six-directory-present
 - description: 6a2 directory exists with required files
-- run: test -d .machine_readable/6a2 && test -f .machine_readable/6a2/META.a2ml && test -f .machine_readable/6a2/ECOSYSTEM.a2ml && test -f .machine_readable/6a2/STATE.a2ml && test -f .machine_readable/6a2/PLAYBOOK.a2ml && test -f .machine_readable/6a2/AGENTIC.a2ml && test -f .machine_readable/6a2/NEUROSYM.a2ml
+- run: test -d .machine_readable/6a2 && test -f .machine_readable/descriptiles/META.a2ml && test -f .machine_readable/descriptiles/ECOSYSTEM.a2ml && test -f .machine_readable/descriptiles/STATE.a2ml && test -f .machine_readable/descriptiles/PLAYBOOK.a2ml && test -f .machine_readable/descriptiles/AGENTIC.a2ml && test -f .machine_readable/descriptiles/NEUROSYM.a2ml
 - severity: critical
 
 ### scope-arrest-anchor

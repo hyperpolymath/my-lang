@@ -1,5 +1,5 @@
-# SPDX-License-Identifier: MPL-2.0
 # This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
 # SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 
 name: GitHub Pages (Ddraig SSG)
@@ -54,4 +54,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+        uses: actions/deploy-pages@v5.0.1

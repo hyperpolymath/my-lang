@@ -162,3 +162,8 @@ ci-pr = "PRs #143/#146/#147 merged 2026-07-27; no open PRs"
 proof-build = "pass — coqc 10/10 solo-core modules (Quantity, EchoMode, ResourceAlgebra, SoloCore, Tropical, Context, ContextProps, EchoResidue, EchoMeasure, SessionPi; local full clean rebuild 2026-06-14); idris2 --build OK; all per-rung Print Assumptions closed (R-ladder, M1, S1.0–S3c.3-msg, E4)"
 known-local-limitation = "my-llvm cannot be built in the maintainer's WSL environment (no system LLVM 21). `cargo build --workspace` FAILS there; `--exclude my-llvm` succeeds. Do not read a bare workspace build failure as a regression without checking for the llvm-sys compile_error."
 superseded-branch = "origin/feat/stdlib-fs-env-format — SUPERSEDED, safe to delete: main carries every builtin it adds PLUS fs_list_dir, its stdlib.rs is 355 lines behind, it conflicts on stdlib.rs + CONTRIBUTING.md, and it is 188 commits behind main"
+
+[language-portfolio-audit-20260907]
+scope = "Evidence audit and scoped repairs; no blanket readiness upgrade"
+report = "https://github.com/hyperpolymath/nextgen-languages/blob/main/docs/audits/2026-09-07-language-portfolio.md"
+metadata-path = ".machine_readable/descriptiles/"

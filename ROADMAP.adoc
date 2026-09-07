@@ -11,7 +11,7 @@ toc::[]
 [NOTE]
 ====
 This roadmap is *derived*, not authoritative. The machine-readable source of
-truth is `.machine_readable/6a2/STATE.a2ml`; for proofs specifically it is
+truth is `.machine_readable/descriptiles/STATE.a2ml`; for proofs specifically it is
 `proofs/STATUS.md`. Where they disagree with this file, they win.
 ====
 
