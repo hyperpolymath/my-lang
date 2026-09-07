@@ -73,7 +73,7 @@ foundations evidence starts to interact).
 * *TypeLL level claimed:* L4 (Type compatibility) *operationally*
 * *Honest level for FRG:* L4 — implementation enforces affine /
   borrow / progressive-disclosure types, but no mechanised soundness
-  claim. The dialect structure (solo / duet / ensemble / me)
+  claim. The dialect structure (solo / duet / ensemble; Me is a projection)
   *aspires* to layered type-safety progression but no formal
   encoding establishes this.
 * *Levels not yet claimed:* L5-L10. Progressive-disclosure pedagogy

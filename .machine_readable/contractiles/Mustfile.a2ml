@@ -33,7 +33,7 @@ pre-commit hooks fail if any check fails. my-lang is a CONSUMER of the RSR
 - severity: critical
 
 ### ai-manifest
-- description: 0-AI-MANIFEST.a2ml must exist (under 6a2/)
+- description: 0-AI-MANIFEST.a2ml must exist (under descriptiles/)
 - run: test -f .machine_readable/descriptiles/0-AI-MANIFEST.a2ml
 - severity: critical
 
@@ -68,8 +68,8 @@ pre-commit hooks fail if any check fails. my-lang is a CONSUMER of the RSR
 - severity: critical
 
 ### six-directory-present
-- description: 6a2 directory exists with required files
-- run: test -d .machine_readable/6a2 && test -f .machine_readable/descriptiles/META.a2ml && test -f .machine_readable/descriptiles/ECOSYSTEM.a2ml && test -f .machine_readable/descriptiles/STATE.a2ml && test -f .machine_readable/descriptiles/PLAYBOOK.a2ml && test -f .machine_readable/descriptiles/AGENTIC.a2ml && test -f .machine_readable/descriptiles/NEUROSYM.a2ml
+- description: descriptiles directory exists with required files
+- run: test -d .machine_readable/descriptiles && test -f .machine_readable/descriptiles/META.a2ml && test -f .machine_readable/descriptiles/ECOSYSTEM.a2ml && test -f .machine_readable/descriptiles/STATE.a2ml && test -f .machine_readable/descriptiles/PLAYBOOK.a2ml && test -f .machine_readable/descriptiles/AGENTIC.a2ml && test -f .machine_readable/descriptiles/NEUROSYM.a2ml
 - severity: critical
 
 ### scope-arrest-anchor

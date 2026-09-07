@@ -478,7 +478,7 @@ reconcile or scope the patterns to new code.
 nearly all commented placeholders; `+AGENTIC.a2ml+` (2026-04-11) is
 comment-only and states _"`Never place state files in repository root`"_
 while four sit at root. Two different `+0-AI-MANIFEST.a2ml+` files exist
-(root = S-expression, `+6a2/+` = Markdown) with contradictory content.
+(root = S-expression, `+descriptiles/+` = Markdown) with contradictory content.
 `+svc/README.adoc+` documents a `+k9/+` directory that does not exist
 (the file lives in `+self-validating/+`). *Next:* fill or delete;
 deduplicate the manifest.
