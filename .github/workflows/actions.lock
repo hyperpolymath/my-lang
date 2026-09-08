@@ -5,11 +5,11 @@ version: 'v0.0.2'
 workflows:
     '.github/workflows/cflite_batch.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@v4.37.8'
+        - 'github/codeql-action@v4.37.9'
         - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
     '.github/workflows/cflite_pr.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@v4.37.8'
+        - 'github/codeql-action@v4.37.9'
         - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
     '.github/workflows/checker-scaling.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -17,7 +17,7 @@ workflows:
         - 'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
     '.github/workflows/codeql.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@v4.37.8'
+        - 'github/codeql-action@v4.37.9'
     '.github/workflows/coverage.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
@@ -32,7 +32,7 @@ workflows:
         - 'hyperpolymath/standards@08586a12bb64b98268fe9ebf552998aa2433a3c2'
     '.github/workflows/pages.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128'
+        - 'actions/deploy-pages@v5.0.1'
         - 'actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9'
     '.github/workflows/proofs.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -58,9 +58,9 @@ dependencies:
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
         owner_id: 44036562
         repo_id: 197814629
-    'actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128':
-        ref: 'v5.0.0'
-        commit: 'sha1-cd2ce8fcbc39b97be8ca5fce6e763baed58fa128'
+    'actions/deploy-pages@v5.0.1':
+        ref: 'v5.0.1'
+        commit: 'sha1-368f82528645a54fb793d4d04e342629a3f51346'
         owner_id: 44036562
         repo_id: 438112499
     'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a':
@@ -74,7 +74,7 @@ dependencies:
         owner_id: 44036562
         repo_id: 192625955
     'actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9':
-        ref: 'v5.0.0'
+        ref: 'fc324d3547104276b827a68afc52ff2a11cc49c9'
         commit: 'sha1-fc324d3547104276b827a68afc52ff2a11cc49c9'
         owner_id: 44036562
         repo_id: 496012378
@@ -110,9 +110,9 @@ dependencies:
         commit: 'sha1-f205ea1c3313d32999d8d6a48b4f6530d4437b38'
         owner_id: 9919
         repo_id: 259445878
-    'github/codeql-action@v4.37.8':
-        ref: 'v4.37.8'
-        commit: 'sha1-db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28'
+    'github/codeql-action@v4.37.9':
+        ref: 'v4.37.9'
+        commit: 'sha1-cdf488f595d80d6e07e03d4674febd5ab45fa938'
         owner_id: 9919
         repo_id: 259445878
     'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1':

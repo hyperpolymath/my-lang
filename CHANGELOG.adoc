@@ -52,7 +52,7 @@ described `+src/+`, `+config/+` and `+scripts/+` directories that do not
 exist) with the real 15-crate workspace layout, the
 `+solo ⊂ duet ⊂ ensemble+` containment hierarchy (with `+me+` as a
 projector outside it), and the CI gate map.
-* docs: `+README.md+` and `+.machine_readable/6a2/STATE.a2ml+` now
+* docs: `+README.md+` and `+.machine_readable/descriptiles/STATE.a2ml+` now
 record the dialects as nested subsets rather than four co-equal
 surfaces, and carry a security-posture section distinguishing expiring
 baseline debt from permanent scoped exemptions.

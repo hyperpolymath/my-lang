@@ -11,7 +11,7 @@ duplicating them:
 proof-status registry
 * link:PROOF-NEEDS.md[`+PROOF-NEEDS.md+`] — proof-side cleanup notes
 * link:TESTING.md[`+TESTING.md+`] — per-crate coverage measurements
-* link:.machine_readable/6a2/STATE.a2ml[`+.machine_readable/6a2/STATE.a2ml+`]
+* link:.machine_readable/descriptiles/STATE.a2ml[`+.machine_readable/descriptiles/STATE.a2ml+`]
 — authoritative machine state
 
 Severity: *HIGH* = correctness, licensing or security exposure ·
@@ -140,7 +140,7 @@ licences.
 ==== L-4 — AGPL text committed while policy bans AGPL · MEDIUM
 
 `+LICENSES/AGPL-3.0-or-later.txt+` (34 KB) is present; nothing in the
-tree declares AGPL, and `+.machine_readable/6a2/AGENTIC.a2ml+` states
+tree declares AGPL, and `+.machine_readable/descriptiles/AGENTIC.a2ml+` states
 _"`Never use AGPL licence`"_. Licence scanners will report AGPL for this
 repository. *Next:* delete unless a dependency genuinely requires the
 text.
@@ -478,7 +478,7 @@ reconcile or scope the patterns to new code.
 nearly all commented placeholders; `+AGENTIC.a2ml+` (2026-04-11) is
 comment-only and states _"`Never place state files in repository root`"_
 while four sit at root. Two different `+0-AI-MANIFEST.a2ml+` files exist
-(root = S-expression, `+6a2/+` = Markdown) with contradictory content.
+(root = S-expression, `+descriptiles/+` = Markdown) with contradictory content.
 `+svc/README.adoc+` documents a `+k9/+` directory that does not exist
 (the file lives in `+self-validating/+`). *Next:* fill or delete;
 deduplicate the manifest.

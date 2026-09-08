@@ -1,0 +1,4 @@
+Contact: https://github.com/hyperpolymath/my-lang/security/advisories/new
+Expires: 2027-09-07T00:00:00Z
+Preferred-Languages: en
+Policy: https://github.com/hyperpolymath/my-lang/blob/main/SECURITY.md

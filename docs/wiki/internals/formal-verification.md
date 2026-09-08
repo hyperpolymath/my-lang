@@ -107,4 +107,4 @@ and asserts `progress` is axiom-free.
   a typed hole (`?todo_*`) or a bare `Definition : Prop` is an *obligation*, never
   a result.
 - Architecture decisions are recorded as ADRs in
-  [`.machine_readable/6a2/META.a2ml`](../../../.machine_readable/6a2/META.a2ml).
+  [`.machine_readable/descriptiles/META.a2ml`](../../../.machine_readable/descriptiles/META.a2ml).

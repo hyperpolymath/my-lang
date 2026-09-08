@@ -70,7 +70,7 @@ pipeline:
 # Prepare a release
 release VERSION:
     @echo "Releasing {{VERSION}}..."
-    @echo "Set version = \"{{VERSION}}\" in Cargo.toml [workspace.package] and .machine_readable/6a2/STATE.a2ml, then tag."
+    @echo "Set version = \"{{VERSION}}\" in Cargo.toml [workspace.package] and .machine_readable/descriptiles/STATE.a2ml, then tag."
 
 # Run dialect demos (per golden-path contract)
 # Usage: just demo [dialect]
@@ -124,7 +124,7 @@ verify:
     #!/usr/bin/env bash
     set -uo pipefail
     fail=0
-    for p in .machine_readable .machine_readable/6a2/STATE.a2ml \
+    for p in .machine_readable .machine_readable/descriptiles/STATE.a2ml \
              .hypatia-baseline.json .hypatia-ignore \
              proofs/STATUS.md Cargo.toml; do
         if [[ -e "$p" ]]; then echo "[OK]   $p"

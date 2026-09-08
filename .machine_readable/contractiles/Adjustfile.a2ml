@@ -40,7 +40,7 @@ actions. Advisory — it warns and trends, it does not block.
 - severity: advisory
 
 ### status-doc-currency
-- description: proofs/STATUS.md + 6a2/STATE.a2ml reflect the actual proof state
+- description: proofs/STATUS.md + descriptiles/STATE.a2ml reflect the actual proof state
 - tolerance: Status registry matches the mechanised cores
 - corrective: Refresh STATUS.md / STATE.a2ml after any proof rung lands
 - severity: advisory
