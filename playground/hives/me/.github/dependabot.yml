@@ -10,6 +10,7 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
+    open-pull-requests-limit: 0
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -18,6 +19,7 @@ updates:
       actions:
         patterns:
           - "*"
+    open-pull-requests-limit: 2
   - package-ecosystem: "nix"
     directory: "/"
     schedule:
