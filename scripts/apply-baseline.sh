@@ -73,6 +73,17 @@ echo "$FINDINGS_JSON" | jq -e 'type == "array"' >/dev/null || {
   echo "error: findings JSON is not an array" >&2
   exit 2
 }
+INVALID_FINDING_SEVERITIES="$(jq -r '
+  [ .[] | (try .severity catch null)
+    | select(. as $severity | ["critical", "high", "medium", "low", "info", "advisory"] | index($severity) | not) ]
+  | unique
+  | .[] | @json
+' <<<"$FINDINGS_JSON")"
+if [[ -n "$INVALID_FINDING_SEVERITIES" ]]; then
+  echo "error: findings contain unrecognized severity values:" >&2
+  echo "$INVALID_FINDING_SEVERITIES" >&2
+  exit 2
+fi
 echo "$BASELINE_JSON" | jq -e 'type == "array"' >/dev/null || {
   echo "error: baseline JSON is not an array" >&2
   exit 2
