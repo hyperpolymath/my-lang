@@ -87,8 +87,10 @@ echo "$BASELINE_JSON" | jq -e 'type == "array"' >/dev/null || {
 
 # Structural validation against the baseline schema (see header).
 SCHEMA_ERRORS="$(jq -r '
+  # Return every key permitted in a baseline entry.
   def known: ["severity","rule_module","type","file","file_pattern",
               "severity_override","expires_at","note","tracking_issue"];
+  # Return the values permitted in the `severity` field of a baseline entry.
   def sevs: ["critical","high","medium","low","info"];
   [ to_entries[] | .key as $i | .value as $e |
     if ($e|type) != "object" then "entry[\($i)]: not an object"
