@@ -228,7 +228,8 @@ ANNOTATED="$(jq -n \
 KEPT="$(jq '[.[] | select(.baseline_status != "acknowledged")]' <<<"$ANNOTATED")"
 SUPPRESSED="$(jq '[.[] | select(.baseline_status == "acknowledged")]' <<<"$ANNOTATED")"
 
-# rank assigns a numeric rank to a severity level for blocking decisions.
+# Print the numeric rank used to compare a severity with the blocking threshold.
+# Unknown severities receive the lowest rank (zero).
 rank() {
   case "$1" in
     critical) echo 5 ;;
