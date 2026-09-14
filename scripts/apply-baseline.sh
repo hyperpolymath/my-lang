@@ -73,6 +73,13 @@ echo "$FINDINGS_JSON" | jq -e 'type == "array"' >/dev/null || {
   echo "error: findings JSON is not an array" >&2
   exit 2
 }
+echo "$FINDINGS_JSON" | jq -e '
+  all(.[]; .severity == "critical" or .severity == "high" or .severity == "medium"
+           or .severity == "low" or .severity == "info" or .severity == "advisory")
+' >/dev/null || {
+  echo "error: findings JSON contains an invalid severity" >&2
+  exit 2
+}
 echo "$BASELINE_JSON" | jq -e 'type == "array"' >/dev/null || {
   echo "error: baseline JSON is not an array" >&2
   exit 2
@@ -221,8 +228,7 @@ ANNOTATED="$(jq -n \
 KEPT="$(jq '[.[] | select(.baseline_status != "acknowledged")]' <<<"$ANNOTATED")"
 SUPPRESSED="$(jq '[.[] | select(.baseline_status == "acknowledged")]' <<<"$ANNOTATED")"
 
-# Print the numeric rank used to compare a severity with the blocking threshold.
-# Unknown severities receive the lowest rank (zero).
+# Print the numeric rank used to compare a validated severity with the blocking threshold.
 rank() {
   case "$1" in
     critical) echo 5 ;;
@@ -231,7 +237,7 @@ rank() {
     low)      echo 2 ;;
     info)     echo 1 ;;
     advisory) echo 0 ;;
-    *)        echo 0 ;;
+    *)        exit 2 ;;
   esac
 }
 
