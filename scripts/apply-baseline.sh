@@ -160,8 +160,9 @@ EXPIRED_COUNT=$((EXPIRED_COUNT - ACTIVE_COUNT))
 ANNOTATED="$(jq -n \
   --argjson findings "$FINDINGS_JSON" \
   --argjson baseline "$ACTIVE_BASELINE" '
-  # Tokenise the two supported wildcards; every other character is literal.
-  # No sentinel substitution: a real filename may contain DOUBLESTAR.
+  # Convert a glob pattern to an anchored regular expression. `*` matches
+  # within one path segment, while `**` can cross directory boundaries.
+  # All other characters are matched literally.
   def glob_regex:
     [scan("\\*\\*|\\*|[^*]")
      | if . == "**" then ".*"
@@ -169,17 +170,9 @@ ANNOTATED="$(jq -n \
        elif inside(".\\+?^$()[]{}|") then "\\" + .
        else . end]
     | "\\A" + join("") + "\\z";
-  # Two captures are essential here:
-  #   `f as $finding` — without this, references like `f.file` inside the
-  #   select() get re-evaluated against the current baseline entry (the
-  #   re-bound `.`), not the finding. Binding $finding once captures the
-  #   finding before we enter the map(select()) over the baseline.
-  #
-  #   `(.file_pattern? // null) as $pat` — inside `test(arg)` the dot
-  #   rebinds to the input of test ($finding.file, a string), so
-  #   referencing `.file_pattern` there would error with "Cannot index
-  #   string". Capture the entry pattern first, then reference $pat
-  #   inside the test() regex argument.
+  # Return the first active baseline entry whose severity, rule module, and type
+  # match a finding, and whose exact file path equals the finding file or whose
+  # file pattern matches it; return null if there is no match.
   def match_entry(f):
     f as $finding
     | $baseline
