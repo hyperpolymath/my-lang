@@ -91,8 +91,10 @@ echo "$BASELINE_JSON" | jq -e 'type == "array"' >/dev/null || {
 
 # Structural validation against the baseline schema (see header).
 SCHEMA_ERRORS="$(jq -r '
+  # Return every key permitted in a baseline entry.
   def known: ["severity","rule_module","type","file","file_pattern",
               "severity_override","expires_at","note","tracking_issue"];
+  # Return the values permitted in the `severity` field of a baseline entry.
   def sevs: ["critical","high","medium","low","info"];
   [ to_entries[] | .key as $i | .value as $e |
     if ($e|type) != "object" then "entry[\($i)]: not an object"
@@ -232,8 +234,8 @@ ANNOTATED="$(jq -n \
 KEPT="$(jq '[.[] | select(.baseline_status != "acknowledged")]' <<<"$ANNOTATED")"
 SUPPRESSED="$(jq '[.[] | select(.baseline_status == "acknowledged")]' <<<"$ANNOTATED")"
 
-# Print the numeric rank used to compare a severity with the blocking threshold.
-# Unknown severities receive the lowest rank (zero).
+# Print the numeric rank used to compare a validated severity with the blocking
+# threshold. Exit with status 2 if called with any other value.
 rank() {
   case "$1" in
     critical) echo 5 ;;
@@ -242,7 +244,7 @@ rank() {
     low)      echo 2 ;;
     info)     echo 1 ;;
     advisory) echo 0 ;;
-    *)        echo 0 ;;
+    *)        exit 2 ;;
   esac
 }
 
