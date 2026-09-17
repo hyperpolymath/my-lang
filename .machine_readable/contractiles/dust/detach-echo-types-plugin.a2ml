@@ -62,7 +62,7 @@ be a significant architectural change requiring a clear extension boundary.
 ### 5-update-6a2-state
 - description: Update STATE.a2ml to reflect echo-types as plugin, not built-in
 - corrective: >
-    In 6a2/STATE.a2ml: update echo_integration_status from 'built_in' to 'plugin'.
+    In descriptiles/STATE.a2ml: update echo_integration_status from 'built_in' to 'plugin'.
     Add an ADR in META.a2ml documenting the boundary decision.
 
 ## Completion Criteria

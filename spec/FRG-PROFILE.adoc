@@ -9,9 +9,9 @@
 |===
 | Field | Value
 
-| Language | My (`.my`, four dialects)
+| Language | My (`.my`; Solo, Duet, Ensemble; Me projection)
 | Repository | https://github.com/hyperpolymath/my-lang
-| Current FRG Grade | *X*  (no formalisation in any qualifying prover; PROOF-NEEDS.md explicitly records that template ABI scaffolding was removed without replacement)
+| Historical FRG Grade (2026-05-28) | *X*  (no formalisation in any qualifying prover; PROOF-NEEDS.md explicitly records that template ABI scaffolding was removed without replacement)
 | Assessed | 2026-05-28
 | Assessor | Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 | FRG Spec Version | 1.0
@@ -21,7 +21,20 @@
 | Qualifying Prover(s) | (none mechanised at the calculus level)
 |===
 
-== About this profile
+== Assessment horizon and reassessment
+
+This document preserves the 2026-05-28 assessment; its absence claims must not
+be treated as a fresh inventory. The September portfolio audit found additional
+formal development and a proof-status registry in a local My checkout which was
+not present at the fetched main revision. Reconcile and validate that unpublished
+work before assigning a new grade to main. No grade upgrade is made here.
+
+The current dialect hierarchy is Solo, Duet, Ensemble. Me is an agent-generated
+projection over it. Historical references below to a fourth static Me dialect
+are superseded; a future profile must state the projection's elaboration and
+behavior obligations separately from dialect inclusion.
+
+== Historical assessment
 
 My is FRG-X. The `proofs/` directory exists with dialect-aligned
 subdirectories suggesting *intended* per-dialect formalisation, but
@@ -60,7 +73,7 @@ foundations evidence starts to interact).
 * *TypeLL level claimed:* L4 (Type compatibility) *operationally*
 * *Honest level for FRG:* L4 — implementation enforces affine /
   borrow / progressive-disclosure types, but no mechanised soundness
-  claim. The dialect structure (solo / duet / ensemble / me)
+  claim. The dialect structure (solo / duet / ensemble; Me is a projection)
   *aspires* to layered type-safety progression but no formal
   encoding establishes this.
 * *Levels not yet claimed:* L5-L10. Progressive-disclosure pedagogy
@@ -156,9 +169,9 @@ For My, the following FRG tightening applies:
   formalisation must start at the simplest and add layered
   obligations.
 * *Grade D tightening:* Preservation MUST be stated *per dialect*:
-  preservation-solo, preservation-duet, preservation-ensemble,
-  preservation-me, with explicit composition rules for the
-  inclusion `solo ⊆ duet ⊆ ensemble ⊆ me`.
+  preservation-solo, preservation-duet, preservation-ensemble, with
+  explicit composition rules for `solo ⊆ duet ⊆ ensemble`. The Me
+  projection requires its own elaboration and behavior correspondence.
 * *Grade C tightening:* The borrow checker MUST be modelled in the
   formal calculus, not stubbed out. (My's borrow-check is genuine
   per `crates/my-lint/`; the formal encoding must match.)

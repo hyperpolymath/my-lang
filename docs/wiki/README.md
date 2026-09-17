@@ -105,7 +105,7 @@ integration is one capability among many — not the defining feature.
 ## Project status
 
 - **Version:** `0.2.0` (early-alpha, experimental; no tagged release) — see
-  [`.machine_readable/6a2/STATE.a2ml`](../../.machine_readable/6a2/STATE.a2ml)
+  [`.machine_readable/descriptiles/STATE.a2ml`](../../.machine_readable/descriptiles/STATE.a2ml)
   for the authoritative state, and [`proofs/STATUS.md`](../../proofs/STATUS.md)
   for the proof-status registry.
 - **Scope:** Solo dialect only in `f0` (per the

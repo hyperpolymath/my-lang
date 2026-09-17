@@ -3,15 +3,15 @@
 
 ## Machine-Readable Artefacts
 
-The following files in `.machine_readable/6a2/` contain structured project
+The following files in `.machine_readable/descriptiles/` contain structured project
 metadata (a2ml format; the earlier `.scm` root-level names are retired):
 
-- `6a2/STATE.a2ml` - Current project state and progress
-- `6a2/META.a2ml` - Architecture decisions (ADRs) and development practices
-- `6a2/ECOSYSTEM.a2ml` - Position in the ecosystem and related projects
-- `6a2/AGENTIC.a2ml` - AI agent interaction patterns
-- `6a2/NEUROSYM.a2ml` - Neurosymbolic integration config
-- `6a2/PLAYBOOK.a2ml` - Operational runbook
+- `descriptiles/STATE.a2ml` - Current project state and progress
+- `descriptiles/META.a2ml` - Architecture decisions (ADRs) and development practices
+- `descriptiles/ECOSYSTEM.a2ml` - Position in the ecosystem and related projects
+- `descriptiles/AGENTIC.a2ml` - AI agent interaction patterns
+- `descriptiles/NEUROSYM.a2ml` - Neurosymbolic integration config
+- `descriptiles/PLAYBOOK.a2ml` - Operational runbook
 
 Self-validation / service metadata lives in `.machine_readable/svc/`
 (`svc/k9/my-lang-metadata.k9.ncl`, `svc/README.adoc`). The scope-arrest anchor
@@ -36,7 +36,7 @@ is the top-level `ANCHOR.scope-arrest.2026-01-01.Jewell.scm`.
 | **Bash/POSIX Shell** | Scripts, automation | Keep minimal |
 | **JavaScript** | Only where AffineScript cannot | MCP protocol glue, Bun APIs |
 | **Nickel** | Configuration language | For complex configs |
-| **Guile Scheme** | State/meta files | `.machine_readable/6a2/{STATE,META,ECOSYSTEM}.a2ml` (the earlier `.scm` names are retired) |
+| **Guile Scheme** | State/meta files | `.machine_readable/descriptiles/{STATE,META,ECOSYSTEM}.a2ml` (the earlier `.scm` names are retired) |
 | **Julia** | Batch scripts, data processing | Per RSR |
 | **OCaml** | AffineScript compiler | Language-specific |
 | **Ada** | Safety-critical systems | Where required |

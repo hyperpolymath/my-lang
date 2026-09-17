@@ -47,7 +47,7 @@ what must be preserved, and what downstream consumers must be informed of.
 ### 5-update-6a2-state
 - description: Update STATE.a2ml and META.a2ml to reflect Coq retirement
 - corrective: >
-    In 6a2/STATE.a2ml: mark coq_core as retired; in 6a2/META.a2ml: remove
+    In descriptiles/STATE.a2ml: mark coq_core as retired; in descriptiles/META.a2ml: remove
     ADR-009 (open-context subst) as Coq-specific or generalise it.
 
 ### 6-notify-downstream
