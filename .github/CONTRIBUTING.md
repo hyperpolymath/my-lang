@@ -77,7 +77,7 @@ divergence between the implementation and the mechanised specification.
 
 ### Suggesting features
 
-Check [`ROADMAP.adoc`](ROADMAP.adoc) and
+Check [`ROADMAP.adoc`](../ROADMAP.adoc) and
 [`proofs/STATUS.md`](proofs/STATUS.md) first — a surprising amount of
 “missing” functionality is deliberately fenced pending a proof. Then use
 the [feature request
@@ -186,4 +186,4 @@ Participation is governed by [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 By contributing you agree that your contributions are licensed under
 **MPL-2.0** (code) or **CC-BY-SA-4.0** (documentation), matching the
-file you are editing. See [`LICENSE`](LICENSE).
+file you are editing. See [`LICENSE`](../LICENSE).
