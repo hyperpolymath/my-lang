@@ -124,7 +124,7 @@ cd solo-compiler && cargo build --release
 
 === Contributing Examples
 
-Want to add an example? See link:../CONTRIBUTING.md[CONTRIBUTING.md] for
+Want to add an example? See link:../../.github/CONTRIBUTING.md[CONTRIBUTING.md] for
 guidelines.
 
 Examples should: - Include SPDX license header - Be self-contained and
