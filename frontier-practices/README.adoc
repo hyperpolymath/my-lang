@@ -157,7 +157,7 @@ seven-tentacles/
 
 == Contributing
 
-We welcome contributions! Please see our link:CONTRIBUTING.adoc[contribution guidelines].
+We welcome contributions! Please see our link:../.github/CONTRIBUTING.md[contribution guidelines].
 
 === Priority Areas
 

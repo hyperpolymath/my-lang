@@ -435,7 +435,7 @@ for the machine-readable version.
 
 === Contributing
 
-See CONTRIBUTING.adoc. GPG-signed commits required. Language policy,
+See .github/CONTRIBUTING.md. GPG-signed commits required. Language policy,
 package management, and security requirements are enforced by the estate
 governance workflow (`+hyperpolymath/standards+`). New contributors
 should read EXPLAINME.adoc first.

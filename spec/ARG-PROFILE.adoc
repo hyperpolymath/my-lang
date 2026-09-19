@@ -63,7 +63,7 @@ Cross-axis rule: ARG ≤ TRG holds.
 
 | *D3 — Provenance*
 | YES
-| MAINTAINERS.adoc + LICENSE + CITATION (via CONTRIBUTING.adoc) +
+| MAINTAINERS.adoc + LICENSE + CITATION (via ../.github/CONTRIBUTING.md) +
   CODE_OF_CONDUCT
 
 | *TRG ≥ D estate-wide*
