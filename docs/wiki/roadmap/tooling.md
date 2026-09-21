@@ -584,8 +584,7 @@ jobs:
       - name: Test
         run: ml test --coverage
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
+      # Coverage stays in-repo (ml test --coverage); no third-party uploader is configured.
 ```
 
 ### Pre-commit Hooks
