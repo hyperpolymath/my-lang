@@ -83,7 +83,7 @@ function norm(r,   at, path, ref, n, parts) {
   return parts[1] "/" parts[2] "@" ref
 }
 
-# Return refs unchanged so lockfile comparisons remain case-sensitive.
+# Preserve the original owner/repository and ref casing in comparison keys.
 function ck(r,   at, s) {
   at = 0
   for (s = length(r); s > 0; s--) { if (substr(r, s, 1) == "@") { at = s; break } }
