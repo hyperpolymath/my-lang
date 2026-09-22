@@ -28,6 +28,7 @@ workflows:
         - 'hyperpolymath/standards@469605210e767ee94d1c7a9c13cb6a1d0a78cad1'
     '.github/workflows/label-triage.yml': []
     '.github/workflows/labels.yml': []
+    '.github/workflows/lock-sync-gate.yml': []
     '.github/workflows/mirror.yml':
         - 'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a'
     '.github/workflows/pages.yml':
