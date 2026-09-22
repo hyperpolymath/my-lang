@@ -28,16 +28,6 @@
 # guard/consumer trap: the gate asked "is every uses: locked?" and GitHub asks
 # "is every locked ref RESOLVABLE?".
 #
-# The asymmetry that makes clause 3 mandatory, and counter-intuitive:
-#   * a job-level ref ABSENT from the lockfile entirely is HARMLESS;
-#   * a ref PRESENT in the lockfile but unresolvable is FATAL.
-# So adding entries without closing them is strictly worse than adding nothing.
-# Clause 1 demands entries be added; only clause 3 makes that demand safe. Shipping
-# clause 1 without clause 3 actively steers a developer into the fatal state:
-# Dependabot bumps a job-level ref -> clause 1 reds -> `gh actions-lock` is blind to
-# job-level refs and will not backfill -> the developer hand-adds the workflows:
-# entry to get green -> no dependencies: record -> CI dies silently, gate green.
-#
 # Exit 0 only when all three clauses hold. Any violation exits 1. There is no
 # warn-only mode: a desync means GitHub refuses to start the run, so it must fail
 # the job. A `::warning::` cannot fail a job and would be a vacuous gate.
@@ -70,7 +60,11 @@ if [ ! -f "$LOCK" ]; then
 fi
 
 shopt -s nullglob
-mapfile -t WORKFLOWS < <(printf '%s\n' "$WF_DIR"/*.yml "$WF_DIR"/*.yaml | sort -u)
+CANDIDATES=("$WF_DIR"/*.yml "$WF_DIR"/*.yaml)
+WORKFLOWS=()
+if [ "${#CANDIDATES[@]}" -gt 0 ]; then
+  mapfile -t WORKFLOWS < <(printf '%s\n' "${CANDIDATES[@]}" | sort -u)
+fi
 if [ "${#WORKFLOWS[@]}" -eq 0 ]; then
   echo "check-lock-sync: FATAL: no workflow files under $WF_DIR" >&2
   exit 1
@@ -89,18 +83,12 @@ function norm(r,   at, path, ref, n, parts) {
   return parts[1] "/" parts[2] "@" ref
 }
 
-# Fold case on the OWNER/REPO segment only, for comparison keys. GitHub resolves
-# owner and repository names case-insensitively, and this is measured, not assumed:
-# metadatastician/pong-ping's lockfile records sonarsource/sonarqube-scan-action@v8.2.1
-# while sonarqube.yml says SonarSource/..., and at commit cd5f90f that workflow ran
-# SUCCESS while codeql.yml at the SAME commit was startup_failure. A same-commit
-# control, so the case difference is provably not what kills a run.
-# The REF is NOT folded: git tags and branch names are case-sensitive.
+# Preserve the original owner/repository and ref casing in comparison keys.
 function ck(r,   at, s) {
   at = 0
   for (s = length(r); s > 0; s--) { if (substr(r, s, 1) == "@") { at = s; break } }
-  if (at == 0) return tolower(r)
-  return tolower(substr(r, 1, at - 1)) substr(r, at)
+  if (at == 0) return r
+  return substr(r, 1, at - 1) substr(r, at)
 }
 
 # ---------- pass 1: the lockfile ----------
@@ -154,15 +142,10 @@ FNR == 1 { wf = FILENAME }
     raw = m[1]
     gsub(/^["']|["']$/, "", raw)
     gsub(/[[:space:]]+$/, "", raw)
-    if (raw ~ /^\$\//) { dollar[wf] = dollar[wf] " " raw; next }   # known corruption
+    if (raw ~ /^\$\//) next                       # local action
     n = norm(raw)
     if (n != "") {
       uses[wf, ck(n)] = 1
-      # A JOB-LEVEL reusable-workflow ref is owner/repo/.github/workflows/<f>.yml@ref.
-      # A STEP-LEVEL action ref is anything else. The distinction is load-bearing:
-      # see clause 1.
-      if (raw ~ /\/\.github\/workflows\/[^@]*\.ya?ml@/) joblist[wf] = joblist[wf] " " n
-      else                                               steplist[wf] = steplist[wf] " " n
       useslist[wf] = useslist[wf] " " n
     }
   }
@@ -177,34 +160,8 @@ END {
     sub(/.*\//, "", key)
     key = ".github/workflows/" key          # the lockfile always uses this canonical path
 
-    if (dollar[wf] != "") {
-      printf "FAIL %s\n     invalid local-action rewrite (uses: $/...):%s\n", key, dollar[wf]
-      bad = 1
-    }
-
-    # --- clause 1: every STEP-LEVEL uses: must be locked under THIS path ---
-    #
-    # Only step-level action refs are required. A job-level reusable-workflow ref
-    # that is ABSENT from the lockfile is harmless - this file's own header has
-    # said so since it was written ("a job-level ref ABSENT from the lockfile
-    # entirely is HARMLESS; a ref PRESENT in the lockfile but unresolvable is
-    # FATAL"), but clause 1 used to fail on it anyway. That was an internal
-    # contradiction, and it is measured, not argued:
-    #
-    #   * metadatastician/universal-modding-studio and idaptik-ums: scorecard.yml
-    #     is a pure reusable caller with NO lockfile entry at all -> runs, jobs>0.
-    #   * hyperpolymath/standards mirror.yml: empty lock entry, job-level ref
-    #     unlocked -> 7 jobs created.
-    #   * hyperpolymath/my-lang: four workflows share ONE identical stale entry;
-    #     two succeed and two startup-fail, so the entry is not the discriminator.
-    #     What separates them is clause 3 - whether the callee's own refs resolve
-    #     to dependencies: records in THIS lockfile.
-    #
-    # Failing on an absent job-level ref also steers the developer into the fatal
-    # state: gh actions-lock will not backfill job-level refs, so the only way to
-    # go green was to hand-add a workflows: entry with no dependencies: record -
-    # which is precisely the dangling edge clause 3 exists to catch.
-    nu = split(steplist[wf], u, " ")
+    # --- clause 1: every uses: reference must be locked under THIS path ---
+    nu = split(useslist[wf], u, " ")
     delete uniq; missing = ""
     for (j = 1; j <= nu; j++) {
       if (u[j] == "" || (u[j] in uniq)) continue
@@ -213,22 +170,11 @@ END {
     }
     if (missing != "") {
       if (!(key in seen_path))
-        printf "FAIL %s\n     not onboarded: no lockfile entry for this path\n     unlocked step-level refs:%s\n", key, missing
+        printf "FAIL %s\n     not onboarded: no lockfile entry for this path\n     unlocked uses refs:%s\n", key, missing
       else
-        printf "FAIL %s\n     step-level refs missing from the lockfile:%s\n", key, missing
+        printf "FAIL %s\n     uses refs missing from the lockfile:%s\n", key, missing
       bad = 1
     }
-
-    # Job-level reusable refs: reported, never fatal. If one IS locked, clause 3
-    # still requires its callee graph to be closed.
-    njm = split(joblist[wf], v, " ")
-    delete juniq; jmissing = ""
-    for (j = 1; j <= njm; j++) {
-      if (v[j] == "" || (v[j] in juniq)) continue
-      juniq[v[j]] = 1
-      if (!((key SUBSEP ck(v[j])) in lock)) jmissing = jmissing " " v[j]
-    }
-    if (jmissing != "") jnote = jnote sprintf("\n  %s:%s", key, jmissing)
 
     # --- clause 2: every lock entry must be referenced by this workflow ---
     orphan = ""
@@ -331,8 +277,6 @@ END {
   printf "  * every workflow file has a lockfile key (zero-uses: workflows included)\n"
   if (nunref > 0)
     printf "  note: %d dependencies: record(s) are unreferenced - harmless, but prunable.\n", nunref
-  if (jnote != "")
-    printf "  note: job-level reusable refs not locked (harmless; see clause 1):%s\n", jnote
 }
 AWK
 
