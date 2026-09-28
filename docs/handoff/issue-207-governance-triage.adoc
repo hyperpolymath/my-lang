@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: MPL-2.0
+= Issue #207: governance check triage
+:revdate: 2026-09-28
+
+== Evidence and determination
+
+Both checks are red on `main` at `5b3a1fde10db4cb379d2022d24409ce9deb3aa10`:
+https://github.com/hyperpolymath/my-lang/actions/runs/36444014532[Governance run].
+These are existing base-branch defects, not regressions introduced by this repair.
+
+* `governance / Check Workflow Staleness`: *fix*, not retire or exempt.
+  https://github.com/hyperpolymath/my-lang/actions/runs/36444014532/job/109001501889[Job evidence]
+  identifies Hypatia's Standards pin `469605210e767ee94d1c7a9c13cb6a1d0a78cad1`
+  as unreachable from Standards main.
+* `governance / Workflow security linter`: *fix*, not retire or exempt.
+  https://github.com/hyperpolymath/my-lang/actions/runs/36444014532/job/109001502084[Job evidence]
+  fails at upstream pin resolution. Running the canonical resolver locally
+  reproduces `NOT-ANCESTOR` for the same pin (compare result: diverged).
+
+== Repair
+
+Repin Hypatia to `9e9513b11fff182b08cf8cd6c9c2272460636586`, the published
+Standards revision already used by governance. GitHub's compare API confirms
+it is an ancestor of Standards main. Its Hypatia reusable accepts the existing
+`block-on-high` input; keep that input true and retain existing permissions.
+
+Reconcile `actions.lock` with the new pin, including the combined transitive
+requirements of governance and Hypatia at this revision. Also reconcile the
+three existing CodeQL workflow entries with their actual `2892aa5...` pin;
+main's lock still recorded `b96794f...`. No CodeQL workflow is changed.
+
+No checks are removed, demoted, skipped, or given an exemption. No required-check
+settings are changed. The older Scorecard pin produces an existing advisory
+notice, not either failing check's cause; leave it outside this repair.
+
+== Validation and closure
+
+Local validation after the repair:
+
+* Canonical `check-action-pins-resolve.sh`: all eight unique verifiable pins pass.
+* `check-workflow-staleness.sh` from the exact governance revision, with full
+  Standards history and that revision as expected SHA: passes.
+* `git diff --check`: passes.
+
+Local execution of `scripts/check-lock-sync.sh` is blocked by missing GNU awk;
+package downloads failed. Installation of `gh actions-lock` also failed because
+the release download endpoint returned EOF. The lock reconciliation is manual;
+the authoritative lock checks must run in CI before merge.
+
+Keep issue #207 open until both named checks pass on the PR and subsequently
+on the default branch. Local component passes are not a claim that the complete
+Workflow security linter job, or default-branch acceptance criteria, are green.
