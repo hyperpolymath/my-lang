@@ -38,7 +38,7 @@ workflows:
     '.github/workflows/proofs.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/push-email-notify.yml':
-        - 'hyperpolymath/smtp-notify-action@v0.3.0'
+        - 'hyperpolymath/smtp-notify-action@v0.5.1'
     '.github/workflows/scorecard.yml':
         - 'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a'
     '.github/workflows/secret-scanner.yml':
@@ -126,9 +126,9 @@ dependencies:
         commit: 'sha1-884713a6c30a92e5e8544c39945cd7cb630abcd1'
         owner_id: 1342004
         repo_id: 400046858
-    'hyperpolymath/smtp-notify-action@v0.3.0':
-        ref: 'v0.3.0'
-        commit: 'sha1-22e7bdb322c430c1d0dac6b3bb307f4bb139d0be'
+    'hyperpolymath/smtp-notify-action@v0.5.1':
+        ref: 'v0.5.1'
+        commit: 'sha1-e384daf6167a7a7567642d6a62060106244d2413'
         owner_id: 6759885
         repo_id: 1352485172
     'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a':
