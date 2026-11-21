@@ -4,57 +4,46 @@
 version: 'v0.0.3'
 workflows:
     '.github/workflows/cflite_batch.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@33d7b85da1a04171e211befe2c739303b9a4c066'
-        - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
+        - 'actions/checkout@v7.0.1'
+        - 'github/codeql-action@v4.39.3'
+        - 'google/clusterfuzzlite@v1'
     '.github/workflows/cflite_pr.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@33d7b85da1a04171e211befe2c739303b9a4c066'
-        - 'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1'
+        - 'actions/checkout@v7.0.1'
+        - 'github/codeql-action@v4.39.3'
+        - 'google/clusterfuzzlite@v1'
     '.github/workflows/checker-scaling.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
-        - 'dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8'
+        - 'actions/checkout@v7.0.1'
+        - 'actions/upload-artifact@v7.0.2'
+        - 'dtolnay/rust-toolchain@v1'
     '.github/workflows/codeql.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'github/codeql-action@33d7b85da1a04171e211befe2c739303b9a4c066'
+        - 'actions/checkout@v7.0.1'
+        - 'github/codeql-action@v4.39.3'
     '.github/workflows/coverage.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
-        - 'dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8'
-    '.github/workflows/governance.yml':
-        - 'hyperpolymath/standards@9e9513b11fff182b08cf8cd6c9c2272460636586'
-    '.github/workflows/hypatia-scan.yml':
-        - 'hyperpolymath/standards@9e9513b11fff182b08cf8cd6c9c2272460636586'
+        - 'actions/checkout@v7.0.1'
+        - 'actions/upload-artifact@v7.0.2'
+        - 'dtolnay/rust-toolchain@v1'
+    '.github/workflows/governance.yml': []
+    '.github/workflows/hypatia-scan.yml': []
     '.github/workflows/label-triage.yml': []
     '.github/workflows/labels.yml': []
     '.github/workflows/lock-sync-gate.yml': []
-    '.github/workflows/mirror.yml':
-        - 'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a'
+    '.github/workflows/mirror.yml': []
     '.github/workflows/pages.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'actions/checkout@v7.0.1'
         - 'actions/deploy-pages@v5.0.1'
         - 'actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9'
     '.github/workflows/proofs.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'actions/checkout@v7.0.1'
     '.github/workflows/push-email-notify.yml':
         - 'hyperpolymath/smtp-notify-action@v0.5.1'
-    '.github/workflows/scorecard.yml':
-        - 'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a'
-    '.github/workflows/secret-scanner.yml':
-        - 'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a'
-    '.github/workflows/spark-theatre-gate.yml':
-        - 'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a'
+    '.github/workflows/scorecard.yml': []
+    '.github/workflows/secret-scanner.yml': []
+    '.github/workflows/spark-theatre-gate.yml': []
     '.github/workflows/stack-depth.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8'
+        - 'actions/checkout@v7.0.1'
+        - 'dtolnay/rust-toolchain@v1'
 dependencies:
-    'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9':
-        ref: 'v6.1.0'
-        commit: 'sha1-55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
-        owner_id: 44036562
-        repo_id: 215566462
-    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1':
+    'actions/checkout@v7.0.1':
         ref: 'v7.0.1'
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
         owner_id: 44036562
@@ -64,17 +53,12 @@ dependencies:
         commit: 'sha1-368f82528645a54fb793d4d04e342629a3f51346'
         owner_id: 44036562
         repo_id: 438112499
-    'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a':
-        ref: '043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
-        commit: 'sha1-043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
-        owner_id: 44036562
-        repo_id: 192625955
     'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f':
         ref: 'v7.0.0'
         commit: 'sha1-bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
         owner_id: 44036562
         repo_id: 192625955
-    'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9':
+    'actions/upload-artifact@v7.0.2':
         ref: 'v7.0.2'
         commit: 'sha1-cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         owner_id: 44036562
@@ -86,42 +70,17 @@ dependencies:
         repo_id: 496012378
         uses:
             - 'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
-    'dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8':
+    'dtolnay/rust-toolchain@v1':
         ref: 'v1'
         commit: 'sha1-683b588c487a69d01f6c6ddf40f036ff682cc2c8'
         owner_id: 1940490
         repo_id: 260749683
-    'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772':
-        ref: '6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
-        commit: 'sha1-6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
-        owner_id: 1940490
-        repo_id: 260749683
-    'editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c':
-        ref: 'v2.2.0'
-        commit: 'sha1-840e866d93b8e032123c23bac69dece044d4d84c'
-        owner_id: 26415196
-        repo_id: 297874902
-    'erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124':
-        ref: 'v1.24.1'
-        commit: 'sha1-54075bcc5e249e4758d363f27d099f55d843f124'
-        owner_id: 47606891
-        repo_id: 331103973
-    'github/codeql-action@33d7b85da1a04171e211befe2c739303b9a4c066':
+    'github/codeql-action@v4.39.3':
         ref: 'v4.39.3'
         commit: 'sha1-33d7b85da1a04171e211befe2c739303b9a4c066'
         owner_id: 9919
         repo_id: 259445878
-    'github/codeql-action@cdf488f595d80d6e07e03d4674febd5ab45fa938':
-        ref: 'cdf488f595d80d6e07e03d4674febd5ab45fa938'
-        commit: 'sha1-cdf488f595d80d6e07e03d4674febd5ab45fa938'
-        owner_id: 9919
-        repo_id: 259445878
-    'github/codeql-action@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28':
-        ref: 'db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28'
-        commit: 'sha1-db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28'
-        owner_id: 9919
-        repo_id: 259445878
-    'google/clusterfuzzlite@884713a6c30a92e5e8544c39945cd7cb630abcd1':
+    'google/clusterfuzzlite@v1':
         ref: 'v1'
         commit: 'sha1-884713a6c30a92e5e8544c39945cd7cb630abcd1'
         owner_id: 1342004
@@ -131,37 +90,3 @@ dependencies:
         commit: 'sha1-e384daf6167a7a7567642d6a62060106244d2413'
         owner_id: 6759885
         repo_id: 1352485172
-    'hyperpolymath/standards@84355587cb2a1f86e6882de83514a32db2646e7a':
-        ref: '84355587cb2a1f86e6882de83514a32db2646e7a'
-        commit: 'sha1-84355587cb2a1f86e6882de83514a32db2646e7a'
-        owner_id: 6759885
-        repo_id: 1116521501
-        uses:
-            - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-            - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
-            - 'dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
-            - 'github/codeql-action@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28'
-            - 'ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc'
-            - 'webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555'
-    'hyperpolymath/standards@9e9513b11fff182b08cf8cd6c9c2272460636586':
-        ref: '9e9513b11fff182b08cf8cd6c9c2272460636586'
-        commit: 'sha1-9e9513b11fff182b08cf8cd6c9c2272460636586'
-        owner_id: 6759885
-        repo_id: 1116521501
-        uses:
-            - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
-            - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-            - 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
-            - 'editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c'
-            - 'erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124'
-            - 'github/codeql-action@cdf488f595d80d6e07e03d4674febd5ab45fa938'
-    'ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc':
-        ref: 'v2.4.4'
-        commit: 'sha1-2d1146689b8cda280b9bc96326124645441f03bc'
-        owner_id: 67707773
-        repo_id: 421101922
-    'webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555':
-        ref: 'v0.10.0'
-        commit: 'sha1-e83874834305fe9a4a2997156cb26c5de65a8555'
-        owner_id: 135788
-        repo_id: 208510314
